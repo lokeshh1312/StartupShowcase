@@ -9,6 +9,7 @@ import {
   CATEGORIES,
   STAGES,
 } from "../lib/validation";
+import { buildSafePrefixTsQuery } from "../lib/search";
 
 describe("Validation Schemas & Normalization", () => {
   describe("normalizeUrl", () => {
@@ -119,6 +120,8 @@ describe("Validation Schemas & Normalization", () => {
   });
 
   describe("createStartupSchema", () => {
+    // Note: month is no longer part of the client schema.
+    // The server decides the launch month at approval time.
     const validData = {
       name: "AgriSense",
       ideaTitle: "AI-Based Crop Health Monitoring",
@@ -130,7 +133,6 @@ describe("Validation Schemas & Normalization", () => {
       city: "Nashik",
       remoteFirst: false,
       stage: "MVP",
-      month: "2026-10-01",
       websiteUrl: "https://agrisense.io",
       logoColor: "#16A34A",
       founder: {
@@ -148,10 +150,17 @@ describe("Validation Schemas & Normalization", () => {
       expect(parsed.name).toBe("AgriSense");
       expect(parsed.ideaTitle).toBe("AI-Based Crop Health Monitoring");
       expect(parsed.countryCode).toBe("IN");
-      expect(parsed.month).toBe("2026-10-01");
-      expect(parsed.monthLabel).toBe("October 2026");
+      // month is no longer in the schema output
       expect(parsed.location).toBe("Nashik, Maharashtra, India");
       expect(parsed.websiteUrl).toBe("https://agrisense.io/");
+    });
+
+    it("does not accept a month field from client input", () => {
+      // Even if the client sends month, it should be ignored/stripped
+      const withMonth = { ...validData, month: "2026-10-01" };
+      const parsed = createStartupSchema.parse(withMonth);
+      // The output should not contain a month property from the schema
+      expect((parsed as Record<string, unknown>).month).toBeUndefined();
     });
 
     it("defaults ideaTitle to name if omitted", () => {
@@ -230,6 +239,59 @@ describe("Validation Schemas & Normalization", () => {
       expect(() =>
         createStartupSchema.parse({ ...validData, logoColor: "not-a-color" })
       ).toThrow();
+    });
+  });
+
+  describe("buildSafePrefixTsQuery", () => {
+    it("returns null for empty or whitespace-only input", () => {
+      expect(buildSafePrefixTsQuery("")).toBeNull();
+      expect(buildSafePrefixTsQuery("   ")).toBeNull();
+      expect(buildSafePrefixTsQuery("!!!")).toBeNull();
+    });
+
+    it("builds prefix tsquery for ASCII words", () => {
+      expect(buildSafePrefixTsQuery("agri")).toBe("agri:*");
+      expect(buildSafePrefixTsQuery("agri ai")).toBe("agri:* & ai:*");
+    });
+
+    it("strips non-letter, non-number, non-space characters", () => {
+      expect(buildSafePrefixTsQuery("hello-world!")).toBe("hello:* & world:*");
+    });
+
+    it("caps at 8 words", () => {
+      const input = "one two three four five six seven eight nine ten";
+      const result = buildSafePrefixTsQuery(input);
+      // Should only have 8 terms
+      expect(result).toBe(
+        "one:* & two:* & three:* & four:* & five:* & six:* & seven:* & eight:*"
+      );
+    });
+
+    it("handles Japanese input (Unicode letters)", () => {
+      // "東京テック" = Tokyo Tech in Japanese
+      const result = buildSafePrefixTsQuery("東京テック");
+      expect(result).toBe("東京テック:*");
+    });
+
+    it("handles Japanese multi-word input", () => {
+      const result = buildSafePrefixTsQuery("東京 テクノロジー");
+      expect(result).toBe("東京:* & テクノロジー:*");
+    });
+
+    it("handles Arabic input (Unicode letters)", () => {
+      // "تقنية" = Technology in Arabic
+      const result = buildSafePrefixTsQuery("تقنية");
+      expect(result).toBe("تقنية:*");
+    });
+
+    it("handles Arabic multi-word input", () => {
+      const result = buildSafePrefixTsQuery("شركة ناشئة");
+      expect(result).toBe("شركة:* & ناشئة:*");
+    });
+
+    it("handles mixed Latin and non-Latin scripts", () => {
+      const result = buildSafePrefixTsQuery("Tokyo 東京 startup");
+      expect(result).toBe("Tokyo:* & 東京:* & startup:*");
     });
   });
 });

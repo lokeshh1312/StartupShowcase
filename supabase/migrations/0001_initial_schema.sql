@@ -140,12 +140,34 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  _display_name text;
+  _requested_role text;
+  _safe_role text;
 BEGIN
+  -- Cap display_name at 100 characters
+  _display_name := left(
+    COALESCE(
+      new.raw_user_meta_data->>'name',
+      new.raw_user_meta_data->>'display_name',
+      split_part(new.email, '@', 1)
+    ),
+    100
+  );
+
+  -- Only allow founder, investor, or community; anything else (including 'admin') becomes 'community'
+  _requested_role := COALESCE(new.raw_user_meta_data->>'role', 'community');
+  IF _requested_role IN ('founder', 'investor', 'community') THEN
+    _safe_role := _requested_role;
+  ELSE
+    _safe_role := 'community';
+  END IF;
+
   INSERT INTO public.profiles (id, display_name, role)
   VALUES (
     new.id,
-    COALESCE(new.raw_user_meta_data->>'name', new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)),
-    COALESCE(new.raw_user_meta_data->>'role', 'community')
+    _display_name,
+    _safe_role
   )
   ON CONFLICT (id) DO UPDATE SET
     display_name = CASE WHEN profiles.display_name = '' THEN EXCLUDED.display_name ELSE profiles.display_name END,

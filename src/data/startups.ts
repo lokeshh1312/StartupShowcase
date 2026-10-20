@@ -15,6 +15,8 @@ export interface SampleStartup extends Omit<CreateStartupInput, "category" | "st
     | "FinTech"
     | "DeepTech";
   stage: "MVP" | "Prototype" | "Idea Stage";
+  /** Launch month for seed data (server-set on real submissions). */
+  month: string;
   likes: number;
   views: number;
   rank?: number;

@@ -196,9 +196,7 @@ export const createStartupSchema = z
     stage: z.enum(STAGES, {
       message: "Choose a valid startup stage",
     }),
-    month: z
-      .string()
-      .transform((val) => normalizeMonthToDate(val)),
+    // month is NOT accepted from the client; the server sets it at approval time.
     websiteUrl: z
       .string()
       .optional()
@@ -239,7 +237,6 @@ export const createStartupSchema = z
     ...data,
     ideaTitle: data.ideaTitle?.trim() || data.name,
     coverImage: data.coverImage || data.thumbnail || "",
-    monthLabel: formatMonthLabel(data.month),
     location: formatLocation({
       countryCode: data.countryCode,
       region: data.region,

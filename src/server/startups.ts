@@ -21,15 +21,11 @@ import {
   type CreateStartupInput,
   type ListStartupsFilters,
 } from "@/lib/validation";
+import { buildSafePrefixTsQuery } from "@/lib/search";
 import { toUtcDateString } from "@/lib/dates";
 
-// Converts a search phrase into a PostgreSQL prefix tsquery string (e.g. "agri:* & ai:*")
-export function buildSafePrefixTsQuery(raw: string): string | null {
-  const cleaned = raw.replace(/[^\w\s]/g, " ").trim();
-  const words = cleaned.split(/\s+/).filter((w) => w.length > 0);
-  if (words.length === 0) return null;
-  return words.map((w) => `${w}:*`).join(" & ");
-}
+// Re-export for existing consumers
+export { buildSafePrefixTsQuery } from "@/lib/search";
 
 export type FormattedStartup = Startup & {
   likes: number;
@@ -438,65 +434,78 @@ export async function createStartup(
 ): Promise<Startup> {
   const validated = createStartupSchema.parse(input);
 
-  // Generate unique slug
+  // Generate unique slug — retry on unique violation instead of check-then-insert
   const baseSlug =
     validated.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "") || "startup";
 
-  let slug = baseSlug;
-  while (true) {
-    const existing = await db
-      .select({ id: startups.id })
-      .from(startups)
-      .where(eq(startups.slug, slug))
-      .limit(1);
-    if (existing.length === 0) break;
-    slug = `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
+  // Placeholder month: server sets final month at approval time.
+  // Use current UTC month as a temporary value.
+  const now = new Date();
+  const tempMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`;
+  const tempMonthLabel = formatMonthLabel(tempMonth);
+
+  const maxRetries = 5;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const slug = attempt === 0 ? baseSlug : `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`;
+    try {
+      const [created] = await db
+        .insert(startups)
+        .values({
+          slug,
+          ownerId: userId,
+          status: "pending",
+          isSample: false,
+          name: validated.name,
+          ideaTitle: validated.ideaTitle,
+          tagline: validated.tagline,
+          description: validated.description,
+          fullStory: validated.fullStory,
+          category: validated.category,
+          countryCode: validated.countryCode,
+          region: validated.region,
+          city: validated.city,
+          remoteFirst: validated.remoteFirst,
+          location: validated.location,
+          stage: validated.stage,
+          month: tempMonth,
+          monthLabel: tempMonthLabel,
+          websiteUrl: validated.websiteUrl || "",
+          logoType: validated.logoType,
+          logoColor: validated.logoColor,
+          thumbnail: validated.thumbnail || "",
+          coverImage: validated.coverImage || "",
+          founderJson: validated.founder,
+          problem: validated.problem,
+          solution: validated.solution,
+          keyFeaturesJson: validated.keyFeatures,
+          techStackJson: validated.techStack,
+          traction: validated.traction,
+          viewsCount: 0,
+        })
+        .returning();
+
+      return created;
+    } catch (err: unknown) {
+      // Retry on unique violation (PostgreSQL error code 23505)
+      const pgErr = err as { code?: string };
+      if (pgErr.code === "23505" && attempt < maxRetries - 1) {
+        continue;
+      }
+      throw err;
+    }
   }
 
-  const [created] = await db
-    .insert(startups)
-    .values({
-      slug,
-      ownerId: userId,
-      status: "pending",
-      isSample: false,
-      name: validated.name,
-      ideaTitle: validated.ideaTitle,
-      tagline: validated.tagline,
-      description: validated.description,
-      fullStory: validated.fullStory,
-      category: validated.category,
-      countryCode: validated.countryCode,
-      region: validated.region,
-      city: validated.city,
-      remoteFirst: validated.remoteFirst,
-      location: validated.location,
-      stage: validated.stage,
-      month: validated.month,
-      monthLabel: validated.monthLabel,
-      websiteUrl: validated.websiteUrl || "",
-      logoType: validated.logoType,
-      logoColor: validated.logoColor,
-      thumbnail: validated.thumbnail || "",
-      coverImage: validated.coverImage || "",
-      founderJson: validated.founder,
-      problem: validated.problem,
-      solution: validated.solution,
-      keyFeaturesJson: validated.keyFeatures,
-      techStackJson: validated.techStack,
-      traction: validated.traction,
-      viewsCount: 0,
-    })
-    .returning();
-
-  return created;
+  throw new Error("Failed to generate a unique slug after multiple attempts.");
 }
 
 /**
- * Moderate a startup (approve, reject, pending) - admin only
+ * Moderate a startup (approve, reject, pending) - admin only.
+ * Verifies the reviewer is an admin, reads previous status BEFORE updating
+ * inside a transaction, and logs the true previous status.
+ * When approving, sets the launch month to the UTC month of the approval time.
  */
 export async function moderateStartup(
   idOrSlug: string,
@@ -504,34 +513,74 @@ export async function moderateStartup(
   reviewerId: string
 ): Promise<Startup | null> {
   const { status } = moderateStartupSchema.parse({ status: rawStatus });
+
+  // Verify the reviewer is an admin
+  const reviewerProfile = await db
+    .select({ role: profiles.role })
+    .from(profiles)
+    .where(eq(profiles.id, reviewerId))
+    .limit(1);
+
+  if (!reviewerProfile[0] || reviewerProfile[0].role !== "admin") {
+    throw new Error("Forbidden: only admins can moderate startups.");
+  }
+
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       idOrSlug
     );
 
-  const [updated] = await db
-    .update(startups)
-    .set({
+  // Use a transaction: read previous status BEFORE updating
+  const result = await db.transaction(async (tx) => {
+    // 1. Read the current state
+    const existing = await tx
+      .select({ id: startups.id, status: startups.status })
+      .from(startups)
+      .where(isUuid ? eq(startups.id, idOrSlug) : eq(startups.slug, idOrSlug))
+      .limit(1);
+
+    if (!existing[0]) return null;
+
+    const previousStatus = existing[0].status;
+    const approvalTime = status === "approved" ? new Date() : null;
+
+    // 2. Build the update set
+    const updateSet: Record<string, unknown> = {
       status,
       reviewedBy: reviewerId,
       updatedAt: new Date(),
-      approvedAt: status === "approved" ? new Date() : null,
-    })
-    .where(isUuid ? eq(startups.id, idOrSlug) : eq(startups.slug, idOrSlug))
-    .returning();
+      approvedAt: approvalTime,
+    };
 
-  if (updated) {
-    // Record in audit log
-    await db.insert(auditLog).values({
-      actorId: reviewerId,
-      action: `startup.status_change:${status}`,
-      targetType: "startup",
-      targetId: updated.id,
-      metadata: { previousStatus: updated.status, newStatus: status },
-    });
-  }
+    // When approving, set the launch month to the UTC month of approval
+    if (status === "approved" && approvalTime) {
+      const approvalMonth = `${approvalTime.getUTCFullYear()}-${String(approvalTime.getUTCMonth() + 1).padStart(2, "0")}-01`;
+      updateSet.month = approvalMonth;
+      updateSet.monthLabel = formatMonthLabel(approvalMonth);
+    }
 
-  return updated || null;
+    // 3. Perform the update
+    const [updated] = await tx
+      .update(startups)
+      .set(updateSet)
+      .where(eq(startups.id, existing[0].id))
+      .returning();
+
+    // 4. Audit log with the TRUE previous status
+    if (updated) {
+      await tx.insert(auditLog).values({
+        actorId: reviewerId,
+        action: `startup.status_change:${status}`,
+        targetType: "startup",
+        targetId: updated.id,
+        metadata: { previousStatus, newStatus: status },
+      });
+    }
+
+    return updated || null;
+  });
+
+  return result;
 }
 
 /**
@@ -562,45 +611,44 @@ export async function toggleVote(
 
   const startupId = startup[0].id;
 
-  const existing = await db
-    .select()
-    .from(startupVotes)
-    .where(
-      and(
-        eq(startupVotes.startupId, startupId),
-        eq(startupVotes.userId, userId)
-      )
-    )
-    .limit(1);
+  // Atomic toggle: INSERT ON CONFLICT DO NOTHING RETURNING inside one transaction
+  const result = await db.transaction(async (tx) => {
+    const inserted = await tx.execute<{ user_id: string }>(sql`
+      INSERT INTO public.startup_votes (user_id, startup_id)
+      VALUES (${userId}::uuid, ${startupId}::uuid)
+      ON CONFLICT (user_id, startup_id) DO NOTHING
+      RETURNING user_id
+    `);
 
-  let liked = false;
-  if (existing.length > 0) {
-    await db
-      .delete(startupVotes)
-      .where(
-        and(
-          eq(startupVotes.startupId, startupId),
-          eq(startupVotes.userId, userId)
-        )
-      );
-    liked = false;
-  } else {
-    await db.insert(startupVotes).values({
-      startupId,
-      userId,
-    });
-    liked = true;
-  }
+    let liked: boolean;
+    if (inserted.length > 0) {
+      // Row was inserted → vote created
+      liked = true;
+    } else {
+      // Row already existed → remove vote
+      await tx
+        .delete(startupVotes)
+        .where(
+          and(
+            eq(startupVotes.startupId, startupId),
+            eq(startupVotes.userId, userId)
+          )
+        );
+      liked = false;
+    }
 
-  const countResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(startupVotes)
-    .where(eq(startupVotes.startupId, startupId));
+    const countResult = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(startupVotes)
+      .where(eq(startupVotes.startupId, startupId));
 
-  return {
-    liked,
-    likesCount: countResult[0]?.count ?? 0,
-  };
+    return {
+      liked,
+      likesCount: countResult[0]?.count ?? 0,
+    };
+  });
+
+  return result;
 }
 
 /**
@@ -631,34 +679,31 @@ export async function toggleSave(
 
   const startupId = startup[0].id;
 
-  const existing = await db
-    .select()
-    .from(savedStartups)
-    .where(
-      and(
-        eq(savedStartups.startupId, startupId),
-        eq(savedStartups.userId, userId)
-      )
-    )
-    .limit(1);
+  // Atomic toggle: INSERT ON CONFLICT DO NOTHING RETURNING inside one transaction
+  const result = await db.transaction(async (tx) => {
+    const inserted = await tx.execute<{ user_id: string }>(sql`
+      INSERT INTO public.saved_startups (user_id, startup_id)
+      VALUES (${userId}::uuid, ${startupId}::uuid)
+      ON CONFLICT (user_id, startup_id) DO NOTHING
+      RETURNING user_id
+    `);
 
-  if (existing.length > 0) {
-    await db
-      .delete(savedStartups)
-      .where(
-        and(
-          eq(savedStartups.startupId, startupId),
-          eq(savedStartups.userId, userId)
-        )
-      );
-    return { saved: false };
-  } else {
-    await db.insert(savedStartups).values({
-      startupId,
-      userId,
-    });
-    return { saved: true };
-  }
+    if (inserted.length > 0) {
+      return { saved: true };
+    } else {
+      await tx
+        .delete(savedStartups)
+        .where(
+          and(
+            eq(savedStartups.startupId, startupId),
+            eq(savedStartups.userId, userId)
+          )
+        );
+      return { saved: false };
+    }
+  });
+
+  return result;
 }
 
 /**
