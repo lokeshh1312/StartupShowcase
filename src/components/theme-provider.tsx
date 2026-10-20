@@ -24,7 +24,7 @@ interface ThemeContextValue {
   preference: ThemePreference;
   /** The resolved value currently applied to `<html>`. */
   resolved: ResolvedTheme;
-  /** Cycle through light → dark → system → light … */
+  /** Flip between light and dark based on the currently applied theme. */
   toggleTheme: () => void;
   /** Set an explicit preference. */
   setPreference: (pref: ThemePreference) => void;
@@ -36,7 +36,7 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 // Helpers (client-only, guarded)
 // ---------------------------------------------------------------------------
 
-function systemPrefersDark(): boolean {
+function getSystemPrefersDark(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
@@ -53,53 +53,56 @@ function applyToDOM(resolved: ResolvedTheme) {
 // ---------------------------------------------------------------------------
 
 /**
- * ThemeProvider reads the initial preference from the cookie (set by the
- * inline `<head>` script and/or previous visits).
+ * ThemeProvider reads the initial preference from the cookie ("light" | "dark").
+ * When no cookie exists, it defaults to "system".
  *
- * It never branches on client-only APIs during the initial `useState` call
- * — the inline script has already applied the correct class to `<html>`,
- * and this provider simply keeps React state in sync.
+ * Clicking toggle flips between "light" and "dark" based on the currently
+ * applied theme, and writes "light" or "dark" to the cookie.
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // On the server this returns null → we default to "system".
-  // On the client the inline script has already run, so the DOM is correct;
-  // we just read the cookie to seed React state.
+  // If no cookie exists, preference defaults to "system".
   const [preference, setPreference] = useState<ThemePreference>(() => {
     if (typeof document === "undefined") return "system";
     return parseThemeCookie(document.cookie) ?? "system";
   });
 
-  // Resolve once per preference change (and on first mount).
-  const resolved = useMemo<ResolvedTheme>(
-    () => resolveThemeClass(preference, systemPrefersDark()),
-    [preference],
+  const [systemDark, setSystemDark] = useState<boolean>(() =>
+    getSystemPrefersDark(),
   );
 
-  // Sync DOM + cookie whenever resolved changes.
+  // Keep system preference in sync when preference is "system".
   useEffect(() => {
-    applyToDOM(resolved);
-    document.cookie = buildThemeCookieValue(preference);
-  }, [resolved, preference]);
-
-  // Listen for OS-level dark mode changes when preference === "system".
-  useEffect(() => {
-    if (preference !== "system") return;
-
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setSystemDark(mq.matches);
     const handler = (e: MediaQueryListEvent) => {
-      applyToDOM(e.matches ? "dark" : "light");
+      setSystemDark(e.matches);
     };
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
-  }, [preference]);
+  }, []);
+
+  const resolved = useMemo<ResolvedTheme>(
+    () => resolveThemeClass(preference, systemDark),
+    [preference, systemDark],
+  );
+
+  // Sync DOM + cookie whenever resolved / preference changes.
+  useEffect(() => {
+    applyToDOM(resolved);
+    if (preference === "light" || preference === "dark") {
+      document.cookie = buildThemeCookieValue(preference);
+    }
+  }, [resolved, preference]);
 
   const toggleTheme = useCallback(() => {
-    setPreference((prev) => {
-      if (prev === "light") return "dark";
-      if (prev === "dark") return "system";
-      return "light"; // system → light
-    });
-  }, []);
+    // Flip based on the currently applied theme (from DOM or resolved state).
+    const isCurrentlyDark =
+      typeof document !== "undefined"
+        ? document.documentElement.classList.contains("dark")
+        : resolved === "dark";
+    const nextTheme: ResolvedTheme = isCurrentlyDark ? "light" : "dark";
+    setPreference(nextTheme);
+  }, [resolved]);
 
   const ctx = useMemo<ThemeContextValue>(
     () => ({ preference, resolved, toggleTheme, setPreference }),

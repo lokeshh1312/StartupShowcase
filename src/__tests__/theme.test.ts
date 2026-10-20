@@ -3,6 +3,7 @@ import {
   parseThemeCookie,
   resolveThemeClass,
   buildThemeCookieValue,
+  type ResolvedTheme,
 } from "@/lib/theme";
 
 // ---------------------------------------------------------------------------
@@ -34,8 +35,8 @@ describe("parseThemeCookie", () => {
     expect(parseThemeCookie("theme=dark")).toBe("dark");
   });
 
-  it('parses "system"', () => {
-    expect(parseThemeCookie("theme=system")).toBe("system");
+  it('returns null for "system" (cookie only stores light or dark; system is default when no cookie)', () => {
+    expect(parseThemeCookie("theme=system")).toBeNull();
   });
 
   it("parses the theme cookie when it appears after other cookies", () => {
@@ -91,13 +92,26 @@ describe("buildThemeCookieValue", () => {
     expect(val).toContain("theme=dark");
   });
 
-  it("produces a valid Set-Cookie string for system", () => {
-    const val = buildThemeCookieValue("system");
-    expect(val).toContain("theme=system");
-  });
-
   it("sets max-age to 1 year (31536000 seconds)", () => {
     const val = buildThemeCookieValue("light");
     expect(val).toContain("max-age=31536000");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Toggle flip logic
+// ---------------------------------------------------------------------------
+
+describe("Theme toggle flip logic", () => {
+  function flipTheme(current: ResolvedTheme): ResolvedTheme {
+    return current === "dark" ? "light" : "dark";
+  }
+
+  it("flips currently applied dark to light", () => {
+    expect(flipTheme("dark")).toBe("light");
+  });
+
+  it("flips currently applied light to dark", () => {
+    expect(flipTheme("light")).toBe("dark");
   });
 });
