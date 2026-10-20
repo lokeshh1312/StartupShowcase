@@ -1,272 +1,679 @@
 -- supabase/tests/rls_checks.sql
--- Run this in the Supabase SQL Editor AFTER applying all migrations.
--- Each check runs inside a transaction that is ROLLED BACK.
--- Output: a result set row per check with status PASS or FAIL.
+-- ==============================================================================
+-- Startup Showcase — Row Level Security (RLS) & Permissions Test Suite
+-- ==============================================================================
+--
+-- HOW TO RUN:
+--   1. Open the Supabase Dashboard -> SQL Editor (or connect via psql as postgres).
+--   2. Ensure all migrations (0001 through 0004) have been applied.
+--   3. Paste and run this script as the `postgres` superuser/admin role.
+--   4. View the final tabular output showing individual test status and summary.
+--
+-- RE-RUN SAFETY:
+--   This script is fully idempotent and safe to re-run multiple times:
+--   - Performs pre-test cleanup to remove any stale test entities.
+--   - Creates isolated test users in auth.users with @example.invalid domains.
+--   - Unconditionally cleans up all created test entities at the end.
+--   - The results table is reset on each execution and writable ONLY from postgres.
+-- ==============================================================================
 
--- Helper: collect results into a temp table
+-- 0. Prepare results table: writable only from postgres
 CREATE TEMP TABLE IF NOT EXISTS _rls_results (
-  check_name text,
-  status text
+  id serial PRIMARY KEY,
+  check_name text NOT NULL,
+  status text NOT NULL, -- 'PASS' or 'FAIL'
+  details text NOT NULL
 );
 TRUNCATE _rls_results;
+REVOKE ALL ON _rls_results FROM PUBLIC, anon, authenticated;
+GRANT ALL ON _rls_results TO postgres;
 
-------------------------------------------------------------------------
--- (a) A normal user cannot update their own role
-------------------------------------------------------------------------
+-- 1. Main test suite execution block
 DO $$
 DECLARE
-  _uid uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  _uid_a uuid := '11111111-1111-4111-a111-111111111111';
+  _uid_b uuid := '22222222-2222-4222-a222-222222222222';
+  _uid_c uuid := '33333333-3333-4333-a333-333333333333';
+  _uid_d uuid := '44444444-4444-4444-a444-444444444444';
+  _startup_approved_id uuid := 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
+  _startup_pending_id  uuid := 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb';
+
+  _check_name text;
+  _passed boolean;
+  _details text;
+  _count integer;
+  _lb_count integer;
+  _rc integer;
+  _c_role text;
+  _vc bigint;
+  _voter_uid uuid;
+  _voter_blocked boolean;
+  _got_count boolean;
 BEGIN
-  -- Set up: create a profile directly (simulating the trigger)
-  INSERT INTO public.profiles (id, display_name, role)
-  VALUES (_uid, 'Test User A', 'community')
-  ON CONFLICT (id) DO NOTHING;
-
-  -- Simulate authenticated role with JWT claims
-  PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object(
-    'sub', _uid::text,
-    'role', 'authenticated'
-  )::text, true);
-
-  -- Attempt to update role — should be blocked by the BEFORE UPDATE trigger
-  BEGIN
-    UPDATE public.profiles SET role = 'admin' WHERE id = _uid;
-    -- If we get here, the trigger did not fire or did not block
-    INSERT INTO _rls_results VALUES ('(a) normal user cannot update own role', 'FAIL');
-  EXCEPTION WHEN OTHERS THEN
-    INSERT INTO _rls_results VALUES ('(a) normal user cannot update own role', 'PASS');
-  END;
-
-  -- Reset role
+  -- Always ensure we start as postgres
   PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
 
-  -- Cleanup
-  DELETE FROM public.profiles WHERE id = _uid;
-END;
-$$;
+  ----------------------------------------------------------------------
+  -- SETUP (as postgres)
+  ----------------------------------------------------------------------
+  -- Pre-cleanup in case of prior interrupted execution
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved');
+  DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d);
 
-------------------------------------------------------------------------
--- (b) A normal user cannot insert a startup with status 'approved'
-------------------------------------------------------------------------
-DO $$
-DECLARE
-  _uid uuid := 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
-  _inserted bool := false;
-BEGIN
-  -- Set up profile
-  INSERT INTO public.profiles (id, display_name, role)
-  VALUES (_uid, 'Test User B', 'founder')
-  ON CONFLICT (id) DO NOTHING;
+  -- Insert real users into auth.users so handle_new_user trigger creates real profiles
+  -- User A: founder
+  -- User B: community
+  -- User C: requested role 'admin' -> sanitized to 'community' by trigger
+  -- User D: community -> promoted to 'admin' by postgres below
+  INSERT INTO auth.users (
+    id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_user_meta_data, created_at, updated_at
+  ) VALUES
+    (_uid_a, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-a@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Founder A", "role": "founder"}'::jsonb, now(), now()),
+    (_uid_b, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-b@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Community B", "role": "community"}'::jsonb, now(), now()),
+    (_uid_c, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-c@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Attacker C", "role": "admin"}'::jsonb, now(), now()),
+    (_uid_d, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-d@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Admin D", "role": "community"}'::jsonb, now(), now());
 
+  -- Promote user D to admin as postgres (allowed by protect_profile_columns trigger)
+  UPDATE public.profiles SET role = 'admin' WHERE id = _uid_d;
+
+  -- Create one approved and one pending startup as postgres
+  INSERT INTO public.startups (
+    id, slug, owner_id, status, is_sample, name, idea_title, tagline, description,
+    category, country_code, stage, month, month_label, views_count, approved_at
+  ) VALUES (
+    _startup_approved_id, 'rls-test-approved', _uid_a, 'approved', false,
+    'RLS Approved Startup', 'Approved Idea', 'Best Tagline', 'A comprehensive description for approved startup',
+    'AgriTech', 'US', 'MVP', '2026-10-01'::date, 'October 2026', 0, now()
+  );
+
+  INSERT INTO public.startups (
+    id, slug, owner_id, status, is_sample, name, idea_title, tagline, description,
+    category, country_code, stage, month, month_label, views_count, approved_at
+  ) VALUES (
+    _startup_pending_id, 'rls-test-pending', _uid_a, 'pending', false,
+    'RLS Pending Startup', 'Pending Idea', 'Pending Tagline', 'A comprehensive description for pending startup',
+    'AgriTech', 'US', 'MVP', '2026-10-01'::date, 'October 2026', 0, NULL
+  );
+
+  -- Insert a vote for user B on approved startup (used for isolation testing)
+  INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid_b, _startup_approved_id);
+
+  ----------------------------------------------------------------------
+  -- NEGATIVE CHECKS
+  ----------------------------------------------------------------------
+
+  -- 01: user cannot UPDATE own role
+  _check_name := '01 (NEG): user cannot UPDATE own role';
+  _passed := false;
+  _details := '';
   PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object(
-    'sub', _uid::text,
-    'role', 'authenticated'
-  )::text, true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    UPDATE public.profiles SET role = 'admin' WHERE id = _uid_a;
+    _passed := false;
+    _details := 'FAIL: Update succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient privilege)';
+    WHEN OTHERS THEN
+      IF SQLERRM LIKE '%Cannot change profile role%' THEN
+        _passed := true;
+        _details := 'Caught expected trigger exception: ' || SQLERRM;
+      ELSE
+        _passed := false;
+        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+      END IF;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
+  -- 02: user cannot UPDATE own display_name AND role in one statement
+  _check_name := '02 (NEG): user cannot UPDATE own display_name AND role in one statement';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    UPDATE public.profiles SET display_name = 'Hacked Name', role = 'admin' WHERE id = _uid_a;
+    _passed := false;
+    _details := 'FAIL: Update succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient privilege)';
+    WHEN OTHERS THEN
+      IF SQLERRM LIKE '%Cannot change profile role%' THEN
+        _passed := true;
+        _details := 'Caught expected trigger exception: ' || SQLERRM;
+      ELSE
+        _passed := false;
+        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+      END IF;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 03: user cannot INSERT a startup with status 'approved'
+  _check_name := '03 (NEG): user cannot INSERT startup with status approved';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
   BEGIN
     INSERT INTO public.startups (
       slug, owner_id, status, is_sample, name, idea_title, tagline, description,
       category, country_code, stage, month, views_count
     ) VALUES (
-      'rls-test-b', _uid, 'approved', false, 'RLS Test B', 'Test', '', 'Test description for RLS',
-      'AgriTech', 'US', 'MVP', '2026-10-01', 0
+      'rls-hack-approved', _uid_a, 'approved', false, 'Hack Approved', 'Idea', 'Tagline', 'Description',
+      'AgriTech', 'US', 'MVP', '2026-10-01'::date, 0
     );
-    _inserted := true;
-  EXCEPTION WHEN OTHERS THEN
-    _inserted := false;
+    _passed := false;
+    _details := 'FAIL: Insert succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (RLS check violation)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
-
-  IF _inserted THEN
-    INSERT INTO _rls_results VALUES ('(b) normal user cannot insert startup with status approved', 'FAIL');
-  ELSE
-    INSERT INTO _rls_results VALUES ('(b) normal user cannot insert startup with status approved', 'PASS');
-  END IF;
-
   PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- Cleanup
-  DELETE FROM public.startups WHERE slug = 'rls-test-b';
-  DELETE FROM public.profiles WHERE id = _uid;
-END;
-$$;
-
-------------------------------------------------------------------------
--- (c) A normal user cannot read another user's votes
-------------------------------------------------------------------------
-DO $$
-DECLARE
-  _uid1 uuid := 'cccccccc-cccc-cccc-cccc-cccccccccccc';
-  _uid2 uuid := 'cccccccc-cccc-cccc-cccc-cccccccccccd';
-  _startup_id uuid;
-  _visible_count int;
-BEGIN
-  -- Set up two profiles and an approved startup
-  INSERT INTO public.profiles (id, display_name, role) VALUES (_uid1, 'Voter 1', 'community') ON CONFLICT (id) DO NOTHING;
-  INSERT INTO public.profiles (id, display_name, role) VALUES (_uid2, 'Voter 2', 'community') ON CONFLICT (id) DO NOTHING;
-
-  INSERT INTO public.startups (slug, owner_id, status, is_sample, name, idea_title, description, category, country_code, stage, month, views_count)
-  VALUES ('rls-test-c', _uid1, 'approved', false, 'RLS Test C', 'Test', 'Test description', 'AgriTech', 'US', 'MVP', '2026-10-01', 0)
-  RETURNING id INTO _startup_id;
-
-  INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid1, _startup_id);
-  INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid2, _startup_id);
-
-  -- Become user 2
+  -- 04: user cannot UPDATE own startup's status (column privilege)
+  _check_name := '04 (NEG): user cannot UPDATE own startup status (column privilege)';
+  _passed := false;
+  _details := '';
   PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object(
-    'sub', _uid2::text,
-    'role', 'authenticated'
-  )::text, true);
-
-  -- User 2 should only see their own vote, not user 1's
-  SELECT count(*) INTO _visible_count FROM public.startup_votes WHERE startup_id = _startup_id;
-
-  IF _visible_count = 1 THEN
-    INSERT INTO _rls_results VALUES ('(c) normal user cannot read another user''s votes', 'PASS');
-  ELSE
-    INSERT INTO _rls_results VALUES ('(c) normal user cannot read another user''s votes', 'FAIL');
-  END IF;
-
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    UPDATE public.startups SET status = 'approved' WHERE id = _startup_pending_id;
+    _passed := false;
+    _details := 'FAIL: Update succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient column privilege)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
   PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- Cleanup
-  DELETE FROM public.startup_votes WHERE startup_id = _startup_id;
-  DELETE FROM public.startups WHERE id = _startup_id;
-  DELETE FROM public.profiles WHERE id IN (_uid1, _uid2);
-END;
-$$;
+  -- 05: user A cannot read user B's votes
+  _check_name := '05 (NEG): user A cannot read user B votes';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    SELECT count(*) INTO _count FROM public.startup_votes WHERE user_id = _uid_b;
+    IF _count = 0 THEN
+      _passed := true;
+      _details := 'RLS filtered user B votes (count = 0)';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected 0 visible votes, got %s', _count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-------------------------------------------------------------------------
--- (d) Anon cannot read pending startups
-------------------------------------------------------------------------
-DO $$
-DECLARE
-  _uid uuid := 'dddddddd-dddd-dddd-dddd-dddddddddddd';
-  _visible_count int;
-BEGIN
-  INSERT INTO public.profiles (id, display_name, role) VALUES (_uid, 'Founder D', 'founder') ON CONFLICT (id) DO NOTHING;
-
-  INSERT INTO public.startups (slug, owner_id, status, is_sample, name, idea_title, description, category, country_code, stage, month, views_count)
-  VALUES ('rls-test-d', _uid, 'pending', false, 'RLS Test D', 'Test', 'Test description', 'AgriTech', 'US', 'MVP', '2026-10-01', 0);
-
-  -- Become anon
+  -- 06: anon cannot SELECT startup_votes
+  _check_name := '06 (NEG): anon cannot SELECT startup_votes';
+  _passed := false;
+  _details := '';
   PERFORM set_config('role', 'anon', true);
   PERFORM set_config('request.jwt.claims', '{}', true);
-
-  SELECT count(*) INTO _visible_count FROM public.startups WHERE slug = 'rls-test-d';
-
-  IF _visible_count = 0 THEN
-    INSERT INTO _rls_results VALUES ('(d) anon cannot read pending startups', 'PASS');
-  ELSE
-    INSERT INTO _rls_results VALUES ('(d) anon cannot read pending startups', 'FAIL');
-  END IF;
-
+  BEGIN
+    SELECT count(*) INTO _count FROM public.startup_votes;
+    _passed := false;
+    _details := 'FAIL: Select succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient privilege)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
   PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  DELETE FROM public.startups WHERE slug = 'rls-test-d';
-  DELETE FROM public.profiles WHERE id = _uid;
-END;
-$$;
-
-------------------------------------------------------------------------
--- (e) Signing up with metadata role 'admin' yields role 'community'
-------------------------------------------------------------------------
-DO $$
-DECLARE
-  _uid uuid := 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
-  _assigned_role text;
-BEGIN
-  -- Simulate what handle_new_user does when raw_user_meta_data contains role='admin'
-  -- We call the function logic directly via INSERT since we can't easily trigger auth.users insert
-  -- The trigger function validates the role, so we test that logic:
-
-  -- Directly test the role sanitization by calling the function via a simulated INSERT
-  -- First ensure no existing profile
-  DELETE FROM public.profiles WHERE id = _uid;
-
-  -- Simulate: the trigger would receive raw_user_meta_data->>'role' = 'admin'
-  -- and should store 'community' instead
-  INSERT INTO public.profiles (id, display_name, role)
-  VALUES (
-    _uid,
-    'Admin Wannabe',
-    -- Replicate the trigger logic inline
-    CASE
-      WHEN 'admin' IN ('founder', 'investor', 'community') THEN 'admin'
-      ELSE 'community'
-    END
-  );
-
-  SELECT role INTO _assigned_role FROM public.profiles WHERE id = _uid;
-
-  IF _assigned_role = 'community' THEN
-    INSERT INTO _rls_results VALUES ('(e) signup with metadata role admin yields community', 'PASS');
-  ELSE
-    INSERT INTO _rls_results VALUES ('(e) signup with metadata role admin yields community', 'FAIL');
-  END IF;
-
-  DELETE FROM public.profiles WHERE id = _uid;
-END;
-$$;
-
-------------------------------------------------------------------------
--- (f) Anon has no access to rate_limits, audit_log, newsletter_subscribers, startup_views
-------------------------------------------------------------------------
-DO $$
-DECLARE
-  _count int;
-  _all_blocked bool := true;
-BEGIN
+  -- 07: anon cannot read pending startups
+  _check_name := '07 (NEG): anon cannot read pending startups';
+  _passed := false;
+  _details := '';
   PERFORM set_config('role', 'anon', true);
   PERFORM set_config('request.jwt.claims', '{}', true);
+  BEGIN
+    SELECT count(*) INTO _count FROM public.startups WHERE id = _startup_pending_id;
+    IF _count = 0 THEN
+      _passed := true;
+      _details := 'RLS filtered pending startup (count = 0)';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected 0 visible pending startups, got %s', _count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- rate_limits
+  -- 08: anon cannot read rate_limits
+  _check_name := '08 (NEG): anon cannot read rate_limits';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'anon', true);
+  PERFORM set_config('request.jwt.claims', '{}', true);
   BEGIN
     SELECT count(*) INTO _count FROM public.rate_limits;
-    _all_blocked := false; -- If we get here, anon can read
-  EXCEPTION WHEN insufficient_privilege THEN
-    NULL; -- Expected
+    _passed := false;
+    _details := 'FAIL: Select succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient privilege)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- audit_log
+  -- 09: anon cannot read audit_log
+  _check_name := '09 (NEG): anon cannot read audit_log';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'anon', true);
+  PERFORM set_config('request.jwt.claims', '{}', true);
   BEGIN
     SELECT count(*) INTO _count FROM public.audit_log;
-    _all_blocked := false;
-  EXCEPTION WHEN insufficient_privilege THEN
-    NULL;
+    _passed := false;
+    _details := 'FAIL: Select succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient privilege)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- newsletter_subscribers
+  -- 10: anon cannot read newsletter_subscribers
+  _check_name := '10 (NEG): anon cannot read newsletter_subscribers';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'anon', true);
+  PERFORM set_config('request.jwt.claims', '{}', true);
   BEGIN
     SELECT count(*) INTO _count FROM public.newsletter_subscribers;
-    _all_blocked := false;
-  EXCEPTION WHEN insufficient_privilege THEN
-    NULL;
+    _passed := false;
+    _details := 'FAIL: Select succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient privilege)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- startup_views
+  -- 11: anon cannot read startup_views
+  _check_name := '11 (NEG): anon cannot read startup_views';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'anon', true);
+  PERFORM set_config('request.jwt.claims', '{}', true);
   BEGIN
     SELECT count(*) INTO _count FROM public.startup_views;
-    _all_blocked := false;
-  EXCEPTION WHEN insufficient_privilege THEN
-    NULL;
+    _passed := false;
+    _details := 'FAIL: Select succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient privilege)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
-
-  IF _all_blocked THEN
-    INSERT INTO _rls_results VALUES ('(f) anon has no access to server-only tables', 'PASS');
-  ELSE
-    INSERT INTO _rls_results VALUES ('(f) anon has no access to server-only tables', 'FAIL');
-  END IF;
-
   PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 12: authenticated user cannot vote on a PENDING startup
+  _check_name := '12 (NEG): authenticated user cannot vote on pending startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid_a, _startup_pending_id);
+    _passed := false;
+    _details := 'FAIL: Vote on pending startup succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (RLS check violation)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 13: cannot comment on a pending startup
+  _check_name := '13 (NEG): cannot comment on a pending startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startup_comments (user_id, startup_id, content)
+    VALUES (_uid_a, _startup_pending_id, 'Comment on pending startup');
+    _passed := false;
+    _details := 'FAIL: Comment on pending startup succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (RLS check violation)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 14: owner cannot UPDATE an approved startup
+  _check_name := '14 (NEG): owner cannot UPDATE an approved startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    UPDATE public.startups SET description = 'Attempted update on approved startup' WHERE id = _startup_approved_id;
+    GET DIAGNOSTICS _rc = ROW_COUNT;
+    IF _rc = 0 THEN
+      _passed := true;
+      _details := '0 rows updated (RLS filtered)';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected 0 rows updated, got %s', _rc);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 15: sign-up with metadata role 'admin' (user C) yields 'community' via REAL trigger
+  _check_name := '15 (NEG): signup with metadata role admin yields community via REAL trigger';
+  _passed := false;
+  _details := '';
+  BEGIN
+    SELECT role INTO _c_role FROM public.profiles WHERE id = _uid_c;
+    IF _c_role = 'community' THEN
+      _passed := true;
+      _details := 'Profile role sanitized to community by handle_new_user()';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected role community, got %s', _c_role);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  ----------------------------------------------------------------------
+  -- POSITIVE CONTROLS
+  ----------------------------------------------------------------------
+
+  -- 16: user can UPDATE own display_name
+  _check_name := '16 (POS): user can UPDATE own display_name';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    UPDATE public.profiles SET display_name = 'User A Renamed' WHERE id = _uid_a;
+    GET DIAGNOSTICS _rc = ROW_COUNT;
+    IF _rc = 1 THEN
+      _passed := true;
+      _details := '1 row updated successfully';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected 1 row updated, got %s', _rc);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 17: user can INSERT a pending startup with is_sample=false
+  _check_name := '17 (POS): user can INSERT pending startup with is_sample=false';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startups (
+      slug, owner_id, status, is_sample, name, idea_title, tagline, description,
+      category, country_code, stage, month, views_count
+    ) VALUES (
+      'rls-positive-pending', _uid_a, 'pending', false, 'Positive Control Startup',
+      'Idea Title', 'Tagline', 'A valid pending startup description for positive control',
+      'AgriTech', 'US', 'MVP', '2026-10-01'::date, 0
+    );
+    _passed := true;
+    _details := 'Startup inserted successfully with status pending';
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 18: user can vote on the approved startup
+  _check_name := '18 (POS): user can vote on approved startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid_a, _startup_approved_id);
+    _passed := true;
+    _details := 'Vote on approved startup inserted successfully';
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 19: user can read their own vote
+  _check_name := '19 (POS): user can read own vote';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    SELECT count(*) INTO _count FROM public.startup_votes WHERE user_id = _uid_a AND startup_id = _startup_approved_id;
+    IF _count = 1 THEN
+      _passed := true;
+      _details := 'Own vote visible (count = 1)';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected 1 vote, got %s', _count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 20: anon CAN read the approved startup and monthly_leaderboard()
+  _check_name := '20 (POS): anon can read approved startup and monthly_leaderboard()';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'anon', true);
+  PERFORM set_config('request.jwt.claims', '{}', true);
+  BEGIN
+    SELECT count(*) INTO _count FROM public.startups WHERE id = _startup_approved_id;
+    SELECT count(*) INTO _lb_count FROM public.monthly_leaderboard('2026-10-01'::date) WHERE id = _startup_approved_id;
+    IF _count = 1 AND _lb_count = 1 THEN
+      _passed := true;
+      _details := 'Anon successfully read approved startup and monthly_leaderboard() entry';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Approved startup count = %s (expected 1), Leaderboard count = %s (expected 1)', _count, _lb_count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 21: anon CANNOT see the vote user_ids but leaderboard shows a votes_count
+  _check_name := '21 (POS): anon cannot see vote user_ids but leaderboard shows votes_count';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'anon', true);
+  PERFORM set_config('request.jwt.claims', '{}', true);
+  BEGIN
+    -- Part A: anon cannot read user_id from startup_votes
+    BEGIN
+      SELECT user_id INTO _voter_uid FROM public.startup_votes WHERE startup_id = _startup_approved_id LIMIT 1;
+      _voter_blocked := false;
+    EXCEPTION
+      WHEN SQLSTATE '42501' THEN
+        _voter_blocked := true;
+      WHEN OTHERS THEN
+        _voter_blocked := false;
+    END;
+
+    -- Part B: anon can read aggregated votes_count from leaderboard view
+    BEGIN
+      SELECT votes_count INTO _vc FROM public.monthly_leaderboard_view WHERE id = _startup_approved_id;
+      _got_count := (_vc >= 1);
+    EXCEPTION
+      WHEN OTHERS THEN
+        _got_count := false;
+    END;
+
+    IF _voter_blocked AND _got_count THEN
+      _passed := true;
+      _details := format('Blocked from startup_votes (42501); leaderboard shows votes_count = %s', _vc);
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Blocked from startup_votes: %s, Leaderboard votes_count >= 1: %s (votes_count = %s)', _voter_blocked, _got_count, _vc);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  ----------------------------------------------------------------------
+  -- UNCONDITIONAL CLEANUP BLOCK
+  ----------------------------------------------------------------------
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved');
+  DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d);
+
+EXCEPTION WHEN OTHERS THEN
+  -- Ensure cleanup runs even if an unhandled error aborts the block
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved');
+  DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d);
+  RAISE;
 END;
 $$;
 
 ------------------------------------------------------------------------
--- Results
+-- 2. Final Results & Summary Report
 ------------------------------------------------------------------------
-SELECT * FROM _rls_results ORDER BY check_name;
-
-DROP TABLE IF EXISTS _rls_results;
+WITH checks AS (
+  SELECT
+    id,
+    check_name,
+    status,
+    details
+  FROM _rls_results
+  ORDER BY id
+),
+summary AS (
+  SELECT
+    999999 AS id,
+    CASE
+      WHEN count(*) FILTER (WHERE status = 'FAIL') = 0
+        THEN 'ALL ' || count(*) || ' CHECKS PASSED'
+      ELSE
+        count(*) FILTER (WHERE status = 'FAIL') || ' FAILED'
+    END AS check_name,
+    CASE
+      WHEN count(*) FILTER (WHERE status = 'FAIL') = 0 THEN 'PASS'
+      ELSE 'FAIL'
+    END AS status,
+    CASE
+      WHEN count(*) FILTER (WHERE status = 'FAIL') = 0
+        THEN 'All ' || count(*) || ' checks passed successfully'
+      ELSE
+        count(*) FILTER (WHERE status = 'FAIL') || ' check(s) failed out of ' || count(*)
+    END AS details
+  FROM _rls_results
+)
+SELECT check_name, status, details FROM checks
+UNION ALL
+SELECT check_name, status, details FROM summary;
