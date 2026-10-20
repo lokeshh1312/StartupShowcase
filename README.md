@@ -1,40 +1,96 @@
 # Startup Showcase
 
-Startup Showcase is a full-stack directory for discovering early-stage Indian startups. It includes founder accounts, startup submissions with administrator review, shared votes, saved listings, comments, and a moderation queue.
+A **global** startup discovery and monthly-leaderboard platform for early-stage startups from any country. Founders submit startups, admins review and approve/reject submissions, visitors browse, search, filter, vote, save, and comment.
 
-## Run locally
+## Tech Stack
 
-Requirements: Node.js 24.15 or newer (minimum 22.5 for built-in SQLite).
+| Layer | Technology |
+| --- | --- |
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript (strict mode) |
+| Styling | Tailwind CSS 4 |
+| Backend & DB | Supabase Postgres + Supabase Auth + Supabase Storage |
+| ORM | Drizzle ORM |
+| Validation | Zod |
+| Testing | Vitest (unit) · Playwright (e2e) |
+| Deployment | Portable Node build (`output: "standalone"`) — no vendor lock-in |
 
-### Option 1: One-Click Launch (Windows)
-Double-click `start.bat` or run in terminal:
-```cmd
-start.bat
-```
-This automatically verifies dependencies, starts both the backend API and frontend Vite server, and opens your browser to `http://localhost:5173`.
+## Run Locally
 
-### Option 2: Unified NPM Command
-```sh
+### Prerequisites
+
+- Node.js ≥ 20
+- npm
+
+### Steps
+
+```bash
+# 1. Clone and install
+git clone <repo-url>
+cd StartupShowcase
 npm install
-npm run dev:all
+
+# 2. Copy environment template and fill in your keys
+cp .env.example .env.local
+
+# 3. Start the dev server
+npm run dev
 ```
 
-### Option 3: Two-Terminal Setup
-1. Start the API server: `npm run dev:api` (runs at `http://localhost:3001`)
-2. In a second terminal, start the website: `npm run dev` (runs at `http://localhost:5173`)
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-The local Vite site runs at `http://localhost:5173`; the API runs at `http://localhost:3001`. Local development seeds example profiles so the interface can be explored. They are disabled in production, where the directory starts empty until approved listings are added.
+### Available Scripts
 
-## Accounts and moderation
+| Script | Description |
+| --- | --- |
+| `npm run dev` | Start the Next.js development server |
+| `npm run build` | Build the production bundle (standalone) |
+| `npm start` | Run the production server |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | Run TypeScript type checking |
+| `npm test` | Run Vitest unit tests |
+| `npm run test:e2e` | Run Playwright end-to-end tests |
 
-Visitors can browse approved listings without an account. An account is required to submit a startup, vote, save a listing, or comment. Submissions remain pending until an administrator reviews them.
+## Environment Variables
 
-To create the first administrator, set `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_NAME` in the environment, then run `npm run admin:create`. Use a unique, strong password and keep these values private. Sign in with that account and open **Admin** to review submissions.
+See [`.env.example`](.env.example) for the full list:
 
-## Data and production preparation
+- `NEXT_PUBLIC_SITE_URL` — Public site URL
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anonymous key
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service-role key (**server-only**)
+- `DATABASE_URL` — Postgres connection string
+- `RESEND_API_KEY` — Resend API key for transactional email
 
-The local app stores accounts, sessions, listings, votes, saves, and comments in `data/showcase.sqlite`. Set `DATABASE_PATH` to choose another writable database path. Keep the `data` directory private and persistent; it must not be exposed as public web content.
+## Project Structure
 
-Before a public launch, configure HTTPS and the production database/storage strategy for the selected Hostinger plan, create the administrator account, and populate only approved real listings. The app can be built with `npm run build` and served with `npm start` after setting `NODE_ENV=production` and the hosting-provided `PORT`. Production does not seed example listings.
+```
+src/
+├── app/             # Next.js App Router pages & layouts
+│   ├── globals.css  # Tailwind + design tokens
+│   ├── layout.tsx   # Root layout (Navbar, Footer, ThemeProvider)
+│   └── page.tsx     # Home page
+├── components/      # Shared React components
+│   ├── footer.tsx
+│   ├── logo.tsx
+│   ├── navbar.tsx
+│   ├── theme-provider.tsx
+│   └── theme-toggle.tsx
+└── __tests__/       # Vitest tests
+```
 
-Email verification, password recovery, and transactional email are not configured yet because no mail provider credentials have been supplied. Configure these before enabling a public account launch. Do not upload the stale `hostinger-deploy.zip`; it contains the earlier static prototype, not this full-stack product.
+## Deployment
+
+The project is configured with `output: "standalone"` in `next.config.ts`. This produces a self-contained Node.js server with no platform-specific dependencies.
+
+```bash
+npm run build
+# The standalone server is in .next/standalone/
+node .next/standalone/server.js
+```
+
+Copy `.next/static` and `public` into `.next/standalone/` for static assets.
+
+## License
+
+Private — all rights reserved.
