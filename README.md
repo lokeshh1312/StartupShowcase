@@ -50,6 +50,28 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npm run typecheck` | Run TypeScript type checking |
 | `npm test` | Run Vitest unit tests |
 | `npm run test:e2e` | Run Playwright end-to-end tests |
+| `npm run seed` | Seed global sample startups (requires non-production environment) |
+
+## Database Setup & Migrations
+
+All SQL migrations reside in `/supabase/migrations`. Apply them in numeric order in your Supabase SQL Editor:
+
+1. `supabase/migrations/0001_initial_schema.sql` — Extensions, tables, foreign keys, and auth triggers.
+2. `supabase/migrations/0002_indexes.sql` — Status/month, slug uniqueness, GIN full-text index, and foreign key indexes.
+3. `supabase/migrations/0003_leaderboard.sql` — Monthly leaderboard view & SQL function with deterministic tie-breaks.
+4. `supabase/migrations/0004_rls_and_permissions.sql` — Row Level Security policies and least-privilege role grants.
+
+Alternatively, if using the Supabase CLI:
+```bash
+npx supabase db push
+```
+
+### Seeding Sample Data
+Once migrations have been applied:
+```bash
+npm run seed
+```
+This loads 27 global sample startups across 12 countries into Postgres with `is_sample = true`. Safe to re-run.
 
 ## Environment Variables
 
