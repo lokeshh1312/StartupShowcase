@@ -7,7 +7,10 @@ import {
   buildBreadcrumbJsonLd,
   buildStartupJsonLd,
   buildItemListJsonLd,
+  serializeJsonLd,
+  STATIC_PAGES_LAST_MODIFIED,
 } from "@/lib/seo";
+import { evaluateSampleGuard } from "../../scripts/check-samples";
 import type { FormattedStartup } from "@/server/startups";
 
 describe("SEO and URL Configuration", () => {
@@ -62,6 +65,45 @@ describe("SEO and URL Configuration", () => {
     });
 
     expect(meta.robots).toEqual({ index: false, follow: false });
+  });
+
+  describe("Production URL Enforcement", () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const envObj = process.env as Record<string, string | undefined>;
+
+    afterEach(() => {
+      envObj.NODE_ENV = originalNodeEnv;
+    });
+
+    it("throws loud error in production when NEXT_PUBLIC_SITE_URL is missing", () => {
+      envObj.NODE_ENV = "production";
+      delete process.env.NEXT_PUBLIC_SITE_URL;
+      expect(() => getBaseUrl()).toThrow(/Production deployment error/);
+    });
+
+    it("throws loud error in production when NEXT_PUBLIC_SITE_URL is empty", () => {
+      envObj.NODE_ENV = "production";
+      process.env.NEXT_PUBLIC_SITE_URL = "   ";
+      expect(() => getBaseUrl()).toThrow(/Production deployment error/);
+    });
+
+    it("throws loud error in production when NEXT_PUBLIC_SITE_URL contains localhost", () => {
+      envObj.NODE_ENV = "production";
+      process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
+      expect(() => getBaseUrl()).toThrow(/Production deployment error.*localhost/);
+    });
+
+    it("throws loud error in production when NEXT_PUBLIC_SITE_URL contains 127.0.0.1", () => {
+      envObj.NODE_ENV = "production";
+      process.env.NEXT_PUBLIC_SITE_URL = "http://127.0.0.1:3000";
+      expect(() => getBaseUrl()).toThrow(/Production deployment error.*localhost/);
+    });
+
+    it("accepts valid production domain and trims trailing slashes in production", () => {
+      envObj.NODE_ENV = "production";
+      process.env.NEXT_PUBLIC_SITE_URL = "https://startupshowcase.com/";
+      expect(getBaseUrl()).toBe("https://startupshowcase.com");
+    });
   });
 });
 
@@ -195,3 +237,79 @@ describe("Sample Startup Exclusion and SEO Safety (Critical Requirement)", () =>
     });
   });
 });
+
+describe("Critical: JSON-LD Script Injection Protection", () => {
+  it("escapes user-submitted </script> tags and still parses back identically", () => {
+    const maliciousPayload = {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "</script><script>alert(1)</script>",
+      description: "</script><script>alert('xss')</script> & <test>",
+    };
+
+    const serialized = serializeJsonLd(maliciousPayload);
+
+    // 1. MUST NOT contain raw "</script" anywhere
+    expect(serialized.includes("</script")).toBe(false);
+    expect(serialized.includes("<script")).toBe(false);
+
+    // 2. MUST contain unicode-escaped representations
+    expect(serialized).toContain("\\u003c/script\\u003e");
+    expect(serialized).toContain("\\u003cscript\\u003e");
+    expect(serialized).toContain("\\u0026");
+
+    // 3. MUST parse back with JSON.parse to the exact original object
+    const parsed = JSON.parse(serialized);
+    expect(parsed).toEqual(maliciousPayload);
+    expect(parsed.name).toBe("</script><script>alert(1)</script>");
+    expect(parsed.description).toBe("</script><script>alert('xss')</script> & <test>");
+  });
+
+  it("escapes Unicode line and paragraph separators U+2028 and U+2029", () => {
+    const payload = {
+      text: "Line 1\u2028Line 2\u2029Line 3",
+    };
+
+    const serialized = serializeJsonLd(payload);
+    expect(serialized).toContain("\\u2028");
+    expect(serialized).toContain("\\u2029");
+
+    const parsed = JSON.parse(serialized);
+    expect(parsed).toEqual(payload);
+  });
+
+  it("handles null and undefined gracefully", () => {
+    expect(serializeJsonLd(null)).toBe("");
+    expect(serializeJsonLd(undefined)).toBe("");
+  });
+});
+
+describe("Deploy Guard: check:samples", () => {
+  it("fails in production when sample startups exist", () => {
+    const result = evaluateSampleGuard(10, "production");
+    expect(result.passed).toBe(false);
+    expect(result.message).toContain("DEPLOY GUARD FAILED");
+  });
+
+  it("passes in production when zero sample startups exist", () => {
+    const result = evaluateSampleGuard(0, "production");
+    expect(result.passed).toBe(true);
+    expect(result.message).toContain("Clean database for production");
+  });
+
+  it("allows sample startups in development and test environments", () => {
+    const devResult = evaluateSampleGuard(25, "development");
+    expect(devResult.passed).toBe(true);
+
+    const testResult = evaluateSampleGuard(5, "test");
+    expect(testResult.passed).toBe(true);
+  });
+});
+
+describe("Deterministic Static Pages LastModified", () => {
+  it("uses a constant static date string instead of new Date()", () => {
+    expect(STATIC_PAGES_LAST_MODIFIED).toBeInstanceOf(Date);
+    expect(STATIC_PAGES_LAST_MODIFIED.toISOString()).toBe("2026-10-01T00:00:00.000Z");
+  });
+});
+

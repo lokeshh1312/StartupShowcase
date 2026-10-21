@@ -51,6 +51,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npm test` | Run Vitest unit tests |
 | `npm run test:e2e` | Run Playwright end-to-end tests |
 | `npm run seed` | Seed global sample startups (requires non-production environment) |
+| `npm run check:samples` | Guard script ensuring zero sample test data exists in production |
 
 ## Database Setup & Migrations
 
@@ -77,7 +78,7 @@ This loads 27 global sample startups across 12 countries into Postgres with `is_
 
 See [`.env.example`](.env.example) for the full list:
 
-- `NEXT_PUBLIC_SITE_URL` — Public site URL
+- `NEXT_PUBLIC_SITE_URL` — Public site origin (e.g. `https://startupshowcase.com`). **CRITICAL**: In production (`NODE_ENV=production`), `NEXT_PUBLIC_SITE_URL` must be set during the **BUILD** step as well as at runtime. If missing, empty, or containing `localhost`, the build and server startup will fail with a loud error to prevent deploying broken canonical and Open Graph metadata. In development and test, it safely defaults to `http://localhost:3000`.
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anonymous key
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase service-role key (**server-only**)

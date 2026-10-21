@@ -30,6 +30,7 @@ import {
   buildStartupJsonLd,
   buildBreadcrumbJsonLd,
 } from "@/lib/seo";
+import { JsonLd } from "@/components/common/json-ld";
 import { absoluteUrl } from "@/lib/urls";
 import type { Metadata } from "next";
 
@@ -116,14 +117,8 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       {/* Structured Data: SoftwareApplication & BreadcrumbList */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(startupJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
+      <JsonLd data={startupJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
       {/* Top back navigation */}
       <div className="flex items-center justify-between">
         <Link

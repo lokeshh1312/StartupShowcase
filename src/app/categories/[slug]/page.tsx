@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Layers, Sparkles } from "lucide-react";
-import { listStartups } from "@/server/startups";
+import { listStartups, getApprovedNonSampleStats } from "@/server/startups";
 import { CATEGORIES, type Category } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { StartupCard } from "@/components/startup/startup-card";
@@ -11,6 +11,7 @@ import {
   buildItemListJsonLd,
   buildBreadcrumbJsonLd,
 } from "@/lib/seo";
+import { JsonLd } from "@/components/common/json-ld";
 import type { Metadata } from "next";
 
 interface CategoryPageProps {
@@ -30,12 +31,18 @@ export async function generateMetadata({
   const { slug } = await params;
   const category = findCategoryBySlug(slug);
   const name = category || slug;
+  const stats = category
+    ? await getApprovedNonSampleStats({ category })
+    : { count: 0, lastModified: null };
+
+  const isIndexable = stats.count > 0;
+
   return createMetadata({
     title: `Best new ${name} startups | Startup Showcase`,
     description: `Discover top innovations, rising products, and community favorites in ${name}.`,
     path: `/categories/${slug.toLowerCase()}`,
     robots: {
-      index: true,
+      index: isIndexable,
       follow: true,
     },
   });
@@ -70,14 +77,8 @@ export default async function CategoryDetailPage({ params }: CategoryPageProps) 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Structured Data: ItemList & BreadcrumbList */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
+      <JsonLd data={itemListJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
       {/* Back link */}
       <div>
         <Link

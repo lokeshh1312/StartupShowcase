@@ -1070,3 +1070,46 @@ export async function getUserPublicProfile(userId: string) {
   };
 }
 
+/**
+ * Returns the count and latest update timestamp of approved, non-sample startups matching the given filter.
+ * Used for dynamic sitemap generation and per-route indexing (robots noindex when count === 0).
+ */
+export async function getApprovedNonSampleStats(filters: {
+  category?: string;
+  countryCode?: string;
+  month?: string;
+}): Promise<{ count: number; lastModified: Date | null }> {
+  const conditions: SQL[] = [
+    eq(startups.status, "approved"),
+    eq(startups.isSample, false),
+  ];
+
+  if (filters.category) {
+    conditions.push(eq(startups.category, filters.category));
+  }
+  if (filters.countryCode) {
+    conditions.push(eq(startups.countryCode, filters.countryCode.toUpperCase()));
+  }
+  if (filters.month) {
+    try {
+      const monthDate = normalizeMonthToDate(filters.month);
+      conditions.push(eq(startups.month, monthDate));
+    } catch {
+      return { count: 0, lastModified: null };
+    }
+  }
+
+  const result = await db
+    .select({
+      count: sql<number>`count(*)::int`,
+      lastModified: sql<Date | null>`max(coalesce(${startups.updatedAt}, ${startups.createdAt}))`,
+    })
+    .from(startups)
+    .where(and(...conditions));
+
+  return {
+    count: result[0]?.count ?? 0,
+    lastModified: result[0]?.lastModified ? new Date(result[0].lastModified) : null,
+  };
+}
+

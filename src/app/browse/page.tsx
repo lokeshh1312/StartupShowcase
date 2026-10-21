@@ -12,6 +12,7 @@ import { type SortOption } from "@/lib/validation";
 import { FilterBar } from "@/components/discovery/filter-bar";
 import { StartupCard } from "@/components/startup/startup-card";
 import { createMetadata, buildItemListJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/common/json-ld";
 import type { Metadata } from "next";
 
 interface BrowsePageProps {
@@ -109,10 +110,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
-      />
+      <JsonLd data={itemListJsonLd} />
 
       {/* Header */}
       <div className="space-y-3 max-w-3xl">

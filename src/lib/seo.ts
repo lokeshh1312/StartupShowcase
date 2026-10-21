@@ -7,6 +7,31 @@ export const DEFAULT_SITE_TITLE = "Startup Showcase | Discover Emerging Startups
 export const DEFAULT_SITE_DESCRIPTION =
   "Global startup discovery and monthly leaderboard for early-stage tech startups, prototypes, and MVPs.";
 
+/**
+ * Constant date string for static page sitemaps so lastModified is deterministic and real.
+ */
+export const STATIC_PAGES_LAST_MODIFIED = new Date("2026-10-01T00:00:00.000Z");
+
+/**
+ * Serializes data to JSON-LD string with critical XSS escaping.
+ * Replaces '<', '>', '&', and Unicode line/paragraph separators (U+2028, U+2029)
+ * with Unicode escapes so that embedding user-submitted content in <script type="application/ld+json">
+ * cannot be broken out of with "</script>" tags or HTML entity tricks, while still
+ * parsing cleanly with standard JSON parsers.
+ */
+export function serializeJsonLd(data: unknown): string {
+  if (data === null || data === undefined) {
+    return "";
+  }
+  const json = typeof data === "string" ? data : JSON.stringify(data);
+  return json
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
 interface CreateMetadataOptions {
   title: string;
   description: string;

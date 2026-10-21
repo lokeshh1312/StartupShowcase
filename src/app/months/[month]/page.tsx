@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Calendar, Trophy } from "lucide-react";
-import { getLeaderboard, listMonths } from "@/server/startups";
+import { getLeaderboard, listMonths, getApprovedNonSampleStats } from "@/server/startups";
 import { normalizeMonthToDate, formatMonthLabel } from "@/lib/validation";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
 import { MonthSelector } from "@/components/discovery/month-selector";
@@ -11,6 +11,7 @@ import {
   buildItemListJsonLd,
   buildBreadcrumbJsonLd,
 } from "@/lib/seo";
+import { JsonLd } from "@/components/common/json-ld";
 import type { Metadata } from "next";
 
 interface MonthPageProps {
@@ -24,12 +25,15 @@ export async function generateMetadata({
   try {
     const monthDate = normalizeMonthToDate(month);
     const label = formatMonthLabel(monthDate);
+    const stats = await getApprovedNonSampleStats({ month });
+    const isIndexable = stats.count > 0;
+
     return createMetadata({
       title: `Top startups launched in ${label} | Startup Showcase`,
       description: `Rankings, verified votes, and top early-stage startups launched in ${label}.`,
       path: `/months/${month}`,
       robots: {
-        index: true,
+        index: isIndexable,
         follow: true,
       },
     });
@@ -38,6 +42,10 @@ export async function generateMetadata({
       title: "Monthly Leaderboard | Startup Showcase",
       description: "Rankings and top voted early-stage startups.",
       path: "/months",
+      robots: {
+        index: false,
+        follow: true,
+      },
     });
   }
 }
@@ -74,14 +82,8 @@ export default async function MonthLeaderboardPage({ params }: MonthPageProps) {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Structured Data: ItemList & BreadcrumbList */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
+      <JsonLd data={itemListJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
       {/* Back link */}
       <div>
         <Link

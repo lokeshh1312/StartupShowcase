@@ -25,6 +25,7 @@ import {
   DEFAULT_SITE_TITLE,
   DEFAULT_SITE_DESCRIPTION,
 } from "@/lib/seo";
+import { JsonLd } from "@/components/common/json-ld";
 import type { Metadata } from "next";
 
 interface HomePageProps {
@@ -86,18 +87,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <div className="space-y-16 pb-20">
       {/* Structured Data: Organization, WebSite with SearchAction, and Monthly Leaderboard ItemList */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(leaderboardJsonLd) }}
-      />
+      <JsonLd data={orgJsonLd} />
+      <JsonLd data={siteJsonLd} />
+      <JsonLd data={leaderboardJsonLd} />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-blue-50/70 via-white to-transparent dark:from-blue-950/20 dark:via-slate-950 dark:to-transparent pt-20 pb-12 border-b border-slate-200/60 dark:border-slate-800/60">
