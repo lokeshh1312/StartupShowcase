@@ -7,7 +7,11 @@ declare global {
   var _showcaseDbClient: postgres.Sql | undefined;
 }
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString =
+  process.env.DATABASE_URL ||
+  (process.env.NODE_ENV === "test"
+    ? "postgres://mock:mock@localhost:5432/mock"
+    : undefined);
 
 function createClient(): postgres.Sql {
   if (!connectionString) {

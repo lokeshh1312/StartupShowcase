@@ -35,8 +35,13 @@ DECLARE
   _uid_b uuid := '22222222-2222-4222-a222-222222222222';
   _uid_c uuid := '33333333-3333-4333-a333-333333333333';
   _uid_d uuid := '44444444-4444-4444-a444-444444444444';
+  _uid_owner uuid := '88888888-8888-4888-a888-888888888888';
+  _uid_unverified uuid := '55555555-5555-4555-a555-555555555555';
+  _uid_fresh uuid := '66666666-6666-4666-a666-666666666666';
+  _uid_veteran uuid := '77777777-7777-4777-a777-777777777777';
   _startup_approved_id uuid := 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
   _startup_pending_id  uuid := 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb';
+  _comment_test_id     uuid := 'cccccccc-cccc-4ccc-cccc-cccccccccccc';
 
   _check_name text;
   _passed boolean;
@@ -46,9 +51,12 @@ DECLARE
   _rc integer;
   _c_role text;
   _vc bigint;
+  _vc_fresh bigint;
+  _vc_veteran bigint;
   _voter_uid uuid;
   _voter_blocked boolean;
   _got_count boolean;
+  _audit_count integer;
 BEGIN
   -- Always ensure we start as postgres
   PERFORM set_config('role', 'postgres', true);
@@ -58,14 +66,20 @@ BEGIN
   -- SETUP (as postgres)
   ----------------------------------------------------------------------
   -- Pre-cleanup in case of prior interrupted execution
-  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved');
-  DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d);
+  DELETE FROM public.startup_comments WHERE id = _comment_test_id;
+  DELETE FROM public.audit_log WHERE target_id = _comment_test_id::text;
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending');
+  DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d, _uid_owner, _uid_unverified, _uid_fresh, _uid_veteran);
 
   -- Insert real users into auth.users so handle_new_user trigger creates real profiles
-  -- User A: founder
-  -- User B: community
+  -- User A: founder (verified)
+  -- User B: community (verified)
   -- User C: requested role 'admin' -> sanitized to 'community' by trigger
   -- User D: community -> promoted to 'admin' by postgres below
+  -- User Owner: founder (verified), owner of approved startup
+  -- User Unverified: founder (email_confirmed_at IS NULL)
+  -- User Fresh: community (verified, created_at = now)
+  -- User Veteran: community (verified, created_at = now - 48h)
   INSERT INTO auth.users (
     id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
     raw_user_meta_data, created_at, updated_at
@@ -73,17 +87,24 @@ BEGIN
     (_uid_a, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-a@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Founder A", "role": "founder"}'::jsonb, now(), now()),
     (_uid_b, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-b@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Community B", "role": "community"}'::jsonb, now(), now()),
     (_uid_c, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-c@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Attacker C", "role": "admin"}'::jsonb, now(), now()),
-    (_uid_d, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-d@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Admin D", "role": "community"}'::jsonb, now(), now());
+    (_uid_d, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-d@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Admin D", "role": "community"}'::jsonb, now(), now()),
+    (_uid_owner, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-owner@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Founder Owner", "role": "founder"}'::jsonb, now(), now()),
+    (_uid_unverified, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-unverified@example.invalid', 'encrypted-secret-placeholder', NULL, '{"name": "RLS Unverified", "role": "founder"}'::jsonb, now(), now()),
+    (_uid_fresh, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-fresh@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Fresh Voter", "role": "community"}'::jsonb, now(), now()),
+    (_uid_veteran, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', 'rls-test-veteran@example.invalid', 'encrypted-secret-placeholder', now(), '{"name": "RLS Veteran Voter", "role": "community"}'::jsonb, now() - interval '48 hours', now() - interval '48 hours');
 
   -- Promote user D to admin as postgres (allowed by protect_profile_columns trigger)
   UPDATE public.profiles SET role = 'admin' WHERE id = _uid_d;
 
-  -- Create one approved and one pending startup as postgres
+  -- Set veteran profile created_at to 48 hours ago
+  UPDATE public.profiles SET created_at = (now() - interval '48 hours') WHERE id = _uid_veteran;
+
+  -- Create one approved (owned by _uid_owner) and one pending startup (owned by _uid_a) as postgres
   INSERT INTO public.startups (
     id, slug, owner_id, status, is_sample, name, idea_title, tagline, description,
     category, country_code, stage, month, month_label, views_count, approved_at
   ) VALUES (
-    _startup_approved_id, 'rls-test-approved', _uid_a, 'approved', false,
+    _startup_approved_id, 'rls-test-approved', _uid_owner, 'approved', false,
     'RLS Approved Startup', 'Approved Idea', 'Best Tagline', 'A comprehensive description for approved startup',
     'AgriTech', 'US', 'MVP', '2026-10-01'::date, 'October 2026', 0, now()
   );
@@ -416,7 +437,7 @@ BEGIN
   _passed := false;
   _details := '';
   PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_owner::text, 'role', 'authenticated')::text, true);
   BEGIN
     UPDATE public.startups SET description = 'Attempted update on approved startup' WHERE id = _startup_approved_id;
     GET DIAGNOSTICS _rc = ROW_COUNT;
@@ -622,21 +643,234 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
+  -- 22: unverified user cannot vote on approved startup
+  _check_name := '22 (NEG): unverified user cannot vote on approved startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_unverified::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid_unverified, _startup_approved_id);
+    _passed := false;
+    _details := 'FAIL: Unverified vote succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (is_verified RLS rejection)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 23: unverified user cannot comment on approved startup
+  _check_name := '23 (NEG): unverified user cannot comment on approved startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_unverified::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startup_comments (user_id, startup_id, content) VALUES (_uid_unverified, _startup_approved_id, 'Unverified comment');
+    _passed := false;
+    _details := 'FAIL: Unverified comment succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (is_verified RLS rejection)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 24: unverified user cannot submit a startup
+  _check_name := '24 (NEG): unverified user cannot submit a startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_unverified::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startups (
+      slug, owner_id, status, is_sample, name, idea_title, tagline, description,
+      category, country_code, stage, month, views_count
+    ) VALUES (
+      'rls-unverified-pending', _uid_unverified, 'pending', false, 'Unverified Submission',
+      'Unverified Idea', 'Tagline', 'Description of unverified startup attempt',
+      'AgriTech', 'US', 'MVP', '2026-10-01'::date, 0
+    );
+    _passed := false;
+    _details := 'FAIL: Unverified submission succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (is_verified RLS rejection)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 25: founder cannot vote for own startup
+  _check_name := '25 (NEG): founder cannot vote for own startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_owner::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid_owner, _startup_approved_id);
+    _passed := false;
+    _details := 'FAIL: Founder self-vote succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (founder self-vote RLS rejection)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 26: direct API insert of a vote on a pending startup fails
+  _check_name := '26 (NEG): direct API insert of a vote on a pending startup fails';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_veteran::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid_veteran, _startup_pending_id);
+    _passed := false;
+    _details := 'FAIL: Vote on pending startup succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (pending startup vote rejected)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 27: 24h profile rule: young profile vote does not count, veteran vote counts
+  _check_name := '27 (POS): 24h profile rule: young profile vote does not count, veteran vote counts';
+  _passed := false;
+  _details := '';
+  BEGIN
+    -- Read current count before additions
+    SELECT votes_count INTO _vc FROM public.monthly_leaderboard_view WHERE id = _startup_approved_id;
+    
+    -- Insert fresh vote (< 24h old profile) as postgres
+    INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid_fresh, _startup_approved_id);
+    SELECT votes_count INTO _vc_fresh FROM public.monthly_leaderboard_view WHERE id = _startup_approved_id;
+
+    -- Insert veteran vote (>= 24h old profile) as postgres
+    INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid_veteran, _startup_approved_id);
+    SELECT votes_count INTO _vc_veteran FROM public.monthly_leaderboard_view WHERE id = _startup_approved_id;
+
+    IF _vc_fresh = _vc AND _vc_veteran = (_vc + 1) THEN
+      _passed := true;
+      _details := format('Fresh vote ignored (count %s -> %s); veteran vote counted (count -> %s)', _vc, _vc_fresh, _vc_veteran);
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Baseline %s, After fresh %s, After veteran %s', _vc, _vc_fresh, _vc_veteran);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 28: admin hiding a comment writes an audit_log row with previous status
+  _check_name := '28 (POS): admin hiding a comment writes an audit_log row with previous status';
+  _passed := false;
+  _details := '';
+  BEGIN
+    -- Insert a comment as postgres
+    INSERT INTO public.startup_comments (id, user_id, startup_id, content, status)
+    VALUES (_comment_test_id, _uid_b, _startup_approved_id, 'Comment to be hidden by admin', 'visible');
+
+    -- Admin hides the comment
+    PERFORM set_config('role', 'authenticated', true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_d::text, 'role', 'authenticated')::text, true);
+    UPDATE public.startup_comments SET status = 'hidden' WHERE id = _comment_test_id;
+
+    -- Back to postgres to inspect audit_log
+    PERFORM set_config('role', 'postgres', true);
+    PERFORM set_config('request.jwt.claims', '', true);
+
+    SELECT count(*) INTO _audit_count
+    FROM public.audit_log
+    WHERE target_id = _comment_test_id::text
+      AND target_type = 'comment'
+      AND action = 'hide_comment'
+      AND metadata->>'previous_status' = 'visible'
+      AND metadata->>'new_status' = 'hidden';
+
+    IF _audit_count >= 1 THEN
+      _passed := true;
+      _details := format('Successfully caught audit_log entry for comment hide (count = %s)', _audit_count);
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected at least 1 audit_log entry, got %s', _audit_count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 29: verified veteran user can save and comment on approved startup
+  _check_name := '29 (POS): verified veteran user can save and comment on approved startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_veteran::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.saved_startups (user_id, startup_id) VALUES (_uid_veteran, _startup_approved_id);
+    INSERT INTO public.startup_comments (user_id, startup_id, content) VALUES (_uid_veteran, _startup_approved_id, 'Great verified comment');
+    _passed := true;
+    _details := 'Save and comment succeeded for verified veteran user';
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
   ----------------------------------------------------------------------
   -- UNCONDITIONAL CLEANUP BLOCK
   ----------------------------------------------------------------------
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
 
-  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved');
-  DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d);
+  DELETE FROM public.startup_comments WHERE id = _comment_test_id;
+  DELETE FROM public.audit_log WHERE target_id = _comment_test_id::text;
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending');
+  DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d, _uid_owner, _uid_unverified, _uid_fresh, _uid_veteran);
 
 EXCEPTION WHEN OTHERS THEN
   -- Ensure cleanup runs even if an unhandled error aborts the block
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
-  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved');
-  DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d);
+  DELETE FROM public.startup_comments WHERE id = _comment_test_id;
+  DELETE FROM public.audit_log WHERE target_id = _comment_test_id::text;
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending');
+  DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d, _uid_owner, _uid_unverified, _uid_fresh, _uid_veteran);
   RAISE;
 END;
 $$;

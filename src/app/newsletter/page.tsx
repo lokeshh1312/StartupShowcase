@@ -1,18 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { Mail, CheckCircle2, Send, ArrowLeft, ShieldCheck } from "lucide-react";
+import { subscribeNewsletterAction } from "@/server/actions";
 
 export default function NewsletterPage() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.includes("@")) {
-      setSubscribed(true);
-    }
+    setError("");
+
+    startTransition(async () => {
+      const res = await subscribeNewsletterAction(email.trim());
+      if (res?.error) {
+        setError(res.error);
+      } else {
+        setSubscribed(true);
+      }
+    });
   };
 
   const sampleEditions = [
@@ -81,6 +91,11 @@ export default function NewsletterPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-400 font-medium">
+                {error}
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="email"
@@ -92,9 +107,10 @@ export default function NewsletterPage() {
               />
               <button
                 type="submit"
-                className="px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors shadow-xs shrink-0 flex items-center justify-center gap-2"
+                disabled={isPending}
+                className="px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs transition-colors shadow-xs shrink-0 flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Subscribe Free</span>
+                <span>{isPending ? "Subscribing…" : "Subscribe Free"}</span>
                 <Send className="w-3.5 h-3.5" />
               </button>
             </div>

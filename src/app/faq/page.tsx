@@ -25,11 +25,15 @@ const FAQ_SECTIONS = [
       },
       {
         q: "How does voting work?",
-        a: "To maintain leaderboard integrity, votes require an authenticated user account. Each user can vote once per startup. Votes can be toggled on or off at any time.",
+        a: "To maintain leaderboard integrity, voting requires an email-verified account. Founders cannot vote for their own startups, and each user is limited to at most 30 vote toggles per hour.",
+      },
+      {
+        q: "When does a vote count toward the public leaderboard rank (24-hour rule)?",
+        a: "To prevent vote brigading and newly registered burner accounts from gaming rankings, a vote counts toward the public leaderboard rank only when the voter's profile is at least 24 hours old. You can still vote as soon as your email is verified, and your vote will count toward public standings once your profile matures past 24 hours.",
       },
       {
         q: "Can I save startups to track their progress?",
-        a: "Yes! Click the bookmark icon on any startup card or profile page. All your saved startups are saved to your account and accessible at any time under Saved Startups.",
+        a: "Yes! Click the bookmark icon on any startup card or profile page. Verified users can save startups to their personal dashboard under Saved Startups.",
       },
     ],
   },

@@ -24,9 +24,25 @@ import {
 } from "@/lib/validation";
 import { buildSafePrefixTsQuery } from "@/lib/search";
 import { toUtcDateString } from "@/lib/dates";
+import { headers } from "next/headers";
+import { checkRateLimit, extractClientIp, RATE_LIMIT_MESSAGE } from "@/server/rate-limit";
+import { isBotOrPrefetchFromHeaders, computeViewerHash } from "@/server/views";
+import { checkStartupDuplicate, type DuplicateWarning } from "@/server/duplicates";
+import { validateCommentSpam, isDuplicateComment } from "@/server/comments";
 
 // Re-export for existing consumers
 export { buildSafePrefixTsQuery } from "@/lib/search";
+export { hideComment } from "@/server/comments";
+
+/**
+ * Checks if a user has confirmed their email address in auth.users.
+ */
+export async function isUserEmailVerified(userId: string): Promise<boolean> {
+  const rows = await db.execute<{ email_confirmed_at: string | null }>(sql`
+    SELECT email_confirmed_at FROM auth.users WHERE id = ${userId}::uuid
+  `);
+  return Boolean(rows[0]?.email_confirmed_at);
+}
 
 export type FormattedStartup = Startup & {
   likes: number;
@@ -195,9 +211,10 @@ export async function listStartups(
       }
     FROM public.startups
     LEFT JOIN (
-      SELECT startup_id, count(*)::int AS count
-      FROM public.startup_votes
-      GROUP BY startup_id
+      SELECT v.startup_id, count(*)::int AS count
+      FROM public.startup_votes v
+      JOIN public.profiles voter ON voter.id = v.user_id AND voter.created_at <= (now() - interval '24 hours')
+      GROUP BY v.startup_id
     ) vote_agg ON vote_agg.startup_id = startups.id
     WHERE ${whereClause}
     ORDER BY ${orderByClause}
@@ -249,12 +266,30 @@ export async function getStartupBySlug(
   const startup = startupQuery[0];
   if (!startup) return null;
 
-  // View deduplication per viewer_hash per day
-  if (viewerHash) {
+  // Deduplicated view tracking for approved, non-sample startups only
+  let effectiveViewerHash = viewerHash;
+  if (!effectiveViewerHash) {
+    try {
+      const h = await headers();
+      if (!isBotOrPrefetchFromHeaders(h)) {
+        const ip = extractClientIp(h);
+        const userAgent = h.get("user-agent") || "";
+        effectiveViewerHash = computeViewerHash(
+          ip,
+          userAgent,
+          toUtcDateString(new Date())
+        );
+      }
+    } catch {
+      // outside request context or headers not available
+    }
+  }
+
+  if (effectiveViewerHash && startup.status === "approved" && !startup.isSample) {
     const dayStr = toUtcDateString(new Date());
     const inserted = await db.execute(sql`
       INSERT INTO public.startup_views (startup_id, viewer_hash, day)
-      VALUES (${startup.id}::uuid, ${viewerHash}, ${dayStr}::date)
+      VALUES (${startup.id}::uuid, ${effectiveViewerHash}, ${dayStr}::date)
       ON CONFLICT (startup_id, viewer_hash, day) DO NOTHING
       RETURNING 1
     `);
@@ -267,11 +302,13 @@ export async function getStartupBySlug(
     }
   }
 
-  // Fetch vote count
-  const voteCountResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(startupVotes)
-    .where(eq(startupVotes.startupId, startup.id));
+  // Fetch vote count adhering strictly to the 24h profile rule
+  const voteCountResult = await db.execute<{ count: number }>(sql`
+    SELECT count(*)::int AS count
+    FROM public.startup_votes v
+    JOIN public.profiles voter ON voter.id = v.user_id AND voter.created_at <= (now() - interval '24 hours')
+    WHERE v.startup_id = ${startup.id}::uuid
+  `);
   const likes = voteCountResult[0]?.count ?? 0;
 
   // User state
@@ -481,6 +518,28 @@ export async function createStartup(
 ): Promise<Startup> {
   const validated = createStartupSchema.parse(input);
 
+  // 1. Enforce verified founder
+  const isVerified = await isUserEmailVerified(userId);
+  if (!isVerified) {
+    throw new Error("Please verify your email first.");
+  }
+
+  // 2. Enforce at most 5 pending submissions per user
+  const pendingCount = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(startups)
+    .where(
+      and(
+        eq(startups.ownerId, userId),
+        eq(startups.status, "pending")
+      )
+    );
+  if ((pendingCount[0]?.count ?? 0) >= 5) {
+    throw new Error(
+      "You have reached the limit of 5 pending submissions awaiting review."
+    );
+  }
+
   // Generate unique slug — retry on unique violation instead of check-then-insert
   const baseSlug =
     validated.name
@@ -637,13 +696,25 @@ export async function toggleVote(
   startupIdOrSlug: string,
   userId: string
 ): Promise<{ liked: boolean; likesCount: number }> {
+  // 1. Enforce verified user
+  const isVerified = await isUserEmailVerified(userId);
+  if (!isVerified) {
+    throw new Error("Please verify your email first.");
+  }
+
+  // 2. Enforce per-user rate limit: at most 30 vote toggles per hour
+  const rateLimitRes = await checkRateLimit(`vote:user:${userId}`, 30, 3600);
+  if (!rateLimitRes.allowed) {
+    throw new Error(RATE_LIMIT_MESSAGE);
+  }
+
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       startupIdOrSlug
     );
 
   const startup = await db
-    .select({ id: startups.id, status: startups.status })
+    .select({ id: startups.id, status: startups.status, ownerId: startups.ownerId })
     .from(startups)
     .where(
       isUuid
@@ -654,6 +725,11 @@ export async function toggleVote(
 
   if (!startup[0] || startup[0].status !== "approved") {
     throw new Error("Startup not found or not approved for voting.");
+  }
+
+  // 3. Founder self-vote restriction
+  if (startup[0].ownerId && startup[0].ownerId === userId) {
+    throw new Error("Founders cannot vote for their own startup.");
   }
 
   const startupId = startup[0].id;
@@ -684,10 +760,12 @@ export async function toggleVote(
       liked = false;
     }
 
-    const countResult = await tx
-      .select({ count: sql<number>`count(*)::int` })
-      .from(startupVotes)
-      .where(eq(startupVotes.startupId, startupId));
+    const countResult = await tx.execute<{ count: number }>(sql`
+      SELECT count(*)::int AS count
+      FROM public.startup_votes v
+      JOIN public.profiles voter ON voter.id = v.user_id AND voter.created_at <= (now() - interval '24 hours')
+      WHERE v.startup_id = ${startupId}::uuid
+    `);
 
     return {
       liked,
@@ -705,6 +783,12 @@ export async function toggleSave(
   startupIdOrSlug: string,
   userId: string
 ): Promise<{ saved: boolean }> {
+  // Enforce verified user
+  const isVerified = await isUserEmailVerified(userId);
+  if (!isVerified) {
+    throw new Error("Please verify your email first.");
+  }
+
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       startupIdOrSlug
@@ -768,7 +852,33 @@ export async function addComment(
   role: string;
   createdAt: Date;
 }> {
+  // 1. Verified user check
+  const isVerified = await isUserEmailVerified(userId);
+  if (!isVerified) {
+    throw new Error("Please verify your email first.");
+  }
+
   const { content } = addCommentSchema.parse({ content: rawContent });
+
+  // 2. Validate spam heuristics
+  const spamRes = validateCommentSpam(content);
+  if (!spamRes.valid) {
+    throw new Error(spamRes.error || "Comment failed spam heuristics.");
+  }
+
+  // 3. Duplicate comment within 10 minutes check
+  const isDup = await isDuplicateComment(userId, content);
+  if (isDup) {
+    throw new Error(
+      "Duplicate comment detected. Please do not submit the same comment multiple times."
+    );
+  }
+
+  // 4. Rate limit: 10 comments per 10 minutes per user
+  const rateLimitRes = await checkRateLimit(`comment:user:${userId}`, 10, 600);
+  if (!rateLimitRes.allowed) {
+    throw new Error(RATE_LIMIT_MESSAGE);
+  }
 
   const isUuid =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -987,8 +1097,23 @@ export async function listAdminStartups(
     .limit(pageSize)
     .offset(offset);
 
+  // Attach duplicate warning on pending review items
+  type AdminItem = Startup & { duplicateWarning?: DuplicateWarning | null };
+  let itemsToReturn: AdminItem[] = items;
+  if (status === "pending") {
+    itemsToReturn = await Promise.all(
+      items.map(async (item) => {
+        const warning = await checkStartupDuplicate(item.name, item.websiteUrl, item.id);
+        return {
+          ...item,
+          duplicateWarning: warning,
+        };
+      })
+    );
+  }
+
   return {
-    items,
+    items: itemsToReturn,
     total,
     page,
     pageSize,
@@ -997,12 +1122,12 @@ export async function listAdminStartups(
 }
 
 /**
- * Get admin audit log
+ * Get admin audit log (defaults to 100 entries)
  */
 export async function getAdminAuditLog(
   adminUserId: string,
   page = 1,
-  pageSize = 50
+  pageSize = 100
 ): Promise<PaginatedResult<typeof auditLog.$inferSelect>> {
   const reviewerProfile = await db
     .select({ role: profiles.role })

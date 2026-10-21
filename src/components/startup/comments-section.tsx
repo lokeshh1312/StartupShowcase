@@ -2,8 +2,8 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
-import { MessageSquare, Send } from "lucide-react";
-import { addCommentAction } from "@/server/actions";
+import { MessageSquare, Send, EyeOff } from "lucide-react";
+import { addCommentAction, hideCommentAction } from "@/server/actions";
 import { Badge } from "@/components/common/badge";
 
 interface CommentItem {
@@ -21,6 +21,7 @@ interface CommentsSectionProps {
   currentUser?: {
     id: string;
     email?: string;
+    role?: string;
   } | null;
 }
 
@@ -59,6 +60,20 @@ export function CommentsSection({
           ...comments,
         ]);
         setContent("");
+      }
+    });
+  };
+
+  const handleHideComment = async (commentId: string) => {
+    if (!confirm("Are you sure you want to hide this comment? This moderation action is recorded in the audit trail.")) {
+      return;
+    }
+    startTransition(async () => {
+      const res = await hideCommentAction(commentId);
+      if (res?.success) {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+      } else if (res?.error) {
+        alert(res.error);
       }
     });
   };
@@ -143,9 +158,22 @@ export function CommentsSection({
                     {comment.role}
                   </Badge>
                 </div>
-                <time className="text-[11px] text-slate-400">
-                  {new Date(comment.date).toLocaleDateString()}
-                </time>
+                <div className="flex items-center gap-3">
+                  <time className="text-[11px] text-slate-400">
+                    {new Date(comment.date).toLocaleDateString()}
+                  </time>
+                  {currentUser?.role === "admin" && (
+                    <button
+                      onClick={() => handleHideComment(comment.id)}
+                      disabled={isPending}
+                      title="Hide comment (Admin)"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 cursor-pointer px-1.5 py-0.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                    >
+                      <EyeOff className="w-3 h-3" />
+                      <span>Hide</span>
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pl-8">
                 {comment.content}

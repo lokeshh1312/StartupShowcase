@@ -15,7 +15,7 @@ import {
   Quote,
 } from "lucide-react";
 import { getStartupBySlug, listStartups } from "@/server/startups";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { formatLocation, getCountryName } from "@/lib/validation";
 import type { FounderInfo } from "@/db/schema";
 import { StartupLogo } from "@/components/common/startup-logo";
@@ -77,7 +77,8 @@ export async function generateMetadata({
 
 export default async function StartupDetailPage({ params }: StartupPageProps) {
   const { slug } = await params;
-  const user = await getCurrentUser();
+  const authData = await getCurrentUserProfile();
+  const user = authData?.user;
 
   const data = await getStartupBySlug(slug, user?.id);
 
@@ -304,7 +305,15 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
             <CommentsSection
               startupSlug={startup.slug}
               initialComments={comments}
-              currentUser={user}
+              currentUser={
+                authData
+                  ? {
+                      id: authData.user.id,
+                      email: authData.user.email,
+                      role: authData.profile.role,
+                    }
+                  : null
+              }
             />
           </div>
         </div>

@@ -10,14 +10,16 @@ Startup Showcase utilizes Supabase Postgres with Row Level Security (RLS) enable
 | Table | One-Line RLS Policy Summary |
 | --- | --- |
 | `profiles` | Public can SELECT all profiles; authenticated users can UPDATE only their own profile (`auth.uid() = id`). No INSERT policy for authenticated (the auth trigger creates profiles). A BEFORE UPDATE trigger rejects changes to `role`, `id`, or `created_at` unless the session is `service_role` / `postgres`. |
-| `startups` | Anyone can SELECT approved startups; owners can SELECT their own pending submissions; admins can SELECT/UPDATE/DELETE all. INSERT requires `status = 'pending'`, `is_sample = false`, `approved_at IS NULL`, `reviewed_by IS NULL`, `views_count = 0`, and `auth.uid() = owner_id`. Owner UPDATE policy requires keeping `status = 'pending'`. |
-| `startup_votes` | Authenticated users can SELECT only their own votes (`auth.uid() = user_id`); no anon SELECT. INSERT requires `auth.uid() = user_id` AND the startup must be approved. DELETE own only. Public vote counts come from `monthly_leaderboard_view`. |
-| `saved_startups` | Authenticated users can only SELECT, INSERT, and DELETE their own saved startups (`auth.uid() = user_id`). |
-| `startup_comments` | Visible comments on approved startups are readable by anyone (plus author/admin for their own). INSERT requires `auth.uid() = user_id`, `status = 'visible'`, and the startup must be approved. DELETE own or admin. UPDATE admin only. |
-| `startup_views` | Server-only table (no anon/authenticated policies); accessed exclusively through server-side logic using service role. |
-| `rate_limits` | Server-only table (no anon/authenticated policies); rate-limiting enforced on server using service role. |
+| `startups` | Anyone can SELECT approved startups; owners can SELECT their own pending submissions; admins can SELECT/UPDATE/DELETE all. INSERT requires verified founder/admin (`public.is_verified()`), `status = 'pending'`, `is_sample = false`, `approved_at IS NULL`, `reviewed_by IS NULL`, `views_count = 0`, and `auth.uid() = owner_id`. Owner UPDATE policy requires keeping `status = 'pending'`. |
+| `startup_votes` | Authenticated users can SELECT only their own votes (`auth.uid() = user_id`); no anon SELECT. INSERT requires verified user (`public.is_verified()`), `auth.uid() = user_id`, approved startup, and blocks founders from voting for their own startup (`s.owner_id <> auth.uid()`). Public rank counts only votes from voter profiles >= 24h old via `monthly_leaderboard_view`. |
+| `saved_startups` | Authenticated users can only SELECT, INSERT, and DELETE their own saved startups (`auth.uid() = user_id`). INSERT requires verified email (`public.is_verified()`). |
+| `startup_comments` | Visible comments on approved startups are readable by anyone (plus author/admin for their own). INSERT requires verified user (`public.is_verified()`), `status = 'visible'`, and approved startup. DELETE own or admin. UPDATE requires admin (`public.is_admin()`); trigger `trg_comment_status_audit` logs status transitions to `audit_log`. |
+| `startup_views` | Server-only table (no anon/authenticated policies); daily deduplicated views via `viewer_hash = sha256(ip + ua + daily salt)` where daily salt rotates with UTC date and `VIEW_HASH_SECRET`. |
+| `rate_limits` | Server-only table (no anon/authenticated policies); atomic server-side limiter using `checkRateLimit` with trusted proxy IP extraction (`TRUSTED_PROXY_COUNT`). |
 | `newsletter_subscribers` | Server-only table (no anon/authenticated policies); subscription tokens and emails managed server-side. |
-| `audit_log` | Server-only table (no anon/authenticated policies); immutable administrative action logs written server-side. |
+| `audit_log` | Server-only table (no anon/authenticated policies); immutable administrative action logs written by server actions and DB audit triggers. |
+
+For detailed implementation mapping between server actions and database constraints, see [docs/INTEGRITY.md](docs/INTEGRITY.md).
 
 ---
 

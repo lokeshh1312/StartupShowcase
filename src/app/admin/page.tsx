@@ -29,7 +29,7 @@ export default async function AdminPage() {
       listAdminStartups("pending", user.id, 1, 50),
       listAdminStartups("approved", user.id, 1, 50),
       listAdminStartups("rejected", user.id, 1, 50),
-      getAdminAuditLog(user.id, 1, 50),
+      getAdminAuditLog(user.id, 1, 100),
     ]);
 
   return (

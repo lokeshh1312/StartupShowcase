@@ -11,6 +11,7 @@ import {
 } from "@/lib/theme";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/urls";
+import { UnverifiedBanner } from "@/components/common/unverified-banner";
 import "./globals.css";
 
 const inter = Inter({
@@ -60,6 +61,9 @@ export default async function RootLayout({
       >
         <ThemeProvider>
           <div className="min-h-screen flex flex-col">
+            {authData?.user && !authData.user.email_confirmed_at && (
+              <UnverifiedBanner email={authData.user.email || ""} />
+            )}
             <Navbar user={authData?.user} profile={authData?.profile} />
             <main className="flex-1">{children}</main>
             <Footer />

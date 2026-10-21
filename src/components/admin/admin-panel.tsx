@@ -25,6 +25,13 @@ interface AdminStartupItem {
   rejectionReason?: string | null;
   monthLabel: string;
   founder?: unknown;
+  duplicateWarning?: {
+    id: string;
+    name: string;
+    slug: string;
+    reason: "domain" | "name_similarity";
+    score?: number;
+  } | null;
 }
 
 interface AuditLogItem {
@@ -210,6 +217,25 @@ export function AdminPanel({
                         </>
                       )}
                     </div>
+
+                    {startup.duplicateWarning && (
+                      <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                        <span className="font-bold shrink-0">⚠️ Likely duplicate:</span>
+                        <span>
+                          Matches existing startup{" "}
+                          <Link
+                            href={`/startup/${startup.duplicateWarning.slug}`}
+                            target="_blank"
+                            className="font-bold underline text-amber-950 dark:text-amber-100 hover:text-blue-600 dark:hover:text-blue-400"
+                          >
+                            {startup.duplicateWarning.name}
+                          </Link>{" "}
+                          ({startup.duplicateWarning.reason === "domain"
+                            ? "matching website domain"
+                            : `name similarity ${Math.round((Number(startup.duplicateWarning.score ?? 0) * 100))}%`})
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
@@ -313,9 +339,12 @@ export function AdminPanel({
       {/* Tab: Audit Log */}
       {activeTab === "audit" && (
         <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-            Security & Moderation Audit Trail
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+              Security & Moderation Audit Trail (Latest {auditLogs.length} Entries)
+            </h3>
+            <span className="text-xs text-slate-400">Append-only audit record</span>
+          </div>
           {auditLogs.length === 0 ? (
             <p className="text-xs text-slate-500">No moderation actions recorded yet.</p>
           ) : (
@@ -323,16 +352,38 @@ export function AdminPanel({
               {auditLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4"
+                  className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                 >
-                  <div>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">
-                      {log.action}
-                    </span>{" "}
-                    on {log.targetType} ({log.targetId.slice(0, 8)}...)
+                  <div className="space-y-1">
+                    <div>
+                      <span className="font-bold text-blue-600 dark:text-blue-400">
+                        {log.action}
+                      </span>{" "}
+                      on <span className="font-semibold text-slate-700 dark:text-slate-300">{log.targetType}</span>{" "}
+                      <span className="text-slate-400 text-[11px]">({log.targetId.slice(0, 8)}...)</span>
+                    </div>
+                    {log.metadata && Object.keys(log.metadata).length > 0 && (
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {log.metadata.previousStatus && log.metadata.newStatus ? (
+                          <span>
+                            Status transition:{" "}
+                            <span className="text-rose-500 font-semibold">{String(log.metadata.previousStatus)}</span>
+                            {" → "}
+                            <span className="text-emerald-500 font-semibold">{String(log.metadata.newStatus)}</span>
+                          </span>
+                        ) : (
+                          <span>Details: {JSON.stringify(log.metadata)}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-slate-400 text-xs">
-                    {new Date(log.createdAt).toLocaleString()}
+                  <div className="text-slate-400 text-xs shrink-0 sm:text-right">
+                    <div>{new Date(log.createdAt).toLocaleString()}</div>
+                    {log.actorId && (
+                      <div className="text-[10px] text-slate-500">
+                        Admin: {log.actorId.slice(0, 8)}...
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
