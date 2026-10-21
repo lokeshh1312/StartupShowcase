@@ -1,48 +1,86 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 
-const footerLinks = [
-  { href: "/", label: "Leaderboard" },
-  { href: "/about", label: "About Platform" },
+const platformLinks = [
+  { href: "/browse", label: "Directory" },
+  { href: "/categories", label: "Categories" },
+  { href: "/countries", label: "Countries" },
   { href: "/submit", label: "Submit Startup" },
+] as const;
+
+const resourceLinks = [
+  { href: "/about", label: "About" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/support", label: "Support" },
+  { href: "/newsletter", label: "Newsletter" },
 ] as const;
 
 export function Footer() {
   return (
-    <footer className="w-full bg-white dark:bg-slate-950 border-t border-slate-200/80 dark:border-slate-800/80 py-10 mt-auto transition-colors">
+    <footer className="w-full bg-white dark:bg-slate-950 border-t border-slate-200/80 dark:border-slate-800/80 py-12 mt-auto transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-slate-100 dark:border-slate-900">
           {/* Brand & mission */}
-          <div className="flex flex-col items-center md:items-start space-y-1 text-center md:text-left">
-            <Logo size="sm" />
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm pt-1">
-              Discover, explore, and support the next generation of early-stage
-              startups and innovations from around the world.
+          <div className="md:col-span-2 space-y-3">
+            <Logo size="md" />
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed pt-1">
+              A global startup discovery and monthly-leaderboard platform for
+              early-stage startups, prototypes, and MVPs from any country.
             </p>
           </div>
 
-          {/* Navigation Links */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-semibold text-slate-600 dark:text-slate-400">
-            {footerLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                {label}
-              </Link>
-            ))}
+          {/* Directory Links */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Explore
+            </h4>
+            <ul className="space-y-2 text-xs">
+              {platformLinks.map(({ href, label }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* Copyright */}
-          <div className="text-center md:text-right space-y-1">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              © {new Date().getFullYear()} Startup Showcase.
-            </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">
-              Accounts, submissions, votes, saves, and comments are shared
-              across visitors.
-            </p>
+          {/* Platform & Support */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              Platform
+            </h4>
+            <ul className="space-y-2 text-xs">
+              {resourceLinks.map(({ href, label }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Bottom copyright */}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
+          <p>© {new Date().getFullYear()} Startup Showcase. Built for founders worldwide.</p>
+          <div className="flex items-center gap-4">
+            <Link href="/about" className="hover:underline">
+              About
+            </Link>
+            <Link href="/faq" className="hover:underline">
+              FAQ
+            </Link>
+            <Link href="/support" className="hover:underline">
+              Support
+            </Link>
           </div>
         </div>
       </div>

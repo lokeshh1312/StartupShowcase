@@ -131,7 +131,8 @@ export const countryCodeSchema = z
   );
 
 // Helper to look up country name
-export function getCountryName(code: string, lang = "en"): string {
+export function getCountryName(code?: string | null, lang = "en"): string {
+  if (!code || typeof code !== "string") return "";
   return countries.getName(code.toUpperCase(), lang) || code.toUpperCase();
 }
 
@@ -145,7 +146,7 @@ export function getAvailableCountries(lang = "en"): Array<{ code: string; name: 
 
 // Location formatter
 export function formatLocation(loc: {
-  countryCode: string;
+  countryCode?: string | null;
   region?: string | null;
   city?: string | null;
   remoteFirst?: boolean | null;
@@ -153,8 +154,10 @@ export function formatLocation(loc: {
   const parts: string[] = [];
   if (loc.city && loc.city.trim()) parts.push(loc.city.trim());
   if (loc.region && loc.region.trim()) parts.push(loc.region.trim());
-  const country = getCountryName(loc.countryCode);
-  if (country) parts.push(country);
+  if (loc.countryCode) {
+    const country = getCountryName(loc.countryCode);
+    if (country) parts.push(country);
+  }
   if (loc.remoteFirst) parts.push("(Remote)");
   return parts.join(", ");
 }

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { sql } from "drizzle-orm";
-import { INITIAL_STARTUPS } from "../src/data/startups";
+import { INITIAL_STARTUPS } from "./sample-data/startups";
 import { formatLocation, formatMonthLabel, normalizeMonthToDate, normalizeUrl } from "../src/lib/validation";
 
 // Load environment variables from .env.local

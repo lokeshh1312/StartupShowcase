@@ -9,6 +9,7 @@ import {
   resolveThemeClass,
   themeInitScript,
 } from "@/lib/theme";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 import "./globals.css";
 
 const inter = Inter({
@@ -36,6 +37,8 @@ export default async function RootLayout({
   const preference = parseThemeCookie(`theme=${themeCookie}`);
   const serverResolved = resolveThemeClass(preference, false);
 
+  const authData = await getCurrentUserProfile();
+
   return (
     <html
       lang="en"
@@ -53,7 +56,7 @@ export default async function RootLayout({
       >
         <ThemeProvider>
           <div className="min-h-screen flex flex-col">
-            <Navbar />
+            <Navbar user={authData?.user} profile={authData?.profile} />
             <main className="flex-1">{children}</main>
             <Footer />
           </div>

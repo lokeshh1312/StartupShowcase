@@ -18,6 +18,7 @@ import {
   normalizeMonthToDate,
   formatMonthLabel,
   CATEGORIES,
+  getCountryName,
   type CreateStartupInput,
   type ListStartupsFilters,
 } from "@/lib/validation";
@@ -42,6 +43,55 @@ export type PaginatedResult<T> = {
   pageSize: number;
   totalPages: number;
 };
+
+export function formatStartupRow(row: Record<string, unknown>): FormattedStartup {
+  const views = Number(row.viewsCount ?? row.views_count ?? 0);
+  const likes = Number(
+    row.likes ?? row.vote_count ?? row.votes_count ?? 0
+  );
+  return {
+    id: String(row.id),
+    slug: String(row.slug),
+    ownerId: (row.ownerId ?? row.owner_id ?? null) as string | null,
+    status: (row.status ?? "approved") as "pending" | "approved" | "rejected",
+    isSample: Boolean(row.isSample ?? row.is_sample),
+    name: String(row.name || ""),
+    ideaTitle: String(row.ideaTitle ?? row.idea_title ?? ""),
+    tagline: String(row.tagline ?? ""),
+    description: String(row.description ?? ""),
+    fullStory: String(row.fullStory ?? row.full_story ?? ""),
+    category: String(row.category ?? ""),
+    countryCode: String(row.countryCode ?? row.country_code ?? "US").toUpperCase(),
+    region: String(row.region ?? ""),
+    city: String(row.city ?? ""),
+    remoteFirst: Boolean(row.remoteFirst ?? row.remote_first),
+    location: String(row.location ?? ""),
+    stage: String(row.stage ?? "MVP"),
+    month: String(row.month ?? ""),
+    monthLabel: String(row.monthLabel ?? row.month_label ?? ""),
+    websiteUrl: String(row.websiteUrl ?? row.website_url ?? ""),
+    logoType: String(row.logoType ?? row.logo_type ?? "sprout"),
+    logoColor: String(row.logoColor ?? row.logo_color ?? "#2563EB"),
+    thumbnail: String(row.thumbnail ?? ""),
+    coverImage: String(row.coverImage ?? row.cover_image ?? ""),
+    founderJson: (row.founderJson ?? row.founder_json ?? {}) as Startup["founderJson"],
+    problem: String(row.problem ?? ""),
+    solution: String(row.solution ?? ""),
+    keyFeaturesJson: (row.keyFeaturesJson ?? row.key_features_json ?? []) as string[],
+    techStackJson: (row.techStackJson ?? row.tech_stack_json ?? []) as string[],
+    traction: String(row.traction ?? ""),
+    viewsCount: views,
+    reviewedBy: (row.reviewedBy ?? row.reviewed_by ?? null) as string | null,
+    approvedAt: row.approvedAt ? new Date(row.approvedAt as string) : (row.approved_at ? new Date(row.approved_at as string) : null),
+    createdAt: row.createdAt ? new Date(row.createdAt as string) : (row.created_at ? new Date(row.created_at as string) : new Date()),
+    updatedAt: row.updatedAt ? new Date(row.updatedAt as string) : (row.updated_at ? new Date(row.updated_at as string) : new Date()),
+    views,
+    likes,
+    isLiked: Boolean(row.isLiked ?? row.is_liked),
+    isSaved: Boolean(row.isSaved ?? row.is_saved),
+    rank: row.rank !== undefined ? Number(row.rank) : undefined,
+  };
+}
 
 /**
  * List approved startups with filtering, prefix full-text search, sorting, and pagination
@@ -154,13 +204,9 @@ export async function listStartups(
     LIMIT ${pageSize} OFFSET ${offset}
   `);
 
-  const items: FormattedStartup[] = rows.map((row) => ({
-    ...row,
-    views: row.viewsCount,
-    likes: Number(row.vote_count || 0),
-    isLiked: Boolean(row.is_liked),
-    isSaved: Boolean(row.is_saved),
-  }));
+  const items: FormattedStartup[] = rows.map((row) =>
+    formatStartupRow(row as unknown as Record<string, unknown>)
+  );
 
   return {
     items,
@@ -349,13 +395,14 @@ export async function getLeaderboard(
     LIMIT ${pageSize} OFFSET ${offset}
   `);
 
-  const items = rows.map((r) => ({
-    ...r,
-    views: r.viewsCount,
-    likes: Number(r.votes_count || 0),
-    votesCount: Number(r.votes_count || 0),
-    rank: Number(r.rank),
-  }));
+  const items = rows.map((r) => {
+    const formatted = formatStartupRow(r as unknown as Record<string, unknown>);
+    return {
+      ...formatted,
+      votesCount: formatted.likes,
+      rank: Number(r.rank),
+    };
+  });
 
   return {
     items,
@@ -811,10 +858,7 @@ export async function getSaved(
   `);
 
   const items = rows.map((r) => ({
-    ...r,
-    views: r.viewsCount,
-    likes: Number(r.vote_count || 0),
-    isLiked: Boolean(r.is_liked),
+    ...formatStartupRow(r as unknown as Record<string, unknown>),
     isSaved: true,
   }));
 
@@ -864,11 +908,9 @@ export async function getMySubmissions(
     LIMIT ${pageSize} OFFSET ${offset}
   `);
 
-  const items = rows.map((r) => ({
-    ...r,
-    views: r.viewsCount,
-    likes: Number(r.vote_count || 0),
-  }));
+  const items = rows.map((r) =>
+    formatStartupRow(r as unknown as Record<string, unknown>)
+  );
 
   return {
     items,
@@ -878,3 +920,153 @@ export async function getMySubmissions(
     totalPages: Math.ceil(total / pageSize),
   };
 }
+
+/**
+ * List countries that have approved startups, with counts and country names
+ */
+export async function listCountries(): Promise<
+  Array<{ code: string; name: string; count: number }>
+> {
+  const rows = await db.execute<{
+    country_code: string;
+    count: string | number;
+  }>(sql`
+    SELECT
+      country_code,
+      count(*)::int AS count
+    FROM public.startups
+    WHERE status = 'approved'
+    GROUP BY country_code
+    ORDER BY count DESC, country_code ASC
+  `);
+
+  return rows.map((r) => ({
+    code: r.country_code,
+    name: getCountryName(r.country_code),
+    count: Number(r.count),
+  }));
+}
+
+/**
+ * List startups for admin review queue by status ('pending' | 'approved' | 'rejected')
+ */
+export async function listAdminStartups(
+  status: "pending" | "approved" | "rejected",
+  adminUserId: string,
+  page = 1,
+  pageSize = 20
+): Promise<PaginatedResult<Startup>> {
+  // Check admin role
+  const reviewerProfile = await db
+    .select({ role: profiles.role })
+    .from(profiles)
+    .where(eq(profiles.id, adminUserId))
+    .limit(1);
+
+  if (!reviewerProfile[0] || reviewerProfile[0].role !== "admin") {
+    throw new Error("Forbidden: only admins can access review queue.");
+  }
+
+  const offset = (page - 1) * pageSize;
+
+  const countResult = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(startups)
+    .where(eq(startups.status, status));
+  const total = countResult[0]?.total ?? 0;
+
+  if (total === 0) {
+    return { items: [], total: 0, page, pageSize, totalPages: 0 };
+  }
+
+  const items = await db
+    .select()
+    .from(startups)
+    .where(eq(startups.status, status))
+    .orderBy(desc(startups.createdAt))
+    .limit(pageSize)
+    .offset(offset);
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+/**
+ * Get admin audit log
+ */
+export async function getAdminAuditLog(
+  adminUserId: string,
+  page = 1,
+  pageSize = 50
+): Promise<PaginatedResult<typeof auditLog.$inferSelect>> {
+  const reviewerProfile = await db
+    .select({ role: profiles.role })
+    .from(profiles)
+    .where(eq(profiles.id, adminUserId))
+    .limit(1);
+
+  if (!reviewerProfile[0] || reviewerProfile[0].role !== "admin") {
+    throw new Error("Forbidden: only admins can view audit log.");
+  }
+
+  const offset = (page - 1) * pageSize;
+
+  const countResult = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(auditLog);
+  const total = countResult[0]?.total ?? 0;
+
+  if (total === 0) {
+    return { items: [], total: 0, page, pageSize, totalPages: 0 };
+  }
+
+  const items = await db
+    .select()
+    .from(auditLog)
+    .orderBy(desc(auditLog.createdAt))
+    .limit(pageSize)
+    .offset(offset);
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.ceil(total / pageSize),
+  };
+}
+
+/**
+ * Get public user profile and their approved startups
+ */
+export async function getUserPublicProfile(userId: string) {
+  const [profile] = await db
+    .select({
+      id: profiles.id,
+      displayName: profiles.displayName,
+      role: profiles.role,
+      createdAt: profiles.createdAt,
+    })
+    .from(profiles)
+    .where(eq(profiles.id, userId))
+    .limit(1);
+
+  if (!profile) return null;
+
+  const startupsList = await db
+    .select()
+    .from(startups)
+    .where(and(eq(startups.ownerId, userId), eq(startups.status, "approved")))
+    .orderBy(desc(startups.createdAt));
+
+  return {
+    profile,
+    startups: startupsList,
+  };
+}
+

@@ -103,12 +103,12 @@ describe("Validation Schemas & Normalization", () => {
 
       expect(
         formatLocation({
-          countryCode: "IN",
-          region: "Karnataka",
-          city: "Bengaluru",
+          countryCode: "CA",
+          region: "Ontario",
+          city: "Toronto",
           remoteFirst: false,
         })
-      ).toBe("Bengaluru, Karnataka, India");
+      ).toBe("Toronto, Ontario, Canada");
 
       expect(
         formatLocation({
@@ -128,15 +128,15 @@ describe("Validation Schemas & Normalization", () => {
       tagline: "Drone and AI-based precision agriculture.",
       description: "Drone and AI-based solution for early crop disease detection.",
       category: "AgriTech",
-      countryCode: "IN",
-      region: "Maharashtra",
-      city: "Nashik",
+      countryCode: "GB",
+      region: "England",
+      city: "London",
       remoteFirst: false,
       stage: "MVP",
       websiteUrl: "https://agrisense.io",
       logoColor: "#16A34A",
       founder: {
-        name: "Dr. Rohan Deshmukh",
+        name: "Dr. Rowan Smith",
         role: "Founder",
         avatar: "https://images.unsplash.com/avatar",
         quote: "Saving crops with AI.",
@@ -149,9 +149,9 @@ describe("Validation Schemas & Normalization", () => {
       const parsed = createStartupSchema.parse(validData);
       expect(parsed.name).toBe("AgriSense");
       expect(parsed.ideaTitle).toBe("AI-Based Crop Health Monitoring");
-      expect(parsed.countryCode).toBe("IN");
+      expect(parsed.countryCode).toBe("GB");
       // month is no longer in the schema output
-      expect(parsed.location).toBe("Nashik, Maharashtra, India");
+      expect(parsed.location).toBe("London, England, United Kingdom");
       expect(parsed.websiteUrl).toBe("https://agrisense.io/");
     });
 
