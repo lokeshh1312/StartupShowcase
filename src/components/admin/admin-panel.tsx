@@ -201,7 +201,7 @@ export function AdminPanel({
                           <a
                             href={startup.websiteUrl}
                             target="_blank"
-                            rel="noopener noreferrer"
+                            rel="ugc nofollow noopener noreferrer"
                             className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                           >
                             <span>Website</span>

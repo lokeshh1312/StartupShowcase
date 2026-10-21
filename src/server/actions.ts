@@ -15,6 +15,7 @@ import {
   moderateStartup,
 } from "@/server/startups";
 import { createStartupSchema } from "@/lib/validation";
+import { formatActionError } from "@/server/errors";
 
 /**
  * Vote on a startup (authenticated only)
@@ -32,8 +33,7 @@ export async function voteAction(startupIdOrSlug: string) {
     revalidatePath("/browse", "page");
     return { success: true, ...result };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to vote";
-    return { error: message };
+    return { error: formatActionError(err) };
   }
 }
 
@@ -52,8 +52,7 @@ export async function saveAction(startupIdOrSlug: string) {
     revalidatePath("/saved", "page");
     return { success: true, ...result };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to save startup";
-    return { error: message };
+    return { error: formatActionError(err) };
   }
 }
 
@@ -74,8 +73,7 @@ export async function addCommentAction(
     revalidatePath(`/startup/${startupIdOrSlug}`);
     return { success: true, comment };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to add comment";
-    return { error: message };
+    return { error: formatActionError(err) };
   }
 }
 
@@ -103,9 +101,7 @@ export async function submitStartupAction(rawData: unknown) {
     revalidatePath("/me/submissions");
     return { success: true, startup: created };
   } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : "Failed to submit startup";
-    return { error: message };
+    return { error: formatActionError(err) };
   }
 }
 
@@ -128,9 +124,7 @@ export async function moderateStartupAction(
     revalidatePath("/browse");
     return { success: true, startup: updated };
   } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : "Failed to moderate startup";
-    return { error: message };
+    return { error: formatActionError(err) };
   }
 }
 
@@ -138,81 +132,97 @@ export async function moderateStartupAction(
  * Sign In with email & password
  */
 export async function signInAction(formData: FormData) {
-  const email = formData.get("email")?.toString()?.trim();
-  const password = formData.get("password")?.toString();
+  try {
+    const email = formData.get("email")?.toString()?.trim();
+    const password = formData.get("password")?.toString();
 
-  if (!email || !password) {
-    return { error: "Email and password are required." };
+    if (!email || !password) {
+      return { error: "Email and password are required." };
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      return { error: formatActionError(error) };
+    }
+
+    if (!data.user) {
+      return { error: "Sign in failed. Please try again." };
+    }
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
   }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  if (!data.user) {
-    return { error: "Sign in failed. Please try again." };
-  }
-
-  revalidatePath("/", "layout");
-  return { success: true };
 }
 
 /**
  * Sign Up with email, password & chosen role metadata
  */
 export async function signUpAction(formData: FormData) {
-  const email = formData.get("email")?.toString()?.trim();
-  const password = formData.get("password")?.toString();
-  const name = formData.get("name")?.toString()?.trim() || "";
-  const role = formData.get("role")?.toString()?.trim() || "community";
+  try {
+    const email = formData.get("email")?.toString()?.trim();
+    const password = formData.get("password")?.toString();
+    const name = formData.get("name")?.toString()?.trim() || "";
+    const role = formData.get("role")?.toString()?.trim() || "community";
 
-  if (!email || !password) {
-    return { error: "Email and password are required." };
-  }
+    if (!email || !password) {
+      return { error: "Email and password are required." };
+    }
 
-  // Allowed roles for signup
-  const safeRole = ["founder", "investor", "community"].includes(role)
-    ? role
-    : "community";
+    if (password.length < 10) {
+      return { error: "Password must be at least 10 characters long." };
+    }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        name,
-        role: safeRole,
+    // Allowed roles for signup
+    const safeRole = ["founder", "investor", "community"].includes(role)
+      ? role
+      : "community";
+
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          role: safeRole,
+        },
       },
-    },
-  });
+    });
 
-  if (error) {
-    return { error: error.message };
+    if (error) {
+      return { error: formatActionError(error) };
+    }
+
+    // If session is present immediately (email confirmation turned off)
+    if (data.session) {
+      revalidatePath("/", "layout");
+      return { success: true, needsConfirmation: false };
+    }
+
+    // Email confirmation is required
+    return { success: true, needsConfirmation: true, email };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
   }
-
-  // If session is present immediately (email confirmation turned off)
-  if (data.session) {
-    revalidatePath("/", "layout");
-    return { success: true, needsConfirmation: false };
-  }
-
-  // Email confirmation is required
-  return { success: true, needsConfirmation: true, email };
 }
 
 /**
  * Sign Out
  */
 export async function signOutAction() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  try {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } catch (err: unknown) {
+    console.error("[SignOut Error]:", err);
+  }
   revalidatePath("/", "layout");
   redirect("/");
 }
@@ -221,42 +231,50 @@ export async function signOutAction() {
  * Forgot password (request reset link)
  */
 export async function forgotPasswordAction(formData: FormData) {
-  const email = formData.get("email")?.toString()?.trim();
-  if (!email) {
-    return { error: "Email is required." };
+  try {
+    const email = formData.get("email")?.toString()?.trim();
+    if (!email) {
+      return { error: "Email is required." };
+    }
+
+    const supabase = await createClient();
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${siteUrl}/reset-password`,
+    });
+
+    if (error) {
+      return { error: formatActionError(error) };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
   }
-
-  const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/reset-password`,
-  });
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  return { success: true };
 }
 
 /**
  * Reset password
  */
 export async function resetPasswordAction(formData: FormData) {
-  const password = formData.get("password")?.toString();
-  if (!password || password.length < 6) {
-    return { error: "Password must be at least 6 characters long." };
+  try {
+    const password = formData.get("password")?.toString();
+    if (!password || password.length < 10) {
+      return { error: "Password must be at least 10 characters long." };
+    }
+
+    const supabase = await createClient();
+    const { error } = await supabase.auth.updateUser({
+      password,
+    });
+
+    if (error) {
+      return { error: formatActionError(error) };
+    }
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
   }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({
-    password,
-  });
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  revalidatePath("/", "layout");
-  return { success: true };
 }

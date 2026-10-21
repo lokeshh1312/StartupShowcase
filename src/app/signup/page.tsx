@@ -2,12 +2,15 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, User, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { signUpAction } from "@/server/actions";
+import { safeRedirectPath } from "@/lib/redirect";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = safeRedirectPath(searchParams.get("redirect"));
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -22,6 +25,11 @@ export default function SignUpPage() {
     setError("");
     setSuccessNotice(null);
 
+    if (password.length < 10) {
+      setError("Password must be at least 10 characters long.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("name", name);
     formData.append("email", email);
@@ -35,7 +43,7 @@ export default function SignUpPage() {
       } else if (res?.needsConfirmation) {
         setSuccessNotice(res.email || email);
       } else {
-        router.push("/");
+        router.push(redirectTo);
         router.refresh();
       }
     });
@@ -72,7 +80,11 @@ export default function SignUpPage() {
             </p>
             <div className="pt-2">
               <Link
-                href="/login"
+                href={
+                  redirectTo !== "/"
+                    ? `/login?redirect=${encodeURIComponent(redirectTo)}`
+                    : "/login"
+                }
                 className="inline-block px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 transition-colors"
               >
                 Go to Sign In
@@ -126,14 +138,17 @@ export default function SignUpPage() {
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={10}
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder="At least 10 characters"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Must be at least 10 characters.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -172,7 +187,11 @@ export default function SignUpPage() {
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Already have an account?{" "}
             <Link
-              href="/login"
+              href={
+                redirectTo !== "/"
+                  ? `/login?redirect=${encodeURIComponent(redirectTo)}`
+                  : "/login"
+              }
               className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
             >
               Sign in

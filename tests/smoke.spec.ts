@@ -117,23 +117,94 @@ test.describe("Startup Showcase E2E Smoke Tests", () => {
     await expect(page.locator("text=About the Product")).toBeVisible();
   });
 
-  test("Zero broken internal links on home page", async ({ page }) => {
-    await page.goto("/");
-    const internalLinks = await page
-      .locator("a[href^='/']")
-      .evaluateAll((anchors: HTMLAnchorElement[]) =>
-        Array.from(new Set(anchors.map((a) => a.pathname))).filter(
-          (p) => !p.startsWith("/api") && p !== ""
-        )
-      );
+  test("Link crawl follows internal links two levels deep (capped at 60) and has no 404 or 500", async ({
+    page,
+  }) => {
+    test.setTimeout(90000);
 
-    expect(internalLinks.length).toBeGreaterThan(5);
+    const visited = new Set<string>();
+    const MAX_PAGES = 60;
 
-    for (const path of internalLinks) {
-      const res = await page.goto(path);
-      // Status must not be 404 or 500
-      expect(res?.status()).not.toBe(404);
-      expect(res?.status()).not.toBe(500);
+    const extractInternalPaths = async (): Promise<string[]> => {
+      try {
+        await page.waitForLoadState("domcontentloaded");
+        return await page
+          .locator("a[href^='/']")
+          .evaluateAll((anchors: HTMLAnchorElement[]) =>
+            Array.from(
+              new Set(
+                anchors
+                  .map((a) => {
+                    try {
+                      const parsed = new URL(a.href, window.location.origin);
+                      return parsed.pathname;
+                    } catch {
+                      return a.pathname || "";
+                    }
+                  })
+                  .filter(
+                    (p) =>
+                      p &&
+                      p.startsWith("/") &&
+                      !p.startsWith("//") &&
+                      !p.startsWith("/\\") &&
+                      !p.startsWith("/api") &&
+                      !p.startsWith("/_next")
+                  )
+              )
+            )
+          );
+      } catch {
+        return [];
+      }
+    };
+
+    // Level 0: Start at home page
+    const homeRes = await page.goto("/", { waitUntil: "domcontentloaded" });
+    expect(homeRes?.status(), "Home page must not be 404").not.toBe(404);
+    expect(homeRes?.status(), "Home page must not be 500").not.toBe(500);
+    visited.add("/");
+
+    // Level 1: Collect internal links from home
+    const level1Paths = (await extractInternalPaths()).filter(
+      (p) => !visited.has(p)
+    );
+
+    const level2Queue: string[] = [];
+
+    // Follow Level 1 links
+    for (const p1 of level1Paths) {
+      if (visited.size >= MAX_PAGES) break;
+      if (visited.has(p1)) continue;
+
+      visited.add(p1);
+      const res = await page.goto(p1, { waitUntil: "domcontentloaded" });
+      const status = res?.status();
+      expect(status, `Expected Level 1 page ${p1} to not return 404`).not.toBe(404);
+      expect(status, `Expected Level 1 page ${p1} to not return 500`).not.toBe(500);
+
+      // Collect Level 2 links
+      const l2Links = await extractInternalPaths();
+      for (const p2 of l2Links) {
+        if (!visited.has(p2) && !level2Queue.includes(p2)) {
+          level2Queue.push(p2);
+        }
+      }
     }
+
+    // Follow Level 2 links
+    for (const p2 of level2Queue) {
+      if (visited.size >= MAX_PAGES) break;
+      if (visited.has(p2)) continue;
+
+      visited.add(p2);
+      const res = await page.goto(p2, { waitUntil: "domcontentloaded" });
+      const status = res?.status();
+      expect(status, `Expected Level 2 page ${p2} to not return 404`).not.toBe(404);
+      expect(status, `Expected Level 2 page ${p2} to not return 500`).not.toBe(500);
+    }
+
+    expect(visited.size).toBeGreaterThan(5);
+    expect(visited.size).toBeLessThanOrEqual(MAX_PAGES);
   });
 });

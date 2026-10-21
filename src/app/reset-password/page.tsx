@@ -2,12 +2,16 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { resetPasswordAction } from "@/server/actions";
+import { safeRedirectPath } from "@/lib/redirect";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = safeRedirectPath(searchParams.get("redirect"));
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -22,8 +26,8 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    if (password.length < 10) {
+      setError("Password must be at least 10 characters long.");
       return;
     }
 
@@ -35,7 +39,11 @@ export default function ResetPasswordPage() {
       if (res?.error) {
         setError(res.error);
       } else {
-        router.push("/login?reset=success");
+        router.push(
+          redirectTo !== "/"
+            ? `/login?reset=success&redirect=${encodeURIComponent(redirectTo)}`
+            : "/login?reset=success"
+        );
       }
     });
   };
@@ -48,7 +56,7 @@ export default function ResetPasswordPage() {
             Set New Password
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Choose a strong password to secure your account.
+            Choose a strong password (minimum 10 characters) to secure your account.
           </p>
         </div>
 
@@ -68,13 +76,16 @@ export default function ResetPasswordPage() {
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={10}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
+                placeholder="At least 10 characters"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
               />
             </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Must be at least 10 characters.
+            </p>
           </div>
 
           <div className="space-y-1.5">
@@ -86,7 +97,7 @@ export default function ResetPasswordPage() {
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={10}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repeat password"
@@ -113,7 +124,11 @@ export default function ResetPasswordPage() {
 
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
           <Link
-            href="/login"
+            href={
+              redirectTo !== "/"
+                ? `/login?redirect=${encodeURIComponent(redirectTo)}`
+                : "/login"
+            }
             className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />

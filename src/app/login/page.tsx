@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { signInAction } from "@/server/actions";
+import { safeRedirectPath } from "@/lib/redirect";
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/";
+  const redirectTo = safeRedirectPath(searchParams.get("redirect"));
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -118,7 +120,11 @@ export default function LoginPage() {
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Don&apos;t have an account?{" "}
             <Link
-              href="/signup"
+              href={
+                redirectTo !== "/"
+                  ? `/signup?redirect=${encodeURIComponent(redirectTo)}`
+                  : "/signup"
+              }
               className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
             >
               Sign up
