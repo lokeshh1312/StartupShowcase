@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ArrowRight,
   TrendingUp,
@@ -16,15 +17,43 @@ import { MonthSelector } from "@/components/discovery/month-selector";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
 import { StartupCard } from "@/components/startup/startup-card";
 import { CategoryCard } from "@/components/discovery/category-card";
+import {
+  createMetadata,
+  buildOrganizationJsonLd,
+  buildWebSiteJsonLd,
+  buildItemListJsonLd,
+  DEFAULT_SITE_TITLE,
+  DEFAULT_SITE_DESCRIPTION,
+} from "@/lib/seo";
+import type { Metadata } from "next";
 
 interface HomePageProps {
   searchParams?: Promise<{
     month?: string;
+    page?: string;
   }>;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  return createMetadata({
+    title: DEFAULT_SITE_TITLE,
+    description: DEFAULT_SITE_DESCRIPTION,
+    path: "/",
+    robots: {
+      index: true,
+      follow: true,
+    },
+  });
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const resolvedParams = searchParams ? await searchParams : {};
+
+  // Canonical rule: ?page=1 redirects to clean URL
+  if (resolvedParams.page === "1") {
+    redirect(resolvedParams.month ? `/?month=${resolvedParams.month}` : "/");
+  }
+
   const user = await getCurrentUser();
 
   const months = await listMonths();
@@ -45,8 +74,31 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     .filter((c) => c.count > 0)
     .slice(0, 6);
 
+  // JSON-LD Structured Data
+  const orgJsonLd = buildOrganizationJsonLd();
+  const siteJsonLd = buildWebSiteJsonLd();
+  const leaderboardJsonLd = buildItemListJsonLd(
+    leaderboardData.items,
+    `${leaderboardData.monthLabel} Leaderboard`,
+    `/?month=${activeMonth}`
+  );
+
   return (
     <div className="space-y-16 pb-20">
+      {/* Structured Data: Organization, WebSite with SearchAction, and Monthly Leaderboard ItemList */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(leaderboardJsonLd) }}
+      />
+
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-blue-50/70 via-white to-transparent dark:from-blue-950/20 dark:via-slate-950 dark:to-transparent pt-20 pb-12 border-b border-slate-200/60 dark:border-slate-800/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">

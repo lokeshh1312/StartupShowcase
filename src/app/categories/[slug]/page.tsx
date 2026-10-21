@@ -6,6 +6,11 @@ import { listStartups } from "@/server/startups";
 import { CATEGORIES, type Category } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { StartupCard } from "@/components/startup/startup-card";
+import {
+  createMetadata,
+  buildItemListJsonLd,
+  buildBreadcrumbJsonLd,
+} from "@/lib/seo";
 import type { Metadata } from "next";
 
 interface CategoryPageProps {
@@ -25,10 +30,15 @@ export async function generateMetadata({
   const { slug } = await params;
   const category = findCategoryBySlug(slug);
   const name = category || slug;
-  return {
-    title: `${name} Startups | Startup Showcase`,
-    description: `Discover top innovations and rising products in ${name}.`,
-  };
+  return createMetadata({
+    title: `Best new ${name} startups | Startup Showcase`,
+    description: `Discover top innovations, rising products, and community favorites in ${name}.`,
+    path: `/categories/${slug.toLowerCase()}`,
+    robots: {
+      index: true,
+      follow: true,
+    },
+  });
 }
 
 export default async function CategoryDetailPage({ params }: CategoryPageProps) {
@@ -45,8 +55,29 @@ export default async function CategoryDetailPage({ params }: CategoryPageProps) 
     user?.id
   );
 
+  // JSON-LD Structured Data: ItemList (excluding sample startups) & BreadcrumbList
+  const itemListJsonLd = buildItemListJsonLd(
+    startupsResult.items,
+    `${category} Startups`,
+    `/categories/${slug}`
+  );
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Categories", path: "/categories" },
+    { name: category, path: `/categories/${slug}` },
+  ]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      {/* Structured Data: ItemList & BreadcrumbList */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       {/* Back link */}
       <div>
         <Link

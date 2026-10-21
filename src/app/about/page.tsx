@@ -8,12 +8,14 @@ import {
   Globe,
 } from "lucide-react";
 import type { Metadata } from "next";
+import { createMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createMetadata({
   title: "About Startup Showcase | Global Startup Discovery",
   description:
     "Learn about Startup Showcase, our monthly leaderboard ranking system, and our mission to celebrate early-stage ventures worldwide.",
-};
+  path: "/about",
+});
 
 export default function AboutPage() {
   const pillars = [

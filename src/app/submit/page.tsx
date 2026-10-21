@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   title: "Submit a Startup | Startup Showcase",
   description:
     "Launch your early-stage startup or tech innovation to a global audience of founders, angels, and early adopters.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default async function SubmitPage() {

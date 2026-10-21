@@ -25,6 +25,12 @@ import { SaveButton } from "@/components/startup/save-button";
 import { ShareButton } from "@/components/startup/share-modal";
 import { CommentsSection } from "@/components/startup/comments-section";
 import { StartupCard } from "@/components/startup/startup-card";
+import {
+  createMetadata,
+  buildStartupJsonLd,
+  buildBreadcrumbJsonLd,
+} from "@/lib/seo";
+import { absoluteUrl } from "@/lib/urls";
 import type { Metadata } from "next";
 
 interface StartupPageProps {
@@ -39,13 +45,33 @@ export async function generateMetadata({
   if (!result) {
     return {
       title: "Startup Not Found | Startup Showcase",
+      robots: { index: false, follow: false },
     };
   }
+
   const { startup } = result;
-  return {
-    title: `${startup.name} – ${startup.tagline || startup.ideaTitle} | Startup Showcase`,
-    description: startup.description || startup.tagline || startup.ideaTitle,
-  };
+  const tagline = startup.tagline || startup.ideaTitle || "Early-stage startup";
+  const title = `${startup.name}: ${tagline} | Startup Showcase`;
+  const description = startup.description || tagline;
+
+  // =========================================================================
+  // CRITICAL REQUIREMENT:
+  // Sample startups (is_sample = true) are fake test data for development/demo.
+  // Their pages MUST be served with `noindex, nofollow` to prevent search engines
+  // from indexing placeholder content before production launch.
+  // =========================================================================
+  const robots = startup.isSample
+    ? { index: false, follow: false }
+    : { index: true, follow: true };
+
+  return createMetadata({
+    title,
+    description,
+    path: `/startup/${startup.slug}`,
+    robots,
+    image: absoluteUrl(`/startup/${startup.slug}/opengraph-image`),
+    type: "article",
+  });
 }
 
 export default async function StartupDetailPage({ params }: StartupPageProps) {
@@ -78,8 +104,26 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
   const techStackList = (startup.techStackJson || []) as string[];
   const keyFeaturesList = (startup.keyFeaturesJson || []) as string[];
 
+  // JSON-LD Structured Data: SoftwareApplication & BreadcrumbList
+  const startupJsonLd = buildStartupJsonLd(startup);
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Directory", path: "/browse" },
+    { name: startup.category, path: `/categories/${startup.category.toLowerCase()}` },
+    { name: startup.name, path: `/startup/${startup.slug}` },
+  ]);
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+      {/* Structured Data: SoftwareApplication & BreadcrumbList */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(startupJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       {/* Top back navigation */}
       <div className="flex items-center justify-between">
         <Link

@@ -2,13 +2,15 @@ import React from "react";
 import Link from "next/link";
 import { Globe, ArrowRight } from "lucide-react";
 import { listCountries } from "@/server/startups";
+import { createMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createMetadata({
   title: "Startup Showcase by Country | Global Innovation Map",
   description:
     "Explore early-stage startups and innovations emerging from countries across the world.",
-};
+  path: "/countries",
+});
 
 export default async function CountriesPage() {
   const countries = await listCountries();

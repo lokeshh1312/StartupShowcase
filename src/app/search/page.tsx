@@ -1,16 +1,25 @@
 import React from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Search as SearchIcon, X } from "lucide-react";
 import { listStartups, listCategories, listCountries } from "@/server/startups";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { StartupCard } from "@/components/startup/startup-card";
 import { FilterBar } from "@/components/discovery/filter-bar";
 import { type Category, type Stage, type SortOption } from "@/lib/validation";
+import { absoluteUrl } from "@/lib/urls";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Search Startups | Startup Showcase",
   description: "Find innovative early-stage startups using full-text search, categories, and countries.",
+  alternates: {
+    canonical: absoluteUrl("/search"),
+  },
+  robots: {
+    index: false,
+    follow: true,
+  },
 };
 
 interface SearchPageProps {
@@ -19,6 +28,18 @@ interface SearchPageProps {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const resolvedParams = await searchParams;
+
+  // Canonical rule: ?page=1 redirects to the clean URL
+  if (resolvedParams.page === "1") {
+    const nextParams = new URLSearchParams();
+    for (const [k, v] of Object.entries(resolvedParams)) {
+      if (k !== "page" && typeof v === "string") {
+        nextParams.set(k, v);
+      }
+    }
+    const qs = nextParams.toString();
+    redirect(qs ? `/search?${qs}` : "/search");
+  }
   const q = typeof resolvedParams.q === "string" ? resolvedParams.q.trim() : "";
   const category = typeof resolvedParams.category === "string" ? resolvedParams.category : undefined;
   const stage = typeof resolvedParams.stage === "string" ? resolvedParams.stage : undefined;

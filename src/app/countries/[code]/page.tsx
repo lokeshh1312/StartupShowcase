@@ -6,6 +6,11 @@ import { listStartups } from "@/server/startups";
 import { getCountryName } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { StartupCard } from "@/components/startup/startup-card";
+import {
+  createMetadata,
+  buildItemListJsonLd,
+  buildBreadcrumbJsonLd,
+} from "@/lib/seo";
 import type { Metadata } from "next";
 
 interface CountryPageProps {
@@ -16,11 +21,17 @@ export async function generateMetadata({
   params,
 }: CountryPageProps): Promise<Metadata> {
   const { code } = await params;
-  const name = getCountryName(code.toUpperCase());
-  return {
-    title: `Startups from ${name} (${code.toUpperCase()}) | Startup Showcase`,
+  const upperCode = code.toUpperCase();
+  const name = getCountryName(upperCode) || upperCode;
+  return createMetadata({
+    title: `New startups from ${name} | Startup Showcase`,
     description: `Discover early-stage startups and cutting-edge innovations originating from ${name}.`,
-  };
+    path: `/countries/${code.toLowerCase()}`,
+    robots: {
+      index: true,
+      follow: true,
+    },
+  });
 }
 
 export default async function CountryDetailPage({ params }: CountryPageProps) {
@@ -38,8 +49,29 @@ export default async function CountryDetailPage({ params }: CountryPageProps) {
     user?.id
   );
 
+  // JSON-LD Structured Data: ItemList (excluding sample startups) & BreadcrumbList
+  const itemListJsonLd = buildItemListJsonLd(
+    startupsResult.items,
+    `Startups from ${countryName}`,
+    `/countries/${code.toLowerCase()}`
+  );
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Countries", path: "/countries" },
+    { name: countryName, path: `/countries/${code.toLowerCase()}` },
+  ]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      {/* Structured Data: ItemList & BreadcrumbList */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       {/* Back link */}
       <div>
         <Link

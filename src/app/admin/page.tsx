@@ -9,6 +9,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Admin Moderation Console | Startup Showcase",
   description: "Review queue, audit log, and startup moderation console.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default async function AdminPage() {

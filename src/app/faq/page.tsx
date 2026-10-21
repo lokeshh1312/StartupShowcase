@@ -2,12 +2,14 @@ import React from "react";
 import Link from "next/link";
 import { HelpCircle, ChevronRight, ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
+import { createMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createMetadata({
   title: "Frequently Asked Questions | Startup Showcase",
   description:
     "Everything you need to know about Startup Showcase, monthly leaderboard rankings, community voting, and submitting your project.",
-};
+  path: "/faq",
+});
 
 const FAQ_SECTIONS = [
   {

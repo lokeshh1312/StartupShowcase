@@ -10,6 +10,7 @@ import {
   themeInitScript,
 } from "@/lib/theme";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
+import { getBaseUrl } from "@/lib/urls";
 import "./globals.css";
 
 const inter = Inter({
@@ -20,10 +21,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Startup Showcase | Discover Emerging Startups",
+  metadataBase: new URL(getBaseUrl()),
+  title: {
+    default: "Startup Showcase | Discover Emerging Startups",
+    template: "%s | Startup Showcase",
+  },
   description:
     "Discover emerging startups, explore new products, and support founders building the next generation of ideas.",
-  robots: "index, follow",
 };
 
 export default async function RootLayout({

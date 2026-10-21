@@ -2,13 +2,15 @@ import React from "react";
 import { Layers } from "lucide-react";
 import { listCategories } from "@/server/startups";
 import { CategoryCard } from "@/components/discovery/category-card";
+import { createMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createMetadata({
   title: "Startup Categories & Industries | Startup Showcase",
   description:
     "Explore startups across emerging tech verticals: AgriTech, CleanTech, DeepTech, FinTech, HealthTech, and more.",
-};
+  path: "/categories",
+});
 
 export default async function CategoriesPage() {
   const categories = await listCategories();

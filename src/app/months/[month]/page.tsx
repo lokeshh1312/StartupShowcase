@@ -6,6 +6,11 @@ import { getLeaderboard, listMonths } from "@/server/startups";
 import { normalizeMonthToDate, formatMonthLabel } from "@/lib/validation";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
 import { MonthSelector } from "@/components/discovery/month-selector";
+import {
+  createMetadata,
+  buildItemListJsonLd,
+  buildBreadcrumbJsonLd,
+} from "@/lib/seo";
 import type { Metadata } from "next";
 
 interface MonthPageProps {
@@ -19,15 +24,21 @@ export async function generateMetadata({
   try {
     const monthDate = normalizeMonthToDate(month);
     const label = formatMonthLabel(monthDate);
-    return {
-      title: `${label} Leaderboard | Startup Showcase`,
-      description: `Rankings and top voted early-stage startups launched in ${label}.`,
-    };
+    return createMetadata({
+      title: `Top startups launched in ${label} | Startup Showcase`,
+      description: `Rankings, verified votes, and top early-stage startups launched in ${label}.`,
+      path: `/months/${month}`,
+      robots: {
+        index: true,
+        follow: true,
+      },
+    });
   } catch {
-    return {
+    return createMetadata({
       title: "Monthly Leaderboard | Startup Showcase",
       description: "Rankings and top voted early-stage startups.",
-    };
+      path: "/months",
+    });
   }
 }
 
@@ -48,8 +59,29 @@ export default async function MonthLeaderboardPage({ params }: MonthPageProps) {
     listMonths(),
   ]);
 
+  // JSON-LD Structured Data: ItemList (excluding sample startups) & BreadcrumbList
+  const itemListJsonLd = buildItemListJsonLd(
+    leaderboardResult.items,
+    `${monthLabel} Leaderboard`,
+    `/months/${month}`
+  );
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Leaderboard", path: "/" },
+    { name: monthLabel, path: `/months/${month}` },
+  ]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      {/* Structured Data: ItemList & BreadcrumbList */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       {/* Back link */}
       <div>
         <Link

@@ -10,6 +10,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "My Submissions | Startup Showcase",
   description: "Track the review and launch status of your startup submissions.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 const statusConfig = {
