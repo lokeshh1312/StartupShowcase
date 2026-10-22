@@ -362,20 +362,24 @@ export function AdminPanel({
                       on <span className="font-semibold text-slate-700 dark:text-slate-300">{log.targetType}</span>{" "}
                       <span className="text-slate-400 text-[11px]">({log.targetId.slice(0, 8)}...)</span>
                     </div>
-                    {log.metadata && Object.keys(log.metadata).length > 0 && (
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {log.metadata.previousStatus && log.metadata.newStatus ? (
-                          <span>
-                            Status transition:{" "}
-                            <span className="text-rose-500 font-semibold">{String(log.metadata.previousStatus)}</span>
-                            {" → "}
-                            <span className="text-emerald-500 font-semibold">{String(log.metadata.newStatus)}</span>
-                          </span>
-                        ) : (
-                          <span>Details: {JSON.stringify(log.metadata)}</span>
-                        )}
-                      </div>
-                    )}
+                    {log.metadata && Object.keys(log.metadata).length > 0 && (() => {
+                      const prevStatus = log.metadata.previous_status ?? log.metadata.previousStatus;
+                      const nextStatus = log.metadata.new_status ?? log.metadata.newStatus;
+                      return (
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                          {prevStatus && nextStatus ? (
+                            <span>
+                              Status transition:{" "}
+                              <span className="text-rose-500 font-semibold">{String(prevStatus)}</span>
+                              {" → "}
+                              <span className="text-emerald-500 font-semibold">{String(nextStatus)}</span>
+                            </span>
+                          ) : (
+                            <span>Details: {JSON.stringify(log.metadata)}</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="text-slate-400 text-xs shrink-0 sm:text-right">
                     <div>{new Date(log.createdAt).toLocaleString()}</div>

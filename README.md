@@ -84,6 +84,8 @@ See [`.env.example`](.env.example) for the full list:
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase service-role key (**server-only**)
 - `DATABASE_URL` — Postgres connection string
 - `RESEND_API_KEY` — Resend API key for transactional email
+- `TRUSTED_PROXY_COUNT` — Number of reverse proxies in front of the application. In production (`NODE_ENV=production`), this environment variable is mandatory and must be explicitly set (even to `0`). On the real host, the value must match the exact number of reverse proxies in front of the app (determined during deployment). If unset in production, startup/first use throws a loud configuration error. In development and test, it safely defaults to `0`.
+- `VIEW_HASH_SECRET` — Secret salt used for deterministic daily viewer hash calculation without storing raw user IP addresses.
 
 ## Project Structure
 

@@ -6,14 +6,15 @@
 CREATE EXTENSION IF NOT EXISTS "pg_trgm" WITH SCHEMA public;
 
 -- 2. Security Definer Helper: checks if auth.uid() has verified their email
+-- Uses search_path = '' with fully qualified identifiers to prevent search_path hijacking
 CREATE OR REPLACE FUNCTION public.is_verified()
 RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public, auth
+SET search_path = ''
 AS $$
-  SELECT coalesce(
+  SELECT pg_catalog.coalesce(
     (SELECT email_confirmed_at IS NOT NULL FROM auth.users WHERE id = auth.uid()),
     false
   );
@@ -73,7 +74,7 @@ LEFT JOIN (
 WHERE s.status = 'approved'
 GROUP BY s.id;
 
--- Ensure function uses the updated view
+-- Ensure function normalises target_month to month start (e.g. 2026-10-15 -> 2026-10-01)
 CREATE OR REPLACE FUNCTION public.monthly_leaderboard(target_month date)
 RETURNS SETOF public.monthly_leaderboard_view
 LANGUAGE sql
@@ -81,7 +82,7 @@ STABLE
 AS $$
   SELECT *
   FROM public.monthly_leaderboard_view
-  WHERE month = target_month
+  WHERE month = date_trunc('month', target_month)::date
   ORDER BY rank ASC;
 $$;
 
@@ -146,14 +147,20 @@ CREATE POLICY "startup_comments_update_policy" ON public.startup_comments
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
 
--- 5. Trigger to automatically write to audit_log when comment status changes
+-- 5. Trigger to automatically write to audit_log when comment status changes via direct JWT API
+-- If auth.uid() is NULL (i.e. server connection pool via postgres role), the application code
+-- explicitly writes its own audit row with the actor, so the trigger returns immediately.
 CREATE OR REPLACE FUNCTION public.log_comment_status_change()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN NEW;
+  END IF;
+
   IF OLD.status IS DISTINCT FROM NEW.status THEN
     INSERT INTO public.audit_log (
       actor_id,
@@ -166,7 +173,7 @@ BEGIN
       CASE WHEN NEW.status = 'hidden' THEN 'hide_comment' ELSE 'comment.status_change:' || NEW.status END,
       'comment',
       NEW.id::text,
-      jsonb_build_object('previous_status', OLD.status, 'new_status', NEW.status)
+      pg_catalog.jsonb_build_object('previous_status', OLD.status, 'new_status', NEW.status)
     );
   END IF;
   RETURN NEW;
@@ -179,36 +186,33 @@ CREATE TRIGGER trg_comment_status_audit
   FOR EACH ROW
   EXECUTE FUNCTION public.log_comment_status_change();
 
--- 6. Trigger to audit startup status changes
+-- 6. Trigger to audit startup status changes via direct JWT API
+-- If auth.uid() is NULL, the server application code writes the row with the reviewer actor.
 CREATE OR REPLACE FUNCTION public.log_startup_status_change()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN NEW;
+  END IF;
+
   IF OLD.status IS DISTINCT FROM NEW.status THEN
-    IF NOT EXISTS (
-      SELECT 1 FROM public.audit_log
-      WHERE target_type = 'startup'
-        AND target_id = NEW.id::text
-        AND created_at >= (now() - interval '2 seconds')
-        AND metadata->>'new_status' = NEW.status
-    ) THEN
-      INSERT INTO public.audit_log (
-        actor_id,
-        action,
-        target_type,
-        target_id,
-        metadata
-      ) VALUES (
-        auth.uid(),
-        'startup.status_change:' || NEW.status,
-        'startup',
-        NEW.id::text,
-        jsonb_build_object('previous_status', OLD.status, 'new_status', NEW.status)
-      );
-    END IF;
+    INSERT INTO public.audit_log (
+      actor_id,
+      action,
+      target_type,
+      target_id,
+      metadata
+    ) VALUES (
+      auth.uid(),
+      'startup.status_change:' || NEW.status,
+      'startup',
+      NEW.id::text,
+      pg_catalog.jsonb_build_object('previous_status', OLD.status, 'new_status', NEW.status)
+    );
   END IF;
   RETURN NEW;
 END;

@@ -275,7 +275,7 @@ export async function getStartupBySlug(
         const ip = extractClientIp(h);
         const userAgent = h.get("user-agent") || "";
         effectiveViewerHash = computeViewerHash(
-          ip,
+          ip ?? "unknown",
           userAgent,
           toUtcDateString(new Date())
         );
@@ -679,7 +679,7 @@ export async function moderateStartup(
         action: `startup.status_change:${status}`,
         targetType: "startup",
         targetId: updated.id,
-        metadata: { previousStatus, newStatus: status },
+        metadata: { previous_status: previousStatus, new_status: status },
       });
     }
 

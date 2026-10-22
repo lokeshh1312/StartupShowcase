@@ -122,7 +122,7 @@ export async function hideComment(
         action: "hide_comment",
         targetType: "comment",
         targetId: updated.id,
-        metadata: { previousStatus, newStatus: "hidden" },
+        metadata: { previous_status: previousStatus, new_status: "hidden" },
       });
     }
 

@@ -21,6 +21,7 @@ import { formatActionError } from "@/server/errors";
 import {
   checkRateLimit,
   getRequestIp,
+  hashEmail,
   RATE_LIMIT_MESSAGE,
 } from "@/server/rate-limit";
 import { db } from "@/db";
@@ -40,14 +41,6 @@ export async function voteAction(startupIdOrSlug: string) {
   }
 
   try {
-    const ip = await getRequestIp();
-
-    // Rate limit per IP
-    const ipLimit = await checkRateLimit(`vote:ip:${ip}`, 100, 3600);
-    if (!ipLimit.allowed) {
-      return { error: RATE_LIMIT_MESSAGE };
-    }
-
     // Rate limit per user (at most 30 toggles per hour)
     const userLimit = await checkRateLimit(`vote:user:${user.id}`, 30, 3600);
     if (!userLimit.allowed) {
@@ -78,12 +71,7 @@ export async function saveAction(startupIdOrSlug: string) {
   }
 
   try {
-    const ip = await getRequestIp();
-    const ipLimit = await checkRateLimit(`save:ip:${ip}`, 100, 3600);
-    if (!ipLimit.allowed) {
-      return { error: RATE_LIMIT_MESSAGE };
-    }
-
+    // Rate limit per user (at most 60 toggles per hour)
     const userLimit = await checkRateLimit(`save:user:${user.id}`, 60, 3600);
     if (!userLimit.allowed) {
       return { error: RATE_LIMIT_MESSAGE };
@@ -115,10 +103,9 @@ export async function addCommentAction(
   }
 
   try {
-    const ip = await getRequestIp();
-
-    const ipLimit = await checkRateLimit(`comment:ip:${ip}`, 30, 3600);
-    if (!ipLimit.allowed) {
+    // Rate limit per user (at most 15 comments per hour)
+    const userLimit = await checkRateLimit(`comment:user:${user.id}`, 15, 3600);
+    if (!userLimit.allowed) {
       return { error: RATE_LIMIT_MESSAGE };
     }
 
@@ -153,12 +140,7 @@ export async function submitStartupAction(rawData: unknown) {
   }
 
   try {
-    const ip = await getRequestIp();
-    const ipLimit = await checkRateLimit(`submit:ip:${ip}`, 10, 3600);
-    if (!ipLimit.allowed) {
-      return { error: RATE_LIMIT_MESSAGE };
-    }
-
+    // Rate limit per user (at most 5 submissions per hour)
     const userLimit = await checkRateLimit(`submit:user:${user.id}`, 5, 3600);
     if (!userLimit.allowed) {
       return { error: RATE_LIMIT_MESSAGE };
@@ -227,10 +209,22 @@ export async function signInAction(formData: FormData) {
       return { error: "Email and password are required." };
     }
 
-    const ip = await getRequestIp();
-    const ipLimit = await checkRateLimit(`auth:signin:${ip}`, 10, 900);
-    if (!ipLimit.allowed) {
+    const emailHash = hashEmail(email);
+    const emailLimit = await checkRateLimit(
+      `auth:signin:email:${emailHash}`,
+      10,
+      900
+    );
+    if (!emailLimit.allowed) {
       return { error: RATE_LIMIT_MESSAGE };
+    }
+
+    const ip = await getRequestIp();
+    if (ip !== null) {
+      const ipLimit = await checkRateLimit(`auth:signin:ip:${ip}`, 10, 900);
+      if (!ipLimit.allowed) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
     }
 
     const supabase = await createClient();
@@ -270,10 +264,27 @@ export async function signUpAction(formData: FormData) {
       return { error: "Password must be at least 10 characters long." };
     }
 
-    const ip = await getRequestIp();
-    const ipLimit = await checkRateLimit(`auth:signup:${ip}`, 5, 3600);
-    if (!ipLimit.allowed) {
+    const emailHash = hashEmail(email);
+    const emailLimit = await checkRateLimit(
+      `auth:signup:email:${emailHash}`,
+      5,
+      3600
+    );
+    if (!emailLimit.allowed) {
       return { error: RATE_LIMIT_MESSAGE };
+    }
+
+    const ip = await getRequestIp();
+    if (ip !== null) {
+      const ipLimit = await checkRateLimit(`auth:signup:ip:${ip}`, 10, 3600);
+      if (!ipLimit.allowed) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
+    } else {
+      const globalLimit = await checkRateLimit("auth:signup:global", 200, 3600);
+      if (!globalLimit.allowed) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
     }
 
     // Allowed roles for signup strictly sanitized
@@ -353,10 +364,27 @@ export async function forgotPasswordAction(formData: FormData) {
       return { error: "Email is required." };
     }
 
-    const ip = await getRequestIp();
-    const ipLimit = await checkRateLimit(`auth:forgot:${ip}`, 5, 3600);
-    if (!ipLimit.allowed) {
+    const emailHash = hashEmail(email);
+    const emailLimit = await checkRateLimit(
+      `auth:forgot:email:${emailHash}`,
+      5,
+      3600
+    );
+    if (!emailLimit.allowed) {
       return { error: RATE_LIMIT_MESSAGE };
+    }
+
+    const ip = await getRequestIp();
+    if (ip !== null) {
+      const ipLimit = await checkRateLimit(`auth:forgot:ip:${ip}`, 5, 3600);
+      if (!ipLimit.allowed) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
+    } else {
+      const globalLimit = await checkRateLimit("auth:forgot:global", 200, 3600);
+      if (!globalLimit.allowed) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
     }
 
     const supabase = await createClient();
@@ -408,11 +436,27 @@ export async function resetPasswordAction(formData: FormData) {
 export async function subscribeNewsletterAction(email: string) {
   try {
     const validated = newsletterSubscribeSchema.parse({ email });
-    const ip = await getRequestIp();
-
-    const ipLimit = await checkRateLimit(`newsletter:ip:${ip}`, 5, 3600);
-    if (!ipLimit.allowed) {
+    const emailHash = hashEmail(validated.email);
+    const emailLimit = await checkRateLimit(
+      `newsletter:email:${emailHash}`,
+      5,
+      3600
+    );
+    if (!emailLimit.allowed) {
       return { error: RATE_LIMIT_MESSAGE };
+    }
+
+    const ip = await getRequestIp();
+    if (ip !== null) {
+      const ipLimit = await checkRateLimit(`newsletter:ip:${ip}`, 5, 3600);
+      if (!ipLimit.allowed) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
+    } else {
+      const globalLimit = await checkRateLimit("newsletter:global", 200, 3600);
+      if (!globalLimit.allowed) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
     }
 
     await db

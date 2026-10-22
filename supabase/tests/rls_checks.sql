@@ -67,8 +67,9 @@ BEGIN
   ----------------------------------------------------------------------
   -- Pre-cleanup in case of prior interrupted execution
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
-  DELETE FROM public.audit_log WHERE target_id = _comment_test_id::text;
-  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending');
+  DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text);
+  DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id);
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending', 'rls-community-pending');
   DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d, _uid_owner, _uid_unverified, _uid_fresh, _uid_veteran);
 
   -- Insert real users into auth.users so handle_new_user trigger creates real profiles
@@ -716,8 +717,59 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- 25: founder cannot vote for own startup
-  _check_name := '25 (NEG): founder cannot vote for own startup';
+  -- 25: unverified user cannot save a startup
+  _check_name := '25 (NEG): unverified user cannot save a startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_unverified::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.saved_startups (user_id, startup_id) VALUES (_uid_unverified, _startup_approved_id);
+    _passed := false;
+    _details := 'FAIL: Unverified save succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (is_verified RLS rejection)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 26: non-founder cannot submit a startup
+  _check_name := '26 (NEG): non-founder cannot submit a startup';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_b::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startups (
+      slug, owner_id, status, is_sample, name, idea_title, tagline, description,
+      category, country_code, stage, month, views_count
+    ) VALUES (
+      'rls-community-pending', _uid_b, 'pending', false, 'Community Submission',
+      'Community Idea', 'Tagline', 'Description of community startup attempt',
+      'AgriTech', 'US', 'MVP', '2026-10-01'::date, 0
+    );
+    _passed := false;
+    _details := 'FAIL: Non-founder submission succeeded unexpectedly';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (founder role requirement in startups_insert_policy)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 27: founder cannot vote for own startup
+  _check_name := '27 (NEG): founder cannot vote for own startup';
   _passed := false;
   _details := '';
   PERFORM set_config('role', 'authenticated', true);
@@ -738,8 +790,8 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- 26: direct API insert of a vote on a pending startup fails
-  _check_name := '26 (NEG): direct API insert of a vote on a pending startup fails';
+  -- 28: direct API insert of a vote on a pending startup fails
+  _check_name := '28 (NEG): direct API insert of a vote on a pending startup fails';
   _passed := false;
   _details := '';
   PERFORM set_config('role', 'authenticated', true);
@@ -760,8 +812,8 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- 27: 24h profile rule: young profile vote does not count, veteran vote counts
-  _check_name := '27 (POS): 24h profile rule: young profile vote does not count, veteran vote counts';
+  -- 29: 24h profile rule: young profile vote does not count, veteran vote counts
+  _check_name := '29 (POS): 24h profile rule: young profile vote does not count, veteran vote counts';
   _passed := false;
   _details := '';
   BEGIN
@@ -790,8 +842,31 @@ BEGIN
   END;
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- 28: admin hiding a comment writes an audit_log row with previous status
-  _check_name := '28 (POS): admin hiding a comment writes an audit_log row with previous status';
+  -- 30: monthly_leaderboard normalises mid-month date to month start
+  _check_name := '30 (POS): monthly_leaderboard normalises mid-month date to month start';
+  _passed := false;
+  _details := '';
+  BEGIN
+    SELECT count(*) INTO _lb_count
+    FROM public.monthly_leaderboard('2026-10-15'::date)
+    WHERE id = _startup_approved_id;
+
+    IF _lb_count >= 1 THEN
+      _passed := true;
+      _details := format('Passing 2026-10-15 successfully returned approved startup row (count = %s)', _lb_count);
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected approved startup row for 2026-10-15, got %s rows', _lb_count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 31: direct JWT admin hiding a comment writes exactly ONE audit row with admin as actor
+  _check_name := '31 (POS): direct JWT admin hiding a comment writes exactly ONE audit row with admin as actor';
   _passed := false;
   _details := '';
   BEGIN
@@ -799,7 +874,7 @@ BEGIN
     INSERT INTO public.startup_comments (id, user_id, startup_id, content, status)
     VALUES (_comment_test_id, _uid_b, _startup_approved_id, 'Comment to be hidden by admin', 'visible');
 
-    -- Admin hides the comment
+    -- Admin hides comment via JWT
     PERFORM set_config('role', 'authenticated', true);
     PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_d::text, 'role', 'authenticated')::text, true);
     UPDATE public.startup_comments SET status = 'hidden' WHERE id = _comment_test_id;
@@ -813,27 +888,70 @@ BEGIN
     WHERE target_id = _comment_test_id::text
       AND target_type = 'comment'
       AND action = 'hide_comment'
+      AND actor_id = _uid_d
       AND metadata->>'previous_status' = 'visible'
       AND metadata->>'new_status' = 'hidden';
 
-    IF _audit_count >= 1 THEN
+    IF _audit_count = 1 THEN
       _passed := true;
-      _details := format('Successfully caught audit_log entry for comment hide (count = %s)', _audit_count);
+      _details := 'Exactly ONE audit_log row written by trigger with admin as actor';
     ELSE
       _passed := false;
-      _details := format('FAIL: Expected at least 1 audit_log entry, got %s', _audit_count);
+      _details := format('FAIL: Expected exactly 1 audit_log entry, got %s', _audit_count);
     END IF;
   EXCEPTION
     WHEN OTHERS THEN
       _passed := false;
       _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
-  PERFORM set_config('role', 'postgres', true);
-  PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- 29: verified veteran user can save and comment on approved startup
-  _check_name := '29 (POS): verified veteran user can save and comment on approved startup';
+  -- 32: postgres role status update triggers 0 rows and app insert writes exactly ONE
+  _check_name := '32 (POS): postgres role status update triggers 0 rows and app insert writes exactly ONE';
+  _passed := false;
+  _details := '';
+  BEGIN
+    -- As postgres (simulating server backend without JWT, auth.uid() IS NULL):
+    -- 1. Update startup status (e.g. from pending to approved)
+    UPDATE public.startups SET status = 'approved' WHERE id = _startup_pending_id;
+
+    -- 2. App-style insert with the reviewer actor id
+    INSERT INTO public.audit_log (
+      actor_id,
+      action,
+      target_type,
+      target_id,
+      metadata
+    ) VALUES (
+      _uid_d,
+      'startup.status_change:approved',
+      'startup',
+      _startup_pending_id::text,
+      json_build_object('previous_status', 'pending', 'new_status', 'approved')
+    );
+
+    -- 3. Verify total rows in audit_log for this target is exactly 1 (trigger added 0 rows)
+    SELECT count(*) INTO _audit_count
+    FROM public.audit_log
+    WHERE target_id = _startup_pending_id::text
+      AND target_type = 'startup';
+
+    IF _audit_count = 1 THEN
+      _passed := true;
+      _details := 'Exactly ONE row in audit_log (trigger added 0 rows because auth.uid() was null)';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected exactly 1 row in audit_log, got %s (trigger may have added duplicate)', _audit_count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 33: verified veteran user can save and comment on approved startup
+  _check_name := '33 (POS): verified veteran user can save and comment on approved startup';
   _passed := false;
   _details := '';
   PERFORM set_config('role', 'authenticated', true);
@@ -859,8 +977,9 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
 
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
-  DELETE FROM public.audit_log WHERE target_id = _comment_test_id::text;
-  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending');
+  DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text);
+  DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id);
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending', 'rls-community-pending');
   DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d, _uid_owner, _uid_unverified, _uid_fresh, _uid_veteran);
 
 EXCEPTION WHEN OTHERS THEN
@@ -868,8 +987,9 @@ EXCEPTION WHEN OTHERS THEN
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
-  DELETE FROM public.audit_log WHERE target_id = _comment_test_id::text;
-  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending');
+  DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text);
+  DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id);
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending', 'rls-community-pending');
   DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d, _uid_owner, _uid_unverified, _uid_fresh, _uid_veteran);
   RAISE;
 END;

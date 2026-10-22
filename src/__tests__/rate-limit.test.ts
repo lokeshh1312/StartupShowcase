@@ -1,20 +1,26 @@
-import { describe, it, expect, vi } from "vitest";
-import { extractClientIp, checkRateLimit } from "@/server/rate-limit";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import {
+  extractClientIp,
+  checkRateLimit,
+  getTrustedProxyCount,
+  hashEmail,
+} from "@/server/rate-limit";
 import { db } from "@/db";
 
 describe("extractClientIp (Leftmost-Trusted Proxy Rule)", () => {
-  it("defaults to ignoring x-forwarded-for when TRUSTED_PROXY_COUNT = 0", () => {
+  it("returns null (unknown IP) when TRUSTED_PROXY_COUNT <= 0 so clients do not share a single bucket", () => {
     const headers = { "x-forwarded-for": "198.51.100.42, 203.0.113.1" };
-    expect(extractClientIp(headers, 0)).toBe("127.0.0.1");
+    expect(extractClientIp(headers, 0)).toBeNull();
+    expect(extractClientIp(headers, -1)).toBeNull();
   });
 
-  it("returns fallback IP when header is completely missing", () => {
-    expect(extractClientIp({}, 1)).toBe("127.0.0.1");
-    expect(extractClientIp(null, 1)).toBe("127.0.0.1");
+  it("returns null when header is completely missing or null", () => {
+    expect(extractClientIp({}, 1)).toBeNull();
+    expect(extractClientIp(null, 1)).toBeNull();
   });
 
-  it("returns fallback IP when header is empty or spaces only", () => {
-    expect(extractClientIp({ "x-forwarded-for": "   " }, 1)).toBe("127.0.0.1");
+  it("returns null when header is empty or spaces only", () => {
+    expect(extractClientIp({ "x-forwarded-for": "   " }, 1)).toBeNull();
   });
 
   it("extracts client IP with 1 trusted proxy (1st from last)", () => {
@@ -61,7 +67,64 @@ describe("extractClientIp (Leftmost-Trusted Proxy Rule)", () => {
   });
 });
 
-describe("checkRateLimit atomic helper", () => {
+describe("getTrustedProxyCount & Production Guards", () => {
+  const originalTrusted = process.env.TRUSTED_PROXY_COUNT;
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    if (originalTrusted !== undefined) {
+      process.env.TRUSTED_PROXY_COUNT = originalTrusted;
+    } else {
+      delete process.env.TRUSTED_PROXY_COUNT;
+    }
+  });
+
+  it("defaults to 0 in non-production environments when unset", () => {
+    vi.stubEnv("NODE_ENV", "test");
+    delete process.env.TRUSTED_PROXY_COUNT;
+    expect(getTrustedProxyCount()).toBe(0);
+  });
+
+  it("throws loud error in production when TRUSTED_PROXY_COUNT is unset", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    delete process.env.TRUSTED_PROXY_COUNT;
+    expect(() => getTrustedProxyCount()).toThrow(/TRUSTED_PROXY_COUNT is required in production/);
+  });
+
+  it("throws loud error in production when TRUSTED_PROXY_COUNT is empty or invalid", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    process.env.TRUSTED_PROXY_COUNT = "   ";
+    expect(() => getTrustedProxyCount()).toThrow(/TRUSTED_PROXY_COUNT is required in production/);
+
+    process.env.TRUSTED_PROXY_COUNT = "not-a-number";
+    expect(() => getTrustedProxyCount()).toThrow(/TRUSTED_PROXY_COUNT is required in production/);
+  });
+
+  it("accepts valid numeric values in production (including 0)", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    process.env.TRUSTED_PROXY_COUNT = "0";
+    expect(getTrustedProxyCount()).toBe(0);
+
+    process.env.TRUSTED_PROXY_COUNT = "2";
+    expect(getTrustedProxyCount()).toBe(2);
+  });
+});
+
+describe("hashEmail helper", () => {
+  it("normalises email by lowercasing and trimming, producing a sha256 hex string", () => {
+    const hash1 = hashEmail("User@Example.COM ");
+    const hash2 = hashEmail("user@example.com");
+    expect(hash1).toBe(hash2);
+    expect(hash1).toHaveLength(64);
+    expect(hash1).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("produces distinct hashes for distinct emails", () => {
+    expect(hashEmail("a@example.com")).not.toBe(hashEmail("b@example.com"));
+  });
+});
+
+describe("checkRateLimit atomic helper and cleanup", () => {
   it("increments atomically and blocks when exceeding maxCount", async () => {
     let mockCount = 0;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle execute mock returns complex RowList in tests
@@ -83,6 +146,28 @@ describe("checkRateLimit atomic helper", () => {
     const res3 = await checkRateLimit("test-key-1", 2, 60);
     expect(res3.allowed).toBe(false);
     expect(res3.count).toBe(3);
+
+    executeSpy.mockRestore();
+  });
+
+  it("triggers opportunistic cleanup query when forceCleanup is true", async () => {
+    const executedQueries: string[] = [];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle execute mock returns complex RowList in tests
+    const executeSpy = (vi.spyOn(db, "execute") as any).mockImplementation(
+      async (queryObj: { queryChunks?: Array<{ value?: string[] }> }) => {
+        // Collect query string fragments
+        const sqlText = JSON.stringify(queryObj);
+        executedQueries.push(sqlText);
+        return [{ count: 1 }];
+      }
+    );
+
+    await checkRateLimit("test-cleanup-key", 10, 60, { forceCleanup: true });
+
+    // Should have executed both the INSERT/UPDATE query and the DELETE cleanup query
+    expect(executedQueries.length).toBe(2);
+    expect(executedQueries.some((q) => q.includes("DELETE FROM public.rate_limits"))).toBe(true);
 
     executeSpy.mockRestore();
   });
