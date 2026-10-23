@@ -14,7 +14,7 @@ STABLE
 SECURITY DEFINER
 SET search_path = ''
 AS $$
-  SELECT pg_catalog.coalesce(
+  SELECT coalesce(
     (SELECT email_confirmed_at IS NOT NULL FROM auth.users WHERE id = auth.uid()),
     false
   );
