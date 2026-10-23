@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, User, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { signUpAction } from "@/server/actions";
 import { safeRedirectPath } from "@/lib/redirect";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { TurnstileWidget } from "@/components/common/turnstile";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -16,6 +18,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("founder");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [error, setError] = useState("");
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -35,6 +38,7 @@ export default function SignUpPage() {
     formData.append("email", email);
     formData.append("password", password);
     formData.append("role", role);
+    formData.append("turnstileToken", turnstileToken);
 
     startTransition(async () => {
       const res = await signUpAction(formData);
@@ -64,6 +68,18 @@ export default function SignUpPage() {
         {error && (
           <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-400 font-medium">
             {error}
+          </div>
+        )}
+
+        {process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true" && (
+          <div className="space-y-4">
+            <GoogleSignInButton redirectPath={redirectTo} />
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
+              <span className="bg-white dark:bg-slate-900 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider relative">
+                Or register with email
+              </span>
+            </div>
           </div>
         )}
 
@@ -164,6 +180,10 @@ export default function SignUpPage() {
                 <option value="investor">Investor / Angel / Mentor</option>
                 <option value="community">Community Member / Early Adopter</option>
               </select>
+            </div>
+
+            <div className="flex justify-center pt-2">
+              <TurnstileWidget onVerify={(token) => setTurnstileToken(token)} />
             </div>
 
             <button

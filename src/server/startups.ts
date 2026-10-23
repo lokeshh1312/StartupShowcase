@@ -12,6 +12,7 @@ import {
 } from "@/db/schema";
 import {
   createStartupSchema,
+  updateStartupSchema,
   listStartupsFilterSchema,
   moderateStartupSchema,
   addCommentSchema,
@@ -29,6 +30,13 @@ import { checkRateLimit, extractClientIp, RATE_LIMIT_MESSAGE } from "@/server/ra
 import { isBotOrPrefetchFromHeaders, computeViewerHash } from "@/server/views";
 import { checkStartupDuplicate, type DuplicateWarning } from "@/server/duplicates";
 import { validateCommentSpam, isDuplicateComment } from "@/server/comments";
+import { deleteStartupImage } from "@/server/storage";
+import {
+  sendSubmissionReceivedEmail,
+  sendSubmissionApprovedEmail,
+  sendSubmissionRejectedEmail,
+  fireAndForgetEmail,
+} from "@/server/email";
 
 // Re-export for existing consumers
 export { buildSafePrefixTsQuery } from "@/lib/search";
@@ -593,6 +601,28 @@ export async function createStartup(
         })
         .returning();
 
+      if (created) {
+        // Asynchronously notify the founder
+        db.execute<{ email: string; display_name: string }>(sql`
+          SELECT u.email, p.display_name
+          FROM auth.users u
+          JOIN public.profiles p ON p.id = u.id
+          WHERE u.id = ${userId}::uuid
+        `).then((rows) => {
+          if (rows[0]?.email) {
+            fireAndForgetEmail(
+              sendSubmissionReceivedEmail({
+                to: rows[0].email,
+                founderName: rows[0].display_name || created.name,
+                startupName: created.name,
+              })
+            );
+          }
+        }).catch((err) => {
+          console.error("[Email Dispatch Error]:", err);
+        });
+      }
+
       return created;
     } catch (err: unknown) {
       // Retry on unique violation (PostgreSQL error code 23505)
@@ -612,11 +642,13 @@ export async function createStartup(
  * Verifies the reviewer is an admin, reads previous status BEFORE updating
  * inside a transaction, and logs the true previous status.
  * When approving, sets the launch month to the UTC month of the approval time.
+ * Fires transactional emails to the founder upon approval or rejection.
  */
 export async function moderateStartup(
   idOrSlug: string,
   rawStatus: "approved" | "rejected" | "pending",
-  reviewerId: string
+  reviewerId: string,
+  rejectionReason?: string
 ): Promise<Startup | null> {
   const { status } = moderateStartupSchema.parse({ status: rawStatus });
 
@@ -679,14 +711,184 @@ export async function moderateStartup(
         action: `startup.status_change:${status}`,
         targetType: "startup",
         targetId: updated.id,
-        metadata: { previous_status: previousStatus, new_status: status },
+        metadata: {
+          previous_status: previousStatus,
+          new_status: status,
+          rejection_reason: rejectionReason || null,
+        },
       });
+
+      // Notify the founder if approved or rejected
+      if (updated.ownerId && (status === "approved" || status === "rejected")) {
+        const founderRows = await tx.execute<{ email: string; display_name: string }>(sql`
+          SELECT u.email, p.display_name
+          FROM auth.users u
+          JOIN public.profiles p ON p.id = u.id
+          WHERE u.id = ${updated.ownerId}::uuid
+        `);
+        const founderEmail = founderRows[0]?.email;
+        const founderName = founderRows[0]?.display_name || updated.name;
+
+        if (founderEmail) {
+          if (status === "approved") {
+            fireAndForgetEmail(
+              sendSubmissionApprovedEmail({
+                to: founderEmail,
+                founderName,
+                startupName: updated.name,
+                startupSlug: updated.slug,
+              })
+            );
+          } else if (status === "rejected") {
+            fireAndForgetEmail(
+              sendSubmissionRejectedEmail({
+                to: founderEmail,
+                founderName,
+                startupName: updated.name,
+                reason: rejectionReason,
+              })
+            );
+          }
+        }
+      }
     }
 
     return updated || null;
   });
 
   return result;
+}
+
+/**
+ * Delete a pending startup and clean up any associated storage objects.
+ */
+export async function deleteStartup(
+  startupId: string,
+  userId: string,
+  isAdmin: boolean = false
+): Promise<boolean> {
+  const [existing] = await db
+    .select({
+      id: startups.id,
+      ownerId: startups.ownerId,
+      status: startups.status,
+      thumbnail: startups.thumbnail,
+      coverImage: startups.coverImage,
+    })
+    .from(startups)
+    .where(eq(startups.id, startupId))
+    .limit(1);
+
+  if (!existing) return false;
+
+  // Only owner or admin can delete
+  if (existing.ownerId !== userId && !isAdmin) {
+    throw new Error("Forbidden: You cannot delete this startup.");
+  }
+
+  // Non-admins can only delete pending startups
+  if (!isAdmin && existing.status !== "pending") {
+    throw new Error("Only pending submissions can be deleted.");
+  }
+
+  await db.delete(startups).where(eq(startups.id, startupId));
+
+  // Delete orphaned images from storage
+  if (existing.thumbnail) {
+    deleteStartupImage(existing.thumbnail).catch(() => {});
+  }
+  if (existing.coverImage && existing.coverImage !== existing.thumbnail) {
+    deleteStartupImage(existing.coverImage).catch(() => {});
+  }
+
+  // Audit log
+  await db.insert(auditLog).values({
+    actorId: userId,
+    action: "startup.deleted",
+    targetType: "startup",
+    targetId: startupId,
+    metadata: { status: existing.status },
+  });
+
+  return true;
+}
+
+/**
+ * Update an existing pending startup and clean up replaced storage images.
+ */
+export async function updateStartup(
+  startupId: string,
+  input: unknown,
+  userId: string,
+  isAdmin: boolean = false
+): Promise<Startup> {
+  const [existing] = await db
+    .select()
+    .from(startups)
+    .where(eq(startups.id, startupId))
+    .limit(1);
+
+  if (!existing) {
+    throw new Error("Startup not found.");
+  }
+
+  if (existing.ownerId !== userId && !isAdmin) {
+    throw new Error("Forbidden: You cannot edit this startup.");
+  }
+
+  if (!isAdmin && existing.status !== "pending") {
+    throw new Error("Only pending submissions can be edited.");
+  }
+
+  // Validate input
+  const validated = updateStartupSchema.parse(input);
+
+  // If thumbnail changed, clean up previous thumbnail
+  if (validated.thumbnail && validated.thumbnail !== existing.thumbnail && existing.thumbnail) {
+    deleteStartupImage(existing.thumbnail).catch(() => {});
+  }
+  // If coverImage changed, clean up previous coverImage
+  if (
+    validated.coverImage &&
+    validated.coverImage !== existing.coverImage &&
+    existing.coverImage &&
+    existing.coverImage !== existing.thumbnail
+  ) {
+    deleteStartupImage(existing.coverImage).catch(() => {});
+  }
+
+  const [updated] = await db
+    .update(startups)
+    .set({
+      ...(validated.name ? { name: validated.name } : {}),
+      ...(validated.ideaTitle ? { ideaTitle: validated.ideaTitle } : {}),
+      ...(validated.tagline !== undefined ? { tagline: validated.tagline } : {}),
+      ...(validated.description ? { description: validated.description } : {}),
+      ...(validated.fullStory !== undefined ? { fullStory: validated.fullStory } : {}),
+      ...(validated.category ? { category: validated.category } : {}),
+      ...(validated.stage ? { stage: validated.stage } : {}),
+      ...(validated.countryCode ? { countryCode: validated.countryCode } : {}),
+      ...(validated.region !== undefined ? { region: validated.region } : {}),
+      ...(validated.city !== undefined ? { city: validated.city } : {}),
+      ...(validated.remoteFirst !== undefined ? { remoteFirst: validated.remoteFirst } : {}),
+      ...(validated.location ? { location: validated.location } : {}),
+      ...(validated.websiteUrl !== undefined ? { websiteUrl: validated.websiteUrl } : {}),
+      ...(validated.logoType ? { logoType: validated.logoType } : {}),
+      ...(validated.logoColor ? { logoColor: validated.logoColor } : {}),
+      ...(validated.thumbnail !== undefined ? { thumbnail: validated.thumbnail } : {}),
+      ...(validated.coverImage !== undefined ? { coverImage: validated.coverImage } : {}),
+      ...(validated.founder ? { founderJson: validated.founder } : {}),
+      ...(validated.problem !== undefined ? { problem: validated.problem } : {}),
+      ...(validated.solution !== undefined ? { solution: validated.solution } : {}),
+      ...(validated.keyFeatures ? { keyFeaturesJson: validated.keyFeatures } : {}),
+      ...(validated.techStack ? { techStackJson: validated.techStack } : {}),
+      ...(validated.traction !== undefined ? { traction: validated.traction } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(startups.id, startupId))
+    .returning();
+
+  return updated;
 }
 
 /**

@@ -173,83 +173,102 @@ export const founderSchema = z.object({
   quote: z.string().trim().max(500).default(""),
 });
 
+// Base Startup Schema (shared between create and update)
+export const startupBaseSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Startup name is required")
+    .max(100, "Startup name must be under 100 characters"),
+  ideaTitle: z.string().trim().max(140).optional(),
+  tagline: z.string().trim().max(240).default(""),
+  description: z
+    .string()
+    .trim()
+    .min(10, "Description must be at least 10 characters")
+    .max(500, "Description must be under 500 characters"),
+  fullStory: z.string().trim().max(12000).default(""),
+  category: z.enum(CATEGORIES, {
+    message: "Choose a valid startup category",
+  }),
+  countryCode: countryCodeSchema,
+  region: z.string().trim().max(100).default(""),
+  city: z.string().trim().max(100).default(""),
+  remoteFirst: z.boolean().default(false),
+  stage: z.enum(STAGES, {
+    message: "Choose a valid startup stage",
+  }),
+  // month is NOT accepted from the client; the server sets it at approval time.
+  websiteUrl: z
+    .string()
+    .optional()
+    .transform((val) => normalizeUrl(val)),
+  logoType: z.string().trim().max(40).default("sprout"),
+  logoColor: z
+    .string()
+    .trim()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color (e.g. #2563EB)")
+    .default("#2563EB"),
+  thumbnail: z
+    .string()
+    .optional()
+    .transform((val) => normalizeUrl(val)),
+  coverImage: z
+    .string()
+    .optional()
+    .transform((val) => normalizeUrl(val)),
+  founder: founderSchema.default({
+    name: "",
+    role: "",
+    avatar: "",
+    quote: "",
+  }),
+  problem: z.string().trim().max(12000).default(""),
+  solution: z.string().trim().max(12000).default(""),
+  keyFeatures: z
+    .array(z.string().trim().max(300))
+    .max(12, "Maximum 12 key features allowed")
+    .default([]),
+  techStack: z
+    .array(z.string().trim().max(60))
+    .max(12, "Maximum 12 technologies allowed")
+    .default([]),
+  traction: z.string().trim().max(1000).default(""),
+});
+
 // Create / Submit Startup Schema
-export const createStartupSchema = z
-  .object({
-    name: z
-      .string()
-      .trim()
-      .min(1, "Startup name is required")
-      .max(100, "Startup name must be under 100 characters"),
-    ideaTitle: z.string().trim().max(140).optional(),
-    tagline: z.string().trim().max(240).default(""),
-    description: z
-      .string()
-      .trim()
-      .min(10, "Description must be at least 10 characters")
-      .max(500, "Description must be under 500 characters"),
-    fullStory: z.string().trim().max(12000).default(""),
-    category: z.enum(CATEGORIES, {
-      message: "Choose a valid startup category",
-    }),
-    countryCode: countryCodeSchema,
-    region: z.string().trim().max(100).default(""),
-    city: z.string().trim().max(100).default(""),
-    remoteFirst: z.boolean().default(false),
-    stage: z.enum(STAGES, {
-      message: "Choose a valid startup stage",
-    }),
-    // month is NOT accepted from the client; the server sets it at approval time.
-    websiteUrl: z
-      .string()
-      .optional()
-      .transform((val) => normalizeUrl(val)),
-    logoType: z.string().trim().max(40).default("sprout"),
-    logoColor: z
-      .string()
-      .trim()
-      .regex(/^#[0-9a-fA-F]{6}$/, "Must be a valid hex color (e.g. #2563EB)")
-      .default("#2563EB"),
-    thumbnail: z
-      .string()
-      .optional()
-      .transform((val) => normalizeUrl(val)),
-    coverImage: z
-      .string()
-      .optional()
-      .transform((val) => normalizeUrl(val)),
-    founder: founderSchema.default({
-      name: "",
-      role: "",
-      avatar: "",
-      quote: "",
-    }),
-    problem: z.string().trim().max(12000).default(""),
-    solution: z.string().trim().max(12000).default(""),
-    keyFeatures: z
-      .array(z.string().trim().max(300))
-      .max(12, "Maximum 12 key features allowed")
-      .default([]),
-    techStack: z
-      .array(z.string().trim().max(60))
-      .max(12, "Maximum 12 technologies allowed")
-      .default([]),
-    traction: z.string().trim().max(1000).default(""),
-  })
-  .transform((data) => ({
-    ...data,
-    ideaTitle: data.ideaTitle?.trim() || data.name,
-    coverImage: data.coverImage || data.thumbnail || "",
-    location: formatLocation({
-      countryCode: data.countryCode,
-      region: data.region,
-      city: data.city,
-      remoteFirst: data.remoteFirst,
-    }),
-  }));
+export const createStartupSchema = startupBaseSchema.transform((data) => ({
+  ...data,
+  ideaTitle: data.ideaTitle?.trim() || data.name,
+  coverImage: data.coverImage || data.thumbnail || "",
+  location: formatLocation({
+    countryCode: data.countryCode,
+    region: data.region,
+    city: data.city,
+    remoteFirst: data.remoteFirst,
+  }),
+}));
+
+// Update / Edit Startup Schema (all fields optional)
+export const updateStartupSchema = startupBaseSchema.partial().transform((data) => ({
+  ...data,
+  ...(data.name && !data.ideaTitle ? { ideaTitle: data.name } : {}),
+  ...(data.countryCode || data.region || data.city || data.remoteFirst !== undefined
+    ? {
+        location: formatLocation({
+          countryCode: data.countryCode,
+          region: data.region,
+          city: data.city,
+          remoteFirst: data.remoteFirst,
+        }),
+      }
+    : {}),
+}));
 
 export type CreateStartupInput = z.input<typeof createStartupSchema>;
 export type ValidatedStartupData = z.output<typeof createStartupSchema>;
+export type UpdateStartupInput = z.input<typeof updateStartupSchema>;
+export type ValidatedUpdateStartupData = z.output<typeof updateStartupSchema>;
 
 // List / Search Filter Schema
 export const listStartupsFilterSchema = z.object({

@@ -5,6 +5,7 @@ import { ClipboardList, Plus, ExternalLink, AlertCircle } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { getMySubmissions } from "@/server/startups";
 import { Badge, StageBadge } from "@/components/common/badge";
+import { SubmissionActions } from "./submission-actions";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -139,6 +140,13 @@ export default async function MySubmissionsPage() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                  {startup.status === "pending" && (
+                    <SubmissionActions
+                      startupId={startup.id}
+                      slug={startup.slug}
+                      status={startup.status}
+                    />
+                  )}
                   {startup.status === "approved" && (
                     <Link
                       href={`/startup/${startup.slug}`}

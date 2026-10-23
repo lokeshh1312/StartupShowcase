@@ -4,9 +4,11 @@ import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { Mail, CheckCircle2, Send, ArrowLeft, ShieldCheck } from "lucide-react";
 import { subscribeNewsletterAction } from "@/server/actions";
+import { TurnstileWidget } from "@/components/common/turnstile";
 
 export default function NewsletterPage() {
   const [email, setEmail] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [subscribed, setSubscribed] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -16,7 +18,7 @@ export default function NewsletterPage() {
     setError("");
 
     startTransition(async () => {
-      const res = await subscribeNewsletterAction(email.trim());
+      const res = await subscribeNewsletterAction(email.trim(), turnstileToken);
       if (res?.error) {
         setError(res.error);
       } else {
@@ -83,10 +85,10 @@ export default function NewsletterPage() {
               <CheckCircle2 className="w-7 h-7" />
             </div>
             <h3 className="font-bold text-base text-slate-900 dark:text-white">
-              You are subscribed!
+              Check your inbox to confirm!
             </h3>
-            <p className="text-xs text-slate-500">
-              We&apos;ve added <span className="font-semibold text-slate-900 dark:text-white">{email}</span> to our weekly dispatch list.
+            <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+              We&apos;ve sent a verification link to <span className="font-semibold text-slate-900 dark:text-white">{email}</span>. Click the link to complete your double opt-in subscription.
             </p>
           </div>
         ) : (
@@ -113,6 +115,9 @@ export default function NewsletterPage() {
                 <span>{isPending ? "Subscribing…" : "Subscribe Free"}</span>
                 <Send className="w-3.5 h-3.5" />
               </button>
+            </div>
+            <div className="flex justify-center pt-2">
+              <TurnstileWidget onVerify={(token) => setTurnstileToken(token)} />
             </div>
             <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />

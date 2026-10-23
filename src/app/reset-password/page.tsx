@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { resetPasswordAction } from "@/server/actions";
 import { safeRedirectPath } from "@/lib/redirect";
+import { TurnstileWidget } from "@/components/common/turnstile";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function ResetPasswordPage() {
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -33,6 +35,7 @@ export default function ResetPasswordPage() {
 
     const formData = new FormData();
     formData.append("password", password);
+    formData.append("turnstileToken", turnstileToken);
 
     startTransition(async () => {
       const res = await resetPasswordAction(formData);
@@ -104,6 +107,10 @@ export default function ResetPasswordPage() {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
               />
             </div>
+          </div>
+
+          <div className="flex justify-center pt-2">
+            <TurnstileWidget onVerify={(token) => setTurnstileToken(token)} />
           </div>
 
           <button

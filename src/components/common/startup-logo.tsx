@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import {
   Package,
   GraduationCap,
@@ -89,11 +90,12 @@ export function StartupLogo({
       aria-label={`${name} logo`}
     >
       {logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={logoUrl}
           alt={name}
-          className="w-full h-full object-cover rounded-inherit"
+          fill
+          sizes="(max-width: 768px) 48px, 80px"
+          className="object-cover rounded-inherit"
         />
       ) : logoType ? (
         getIcon()

@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -141,16 +142,30 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
       </div>
 
       {/* Main Profile Header */}
-      <div className="p-6 sm:p-10 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-5">
-            <StartupLogo
-              name={startup.name}
-              category={startup.category}
-              logoType={startup.logoType}
-              logoColor={startup.logoColor}
-              size="xl"
+      <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        {startup.coverImage && (
+          <div className="relative w-full h-48 sm:h-64 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+            <Image
+              src={startup.coverImage}
+              alt={`${startup.name} cover`}
+              fill
+              priority
+              sizes="(max-width: 1200px) 100vw, 1152px"
+              className="object-cover"
             />
+          </div>
+        )}
+        <div className="p-6 sm:p-10 space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-5">
+              <StartupLogo
+                name={startup.name}
+                category={startup.category}
+                logoType={startup.logoType}
+                logoColor={startup.logoColor}
+                logoUrl={startup.thumbnail || undefined}
+                size="xl"
+              />
             <div className="space-y-1.5">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
@@ -206,6 +221,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
             <Eye className="w-4 h-4 text-slate-400" />
             <span>{startup.views} views</span>
           </div>
+        </div>
         </div>
       </div>
 

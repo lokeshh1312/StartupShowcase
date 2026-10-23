@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Rocket,
   CheckCircle2,
@@ -9,36 +10,94 @@ import {
   Globe,
   User,
   ArrowRight,
+  Upload,
+  X,
+  Image as ImageIcon,
 } from "lucide-react";
-import { submitStartupAction } from "@/server/actions";
+import {
+  submitStartupAction,
+  updateStartupAction,
+  uploadStartupImageAction,
+} from "@/server/actions";
 import { CATEGORIES, STAGES } from "@/lib/validation";
+import { TurnstileWidget } from "@/components/common/turnstile";
+import type { Startup } from "@/db/schema";
 
 interface SubmitFormProps {
   countries: Array<{ code: string; name: string }>;
   userDisplayName?: string;
+  initialStartup?: Partial<Startup>;
 }
 
-export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProps) {
+export function SubmitStartupForm({
+  countries,
+  userDisplayName,
+  initialStartup,
+}: SubmitFormProps) {
+  const isEditing = Boolean(initialStartup?.id);
 
-  const [name, setName] = useState("");
-  const [tagline, setTagline] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState<string>(CATEGORIES[0]);
-  const [stage, setStage] = useState<string>(STAGES[0]);
-  const [countryCode, setCountryCode] = useState<string>("US");
-  const [city, setCity] = useState("");
-  const [region, setRegion] = useState("");
-  const [remoteFirst, setRemoteFirst] = useState(false);
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [demoVideoUrl, setDemoVideoUrl] = useState("");
-  const [problemStatement, setProblemStatement] = useState("");
-  const [solutionDescription, setSolutionDescription] = useState("");
-  const [techStackInput, setTechStackInput] = useState("");
-  const [tagsInput, setTagsInput] = useState("");
-  const [traction, setTraction] = useState("");
-  const [founderName, setFounderName] = useState(userDisplayName || "");
-  const [founderRole, setFounderRole] = useState("Founder & CEO");
-  const [founderQuote, setFounderQuote] = useState("");
+  const [name, setName] = useState(initialStartup?.name || "");
+  const [tagline, setTagline] = useState(initialStartup?.tagline || "");
+  const [description, setDescription] = useState(initialStartup?.description || "");
+  const [category, setCategory] = useState<string>(
+    initialStartup?.category || CATEGORIES[0]
+  );
+  const [stage, setStage] = useState<string>(initialStartup?.stage || STAGES[0]);
+  const [countryCode, setCountryCode] = useState<string>(
+    initialStartup?.countryCode || "US"
+  );
+  const [city, setCity] = useState(initialStartup?.city || "");
+  const [region, setRegion] = useState(initialStartup?.region || "");
+  const [remoteFirst, setRemoteFirst] = useState(
+    Boolean(initialStartup?.remoteFirst)
+  );
+  const [websiteUrl, setWebsiteUrl] = useState(initialStartup?.websiteUrl || "");
+  const [problemStatement, setProblemStatement] = useState(
+    initialStartup?.problem || ""
+  );
+  const [solutionDescription, setSolutionDescription] = useState(
+    initialStartup?.solution || ""
+  );
+  const [techStackInput, setTechStackInput] = useState(
+    Array.isArray(initialStartup?.techStackJson)
+      ? (initialStartup.techStackJson as string[]).join(", ")
+      : ""
+  );
+  const [keyFeaturesInput, setKeyFeaturesInput] = useState(
+    Array.isArray(initialStartup?.keyFeaturesJson)
+      ? (initialStartup.keyFeaturesJson as string[]).join(", ")
+      : ""
+  );
+  const [traction, setTraction] = useState(initialStartup?.traction || "");
+
+  const initialFounder = (initialStartup?.founderJson || {}) as {
+    name?: string;
+    role?: string;
+    quote?: string;
+  };
+  const [founderName, setFounderName] = useState(
+    initialFounder.name || userDisplayName || ""
+  );
+  const [founderRole, setFounderRole] = useState(
+    initialFounder.role || "Founder & CEO"
+  );
+  const [founderQuote, setFounderQuote] = useState(
+    initialFounder.quote || ""
+  );
+
+  // Image upload states
+  const [logoUrl, setLogoUrl] = useState<string>(initialStartup?.thumbnail || "");
+  const [coverUrl, setCoverUrl] = useState<string>(initialStartup?.coverImage || "");
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState("");
+  const [coverUploadError, setCoverUploadError] = useState("");
+
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+
+  // CAPTCHA token
+  const [captchaToken, setCaptchaToken] = useState("");
 
   const [error, setError] = useState("");
   const [submittedStartup, setSubmittedStartup] = useState<{
@@ -47,6 +106,58 @@ export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProp
     slug: string;
   } | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "logo" | "cover"
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (type === "logo") {
+      setLogoUploading(true);
+      setLogoUploadError("");
+    } else {
+      setCoverUploading(true);
+      setCoverUploadError("");
+    }
+
+    try {
+      // Client-side quick validation before upload
+      if (file.size > 2 * 1024 * 1024) {
+        throw new Error("File exceeds 2 MB limit. Please choose a smaller image.");
+      }
+      if (
+        !["image/png", "image/jpeg", "image/webp"].includes(file.type.toLowerCase())
+      ) {
+        throw new Error(
+          "Invalid file type. Only PNG, JPEG, and WebP are allowed (SVGs are rejected)."
+        );
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await uploadStartupImageAction(formData);
+
+      if (!res.success) {
+        if (type === "logo") setLogoUploadError(res.error);
+        else setCoverUploadError(res.error);
+      } else {
+        if (type === "logo") setLogoUrl(res.url);
+        else setCoverUrl(res.url);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to upload image.";
+      if (type === "logo") setLogoUploadError(msg);
+      else setCoverUploadError(msg);
+    } finally {
+      if (type === "logo") setLogoUploading(false);
+      else setCoverUploading(false);
+      // Reset input value so same file can be re-selected if desired
+      e.target.value = "";
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +168,7 @@ export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProp
       .map((t) => t.trim())
       .filter(Boolean);
 
-    const tags = tagsInput
+    const keyFeatures = keyFeaturesInput
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
@@ -73,63 +184,79 @@ export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProp
       region: region || undefined,
       remoteFirst,
       websiteUrl: websiteUrl || undefined,
-      demoVideoUrl: demoVideoUrl || undefined,
-      problemStatement: problemStatement || undefined,
-      solutionDescription: solutionDescription || undefined,
+      thumbnail: logoUrl || undefined,
+      coverImage: coverUrl || undefined,
+      problem: problemStatement || undefined,
+      solution: solutionDescription || undefined,
       techStack: techStack.length > 0 ? techStack : undefined,
-      tags: tags.length > 0 ? tags : undefined,
+      keyFeatures: keyFeatures.length > 0 ? keyFeatures : undefined,
       traction: traction || undefined,
       founder: {
         name: founderName || userDisplayName || "Founder",
         role: founderRole || "Founder",
         quote: founderQuote || "",
       },
+      captchaToken: captchaToken || undefined,
     };
 
     startTransition(async () => {
-      const res = await submitStartupAction(payload);
-      if (res?.error) {
-        setError(res.error);
-      } else if (res?.startup) {
-        setSubmittedStartup(res.startup);
+      if (isEditing && initialStartup?.id) {
+        const res = await updateStartupAction(initialStartup.id, payload);
+        if (res?.error) {
+          setError(res.error);
+        } else if (res?.startup) {
+          setSubmittedStartup({
+            id: res.startup.id,
+            name: res.startup.name,
+            slug: res.startup.slug,
+          });
+        }
+      } else {
+        const res = await submitStartupAction(payload);
+        if (res?.error) {
+          setError(res.error);
+        } else if (res?.startup) {
+          setSubmittedStartup({
+            id: res.startup.id,
+            name: res.startup.name,
+            slug: res.startup.slug,
+          });
+        }
       }
     });
   };
 
   if (submittedStartup) {
     return (
-      <div className="max-w-xl mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 sm:p-10 text-center space-y-6 shadow-xs animate-in zoom-in-95 duration-200">
-        <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+      <div className="p-8 sm:p-12 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
           <CheckCircle2 className="w-8 h-8" />
         </div>
 
         <div className="space-y-2">
           <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">
-            Submission Received!
+            {isEditing ? "Startup Updated Successfully!" : "Startup Submitted Successfully!"}
           </h2>
-          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            <strong className="text-slate-900 dark:text-white font-bold">{submittedStartup.name}</strong> has been submitted to the queue. An administrator will review your submission before it goes live on the global leaderboard.
+          <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+            {isEditing
+              ? `Your changes for "${submittedStartup.name}" have been saved and remain in the review queue.`
+              : `Your project "${submittedStartup.name}" has been placed in our review queue. We have sent a confirmation email to your account.`}
           </p>
         </div>
 
-        <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <Link
             href="/me/submissions"
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-500 transition-colors"
+            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors shadow-xs"
           >
-            Track in My Submissions
+            Go to My Submissions
           </Link>
-          <button
-            onClick={() => {
-              setSubmittedStartup(null);
-              setName("");
-              setTagline("");
-              setDescription("");
-            }}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          <Link
+            href="/"
+            className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors"
           >
-            Submit Another Startup
-          </button>
+            Explore Directory
+          </Link>
         </div>
       </div>
     );
@@ -236,7 +363,125 @@ export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProp
         </div>
       </div>
 
-      {/* 2. Location & Geography */}
+      {/* 2. Visuals & File Uploads (Supabase Storage) */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
+        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <ImageIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+            Branding & Visuals (Uploads)
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Logo / Thumbnail Upload */}
+          <div className="space-y-3">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+              Startup Logo (PNG, JPEG, WebP &bull; Max 2 MB)
+            </label>
+
+            {logoUrl ? (
+              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 group">
+                <Image
+                  src={logoUrl}
+                  alt="Uploaded Logo"
+                  fill
+                  className="object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setLogoUrl("")}
+                  className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition-opacity"
+                  title="Remove Logo"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="file"
+                  ref={logoFileInputRef}
+                  onChange={(e) => handleFileUpload(e, "logo")}
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  disabled={logoUploading}
+                  onClick={() => logoFileInputRef.current?.click()}
+                  className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl bg-slate-50/50 dark:bg-slate-800/50 transition-colors text-slate-600 dark:text-slate-300 cursor-pointer disabled:opacity-60"
+                >
+                  <Upload className="w-6 h-6 mb-2 text-slate-400" />
+                  <span className="text-xs font-bold">
+                    {logoUploading ? "Uploading & Verifying..." : "Upload Logo Image"}
+                  </span>
+                  <span className="text-[11px] text-slate-400 mt-1">
+                    PNG, JPEG, WebP up to 2MB
+                  </span>
+                </button>
+              </div>
+            )}
+            {logoUploadError && (
+              <p className="text-xs text-red-500 font-medium">{logoUploadError}</p>
+            )}
+          </div>
+
+          {/* Cover Image Upload */}
+          <div className="space-y-3">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+              Cover Image / Banner (PNG, JPEG, WebP &bull; Max 2 MB)
+            </label>
+
+            {coverUrl ? (
+              <div className="relative w-full h-24 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 group">
+                <Image
+                  src={coverUrl}
+                  alt="Uploaded Cover"
+                  fill
+                  className="object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setCoverUrl("")}
+                  className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition-opacity"
+                  title="Remove Cover Image"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="file"
+                  ref={coverFileInputRef}
+                  onChange={(e) => handleFileUpload(e, "cover")}
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  disabled={coverUploading}
+                  onClick={() => coverFileInputRef.current?.click()}
+                  className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl bg-slate-50/50 dark:bg-slate-800/50 transition-colors text-slate-600 dark:text-slate-300 cursor-pointer disabled:opacity-60"
+                >
+                  <Upload className="w-6 h-6 mb-2 text-slate-400" />
+                  <span className="text-xs font-bold">
+                    {coverUploading ? "Uploading & Verifying..." : "Upload Cover Image"}
+                  </span>
+                  <span className="text-[11px] text-slate-400 mt-1">
+                    Landscape banner image up to 2MB
+                  </span>
+                </button>
+              </div>
+            )}
+            {coverUploadError && (
+              <p className="text-xs text-red-500 font-medium">{coverUploadError}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Location & Geography */}
       <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -307,7 +552,7 @@ export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProp
         </div>
       </div>
 
-      {/* 3. Links & Deep Dive */}
+      {/* 4. Links & Product Details */}
       <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -317,7 +562,7 @@ export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProp
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-2">
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               Website URL
             </label>
@@ -326,19 +571,6 @@ export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProp
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://example.com"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Demo Video URL (YouTube / Vimeo / Loom)
-            </label>
-            <input
-              type="text"
-              value={demoVideoUrl}
-              onChange={(e) => setDemoVideoUrl(e.target.value)}
-              placeholder="https://youtu.be/..."
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -386,13 +618,13 @@ export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProp
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Keywords / Tags (Comma-separated)
+              Key Features (Comma-separated)
             </label>
             <input
               type="text"
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              placeholder="e.g. B2B, SaaS, GenAI, Climate"
+              value={keyFeaturesInput}
+              onChange={(e) => setKeyFeaturesInput(e.target.value)}
+              placeholder="e.g. Real-time telemetry, AI forecasting, Multi-tenant"
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -413,7 +645,7 @@ export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProp
         </div>
       </div>
 
-      {/* 4. Founder Profile */}
+      {/* 5. Founder Profile */}
       <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -465,18 +697,21 @@ export function SubmitStartupForm({ countries, userDisplayName }: SubmitFormProp
         </div>
       </div>
 
-      {/* Submit Button */}
+      {/* Cloudflare Turnstile CAPTCHA */}
+      <TurnstileWidget onVerify={(token) => setCaptchaToken(token)} />
+
+      {/* Submit / Save Button */}
       <div className="flex items-center justify-end gap-4">
         <button
           type="submit"
-          disabled={isPending}
-          className="px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2"
+          disabled={isPending || logoUploading || coverUploading}
+          className="px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer"
         >
           {isPending ? (
-            <span>Submitting to Queue...</span>
+            <span>{isEditing ? "Saving Changes..." : "Submitting to Queue..."}</span>
           ) : (
             <>
-              <span>Submit Startup</span>
+              <span>{isEditing ? "Save Changes" : "Submit Startup"}</span>
               <ArrowRight className="w-4 h-4" />
             </>
           )}

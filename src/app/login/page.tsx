@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { signInAction } from "@/server/actions";
 import { safeRedirectPath } from "@/lib/redirect";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -52,6 +53,18 @@ export default function LoginPage() {
         {error && (
           <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-400 font-medium">
             {error}
+          </div>
+        )}
+
+        {process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true" && (
+          <div className="space-y-4">
+            <GoogleSignInButton redirectPath={redirectTo} />
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
+              <span className="bg-white dark:bg-slate-900 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider relative">
+                Or continue with email
+              </span>
+            </div>
           </div>
         )}
 

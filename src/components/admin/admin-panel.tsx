@@ -93,7 +93,8 @@ export function AdminPanel({
     startTransition(async () => {
       const res = await moderateStartupAction(
         rejectingStartup.id,
-        "rejected"
+        "rejected",
+        rejectionReason
       );
       setBusyId(null);
       if (res?.error) {

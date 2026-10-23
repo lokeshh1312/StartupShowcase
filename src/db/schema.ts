@@ -217,6 +217,9 @@ export const newsletterSubscribers = pgTable("newsletter_subscribers", {
   email: citext("email").notNull().unique(),
   confirmed: boolean("confirmed").notNull().default(false),
   token: text("token").notNull(),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  unsubscribeToken: text("unsubscribe_token"),
+  tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
