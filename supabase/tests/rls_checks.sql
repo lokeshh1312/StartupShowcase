@@ -619,6 +619,13 @@ BEGIN
         _voter_blocked := false;
     END;
 
+    -- Backdate the voter's profile as postgres so the vote counts in monthly_leaderboard_view (profiles must be >= 24h old)
+    PERFORM set_config('role', 'postgres', true);
+    PERFORM set_config('request.jwt.claims', '', true);
+    UPDATE public.profiles SET created_at = now() - interval '2 days' WHERE id = _uid_b;
+    PERFORM set_config('role', 'anon', true);
+    PERFORM set_config('request.jwt.claims', '{}', true);
+
     -- Part B: anon can read aggregated votes_count from leaderboard view
     BEGIN
       SELECT votes_count INTO _vc FROM public.monthly_leaderboard_view WHERE id = _startup_approved_id;
