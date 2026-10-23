@@ -30,7 +30,7 @@ import { checkRateLimit, extractClientIp, RATE_LIMIT_MESSAGE } from "@/server/ra
 import { isBotOrPrefetchFromHeaders, computeViewerHash } from "@/server/views";
 import { checkStartupDuplicate, type DuplicateWarning } from "@/server/duplicates";
 import { validateCommentSpam, isDuplicateComment } from "@/server/comments";
-import { deleteStartupImage } from "@/server/storage";
+import { deleteStartupImage, validateStartupImageUrl } from "@/server/storage";
 import {
   sendSubmissionReceivedEmail,
   sendSubmissionApprovedEmail,
@@ -526,6 +526,20 @@ export async function createStartup(
 ): Promise<Startup> {
   const validated = createStartupSchema.parse(input);
 
+  // Validate image URLs belong strictly to submitting founder's storage folder
+  if (validated.thumbnail) {
+    const thumbVal = validateStartupImageUrl(validated.thumbnail, userId);
+    if (!thumbVal.valid) {
+      throw new Error(`Invalid thumbnail: ${thumbVal.error}`);
+    }
+  }
+  if (validated.coverImage) {
+    const coverVal = validateStartupImageUrl(validated.coverImage, userId);
+    if (!coverVal.valid) {
+      throw new Error(`Invalid cover image: ${coverVal.error}`);
+    }
+  }
+
   // 1. Enforce verified founder
   const isVerified = await isUserEmailVerified(userId);
   if (!isVerified) {
@@ -791,14 +805,16 @@ export async function deleteStartup(
     throw new Error("Only pending submissions can be deleted.");
   }
 
+  const targetOwnerId = existing.ownerId || userId;
+
   await db.delete(startups).where(eq(startups.id, startupId));
 
-  // Delete orphaned images from storage
+  // Delete orphaned images from storage (checking targetOwnerId and references)
   if (existing.thumbnail) {
-    deleteStartupImage(existing.thumbnail).catch(() => {});
+    deleteStartupImage(existing.thumbnail, targetOwnerId, startupId).catch(() => {});
   }
   if (existing.coverImage && existing.coverImage !== existing.thumbnail) {
-    deleteStartupImage(existing.coverImage).catch(() => {});
+    deleteStartupImage(existing.coverImage, targetOwnerId, startupId).catch(() => {});
   }
 
   // Audit log
@@ -843,9 +859,25 @@ export async function updateStartup(
   // Validate input
   const validated = updateStartupSchema.parse(input);
 
+  // Admin editing a startup uses the startup's ownerId, not the admin's id.
+  const targetOwnerId = existing.ownerId || userId;
+
+  if (validated.thumbnail) {
+    const thumbVal = validateStartupImageUrl(validated.thumbnail, targetOwnerId);
+    if (!thumbVal.valid) {
+      throw new Error(`Invalid thumbnail: ${thumbVal.error}`);
+    }
+  }
+  if (validated.coverImage) {
+    const coverVal = validateStartupImageUrl(validated.coverImage, targetOwnerId);
+    if (!coverVal.valid) {
+      throw new Error(`Invalid cover image: ${coverVal.error}`);
+    }
+  }
+
   // If thumbnail changed, clean up previous thumbnail
   if (validated.thumbnail && validated.thumbnail !== existing.thumbnail && existing.thumbnail) {
-    deleteStartupImage(existing.thumbnail).catch(() => {});
+    deleteStartupImage(existing.thumbnail, targetOwnerId, startupId).catch(() => {});
   }
   // If coverImage changed, clean up previous coverImage
   if (
@@ -854,7 +886,7 @@ export async function updateStartup(
     existing.coverImage &&
     existing.coverImage !== existing.thumbnail
   ) {
-    deleteStartupImage(existing.coverImage).catch(() => {});
+    deleteStartupImage(existing.coverImage, targetOwnerId, startupId).catch(() => {});
   }
 
   const [updated] = await db

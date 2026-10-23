@@ -341,7 +341,9 @@ export async function sendNewsletterConfirmationEmail(params: {
   unsubscribeToken: string;
 }) {
   const confirmUrl = absoluteUrl(`/newsletter/confirm?token=${encodeURIComponent(params.token)}`);
-  const unsubscribeUrl = absoluteUrl(`/newsletter/unsubscribe?token=${encodeURIComponent(params.unsubscribeToken)}`);
+  const unsubscribeUrl = absoluteUrl(
+    `/newsletter/unsubscribe?email=${encodeURIComponent(params.to)}&token=${encodeURIComponent(params.unsubscribeToken)}`
+  );
 
   const subject = "Please confirm your Startup Showcase newsletter subscription";
 

@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { hashNewsletterToken, confirmNewsletter } from "@/server/newsletter";
+import {
+  hashNewsletterToken,
+  confirmNewsletter,
+  generateNewsletterUnsubscribeToken,
+  verifyNewsletterUnsubscribeToken,
+  unsubscribeNewsletter,
+} from "@/server/newsletter";
 import { db } from "@/db";
 
 describe("Newsletter Security & Double Opt-in", () => {
@@ -94,6 +100,72 @@ describe("Newsletter Security & Double Opt-in", () => {
           token: "",
         })
       );
+    });
+  });
+
+  describe("Stateless Signed Unsubscribe Token (HMAC-SHA256)", () => {
+    const testEmail = "subscriber@example.com";
+
+    it("generates deterministic base64url signed token for lowercase email", () => {
+      const token1 = generateNewsletterUnsubscribeToken(testEmail);
+      const token2 = generateNewsletterUnsubscribeToken(testEmail);
+      expect(token1).toBe(token2);
+      expect(typeof token1).toBe("string");
+      expect(token1.length).toBeGreaterThan(20);
+      // Base64url safe chars only
+      expect(token1).toMatch(/^[A-Za-z0-9_-]+$/);
+    });
+
+    it("normalizes mixed-case and whitespace in email before generating token", () => {
+      const tokenLower = generateNewsletterUnsubscribeToken("alice@startup.io");
+      const tokenMixed = generateNewsletterUnsubscribeToken("  Alice@Startup.IO  ");
+      expect(tokenLower).toBe(tokenMixed);
+    });
+
+    it("produces different tokens for different emails", () => {
+      const tokenA = generateNewsletterUnsubscribeToken("userA@example.com");
+      const tokenB = generateNewsletterUnsubscribeToken("userB@example.com");
+      expect(tokenA).not.toBe(tokenB);
+    });
+
+    it("verifies matching email and token successfully", () => {
+      const token = generateNewsletterUnsubscribeToken(testEmail);
+      expect(verifyNewsletterUnsubscribeToken(testEmail, token)).toBe(true);
+      expect(verifyNewsletterUnsubscribeToken("SUBSCRIBER@EXAMPLE.COM", token)).toBe(true);
+    });
+
+    it("rejects invalid, tampered, or mismatched tokens", () => {
+      const validToken = generateNewsletterUnsubscribeToken(testEmail);
+      const tamperedToken = validToken.slice(0, -2) + "xx";
+
+      expect(verifyNewsletterUnsubscribeToken(testEmail, tamperedToken)).toBe(false);
+      expect(verifyNewsletterUnsubscribeToken("attacker@example.com", validToken)).toBe(false);
+      expect(verifyNewsletterUnsubscribeToken("", validToken)).toBe(false);
+      expect(verifyNewsletterUnsubscribeToken(testEmail, "")).toBe(false);
+      expect(verifyNewsletterUnsubscribeToken(testEmail, "short")).toBe(false);
+    });
+
+    it("unsubscribeNewsletter deletes subscription upon valid stateless token", async () => {
+      const token = generateNewsletterUnsubscribeToken(testEmail);
+
+      const mockWhereDelete = vi.fn().mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder chain mock in unit test
+      vi.spyOn(db, "delete").mockReturnValue({ where: mockWhereDelete } as any);
+
+      const res = await unsubscribeNewsletter(testEmail, token);
+      expect(res.success).toBe(true);
+      expect(mockWhereDelete).toHaveBeenCalled();
+    });
+
+    it("unsubscribeNewsletter rejects tampered token without calling db.delete", async () => {
+      const mockWhereDelete = vi.fn().mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder chain mock in unit test
+      const deleteSpy = vi.spyOn(db, "delete").mockReturnValue({ where: mockWhereDelete } as any);
+
+      const res = await unsubscribeNewsletter(testEmail, "tampered-unsub-token");
+      expect(res.success).toBe(false);
+      expect(res.error).toContain("Invalid or expired unsubscribe link");
+      expect(deleteSpy).not.toHaveBeenCalled();
     });
   });
 });

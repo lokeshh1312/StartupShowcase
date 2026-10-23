@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomBytes } from "crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { newsletterSubscribers } from "@/db/schema";
@@ -9,11 +9,54 @@ import {
 } from "@/server/email";
 
 /**
- * Computes the SHA-256 hash of a token.
+ * Validates and retrieves NEWSLETTER_SECRET.
+ * In production (NODE_ENV=production), throws if unset.
+ */
+export function getNewsletterSecret(): string {
+  const isProd = process.env.NODE_ENV === "production";
+  const isBuild =
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.npm_lifecycle_event === "build";
+
+  const secret = process.env.NEWSLETTER_SECRET?.trim();
+  if (isProd && !isBuild && !secret) {
+    throw new Error("Missing required production environment variable: NEWSLETTER_SECRET");
+  }
+  return secret || "dev-newsletter-secret-minimum-32-chars-long";
+}
+
+/**
+ * Computes the SHA-256 hash of a confirmation token.
  * We store only hashes in the database so tokens are never leaked if the DB is compromised.
  */
 export function hashNewsletterToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
+}
+
+/**
+ * Generates a stateless signed unsubscribe token:
+ * token = base64url(HMAC-SHA256(NEWSLETTER_SECRET, lowercase email))
+ */
+export function generateNewsletterUnsubscribeToken(email: string): string {
+  const secret = getNewsletterSecret();
+  const normalized = email.trim().toLowerCase();
+  return createHmac("sha256", secret).update(normalized).digest("base64url");
+}
+
+/**
+ * Verifies a stateless unsubscribe token using timingSafeEqual to avoid timing side-channels.
+ */
+export function verifyNewsletterUnsubscribeToken(email: string, token: string): boolean {
+  if (!email || !token) return false;
+  try {
+    const expected = generateNewsletterUnsubscribeToken(email);
+    const a = Buffer.from(token);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
 }
 
 export interface NewsletterSubscribeResult {
@@ -31,10 +74,8 @@ export async function subscribeToNewsletter(
   const normalizedEmail = email.trim().toLowerCase();
 
   const rawConfirmToken = randomBytes(32).toString("hex");
-  const rawUnsubToken = randomBytes(32).toString("hex");
-
   const hashedConfirmToken = hashNewsletterToken(rawConfirmToken);
-  const hashedUnsubToken = hashNewsletterToken(rawUnsubToken);
+  const statelessUnsubToken = generateNewsletterUnsubscribeToken(normalizedEmail);
 
   const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48-hour expiration
 
@@ -62,7 +103,6 @@ export async function subscribeToNewsletter(
       .update(newsletterSubscribers)
       .set({
         token: hashedConfirmToken,
-        unsubscribeToken: hashedUnsubToken,
         tokenExpiresAt: expiresAt,
       })
       .where(eq(newsletterSubscribers.id, existing[0].id));
@@ -72,7 +112,6 @@ export async function subscribeToNewsletter(
       email: normalizedEmail,
       confirmed: false,
       token: hashedConfirmToken,
-      unsubscribeToken: hashedUnsubToken,
       tokenExpiresAt: expiresAt,
     });
   }
@@ -82,7 +121,7 @@ export async function subscribeToNewsletter(
     sendNewsletterConfirmationEmail({
       to: normalizedEmail,
       token: rawConfirmToken,
-      unsubscribeToken: rawUnsubToken,
+      unsubscribeToken: statelessUnsubToken,
     })
   );
 
@@ -144,34 +183,27 @@ export async function confirmNewsletter(
 }
 
 /**
- * Unsubscribes a subscriber using their signed unsubscribe token.
+ * Unsubscribes a subscriber using stateless HMAC verification.
+ * Does not depend on database tokens and cannot be spoofed.
  */
 export async function unsubscribeNewsletter(
-  rawUnsubToken: string
+  email: string,
+  token: string
 ): Promise<{ success: boolean; error?: string }> {
-  if (!rawUnsubToken || rawUnsubToken.trim().length === 0) {
-    return { success: false, error: "Missing or invalid unsubscribe token." };
+  const normalized = (email || "").trim().toLowerCase();
+  if (!normalized || !token || !token.trim()) {
+    return { success: false, error: "Missing email address or unsubscribe token." };
   }
 
-  const hashedToken = hashNewsletterToken(rawUnsubToken.trim());
-
-  const [subscriber] = await db
-    .select({ id: newsletterSubscribers.id })
-    .from(newsletterSubscribers)
-    .where(eq(newsletterSubscribers.unsubscribeToken, hashedToken))
-    .limit(1);
-
-  if (!subscriber) {
-    return {
-      success: false,
-      error: "Invalid or expired unsubscribe link.",
-    };
+  const isValid = verifyNewsletterUnsubscribeToken(normalized, token.trim());
+  if (!isValid) {
+    return { success: false, error: "Invalid or expired unsubscribe link." };
   }
 
-  // Delete the subscription record
+  // Delete the subscription record if it exists
   await db
     .delete(newsletterSubscribers)
-    .where(eq(newsletterSubscribers.id, subscriber.id));
+    .where(eq(newsletterSubscribers.email, normalized));
 
   return { success: true };
 }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import {
   getCurrentUser,
   getCurrentUserProfile,
@@ -20,7 +20,11 @@ import {
 } from "@/server/startups";
 import { uploadStartupImage } from "@/server/storage";
 import { verifyTurnstileToken } from "@/server/captcha";
-import { subscribeToNewsletter } from "@/server/newsletter";
+import {
+  subscribeToNewsletter,
+  confirmNewsletter,
+  unsubscribeNewsletter,
+} from "@/server/newsletter";
 import { createStartupSchema, newsletterSubscribeSchema } from "@/lib/validation";
 import { formatActionError } from "@/server/errors";
 import {
@@ -31,6 +35,7 @@ import {
 } from "@/server/rate-limit";
 import { db } from "@/db";
 import { profiles, auditLog } from "@/db/schema";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Vote on a startup (authenticated & verified only)
@@ -129,13 +134,46 @@ export async function uploadStartupImageAction(formData: FormData): Promise<
   | { success: false; error: string }
   | { success: true; url: string; path: string }
 > {
-  const user = await getCurrentUser();
-  if (!user) {
+  const authData = await getCurrentUserProfile();
+  if (!authData) {
     return { success: false, error: "unauthenticated" };
   }
 
-  if (!user.email_confirmed_at) {
+  // Require verified email
+  if (!authData.user.email_confirmed_at) {
     return { success: false, error: "Please verify your email before uploading images." };
+  }
+
+  // Require founder role (or admin)
+  if (authData.profile.role !== "founder" && authData.profile.role !== "admin") {
+    return { success: false, error: "Only founders can upload startup images." };
+  }
+
+  // Rate limit: 10 uploads per user per hour
+  const rateLimitKey = `upload:user:${authData.user.id}`;
+  const rateLimitResult = await checkRateLimit(rateLimitKey, 10, 3600);
+  if (!rateLimitResult.allowed) {
+    return { success: false, error: "Upload rate limit exceeded: Maximum 10 uploads per hour." };
+  }
+
+  // Max 20 live objects per user in startup-images bucket
+  try {
+    const admin = createAdminClient();
+    const { data: objects, error: listError } = await admin.storage
+      .from("startup-images")
+      .list(authData.user.id);
+
+    if (!listError && objects && objects.length >= 20) {
+      return {
+        success: false,
+        error: "Image storage limit reached: A maximum of 20 images is permitted per account.",
+      };
+    }
+  } catch (err: unknown) {
+    if (process.env.NODE_ENV === "production") {
+      throw err;
+    }
+    // In local dev without keys, proceed
   }
 
   try {
@@ -148,7 +186,7 @@ export async function uploadStartupImageAction(formData: FormData): Promise<
     const buffer = Buffer.from(arrayBuffer);
     const declaredMime = file.type || undefined;
 
-    const result = await uploadStartupImage(buffer, user.id, declaredMime);
+    const result = await uploadStartupImage(buffer, authData.user.id, declaredMime);
     return { success: true, url: result.url, path: result.path };
   } catch (err: unknown) {
     return { success: false, error: formatActionError(err) };
@@ -290,33 +328,74 @@ export async function hideCommentAction(commentId: string) {
 
 /**
  * Allow a Google / OAuth user with 'community' role to pick their initial role (founder or investor, never admin).
+ * Can only be performed once (when role_chosen_at IS NULL and current role is 'community').
  */
-export async function chooseInitialRoleAction(role: "founder" | "investor" | "community") {
+export async function chooseInitialRoleAction(role: "founder" | "investor") {
   const authData = await getCurrentUserProfile();
   if (!authData) {
     return { error: "unauthenticated" };
   }
 
-  if (!["founder", "investor", "community"].includes(role)) {
-    return { error: "Invalid role selected." };
+  if (authData.profile.role === "admin") {
+    return { error: "Forbidden: Admin accounts cannot change their role." };
+  }
+
+  if (!["founder", "investor"].includes(role)) {
+    return { error: "Invalid role selected. Only founder or investor may be chosen." };
   }
 
   try {
+    const [freshProfile] = await db
+      .select({
+        role: profiles.role,
+        roleChosenAt: profiles.roleChosenAt,
+      })
+      .from(profiles)
+      .where(eq(profiles.id, authData.user.id))
+      .limit(1);
+
+    if (!freshProfile) {
+      return { error: "Profile not found." };
+    }
+
+    if (freshProfile.role === "admin") {
+      return { error: "Forbidden: Admin accounts cannot change their role." };
+    }
+
+    if (freshProfile.role !== "community") {
+      return { error: "Role cannot be changed once established." };
+    }
+
+    if (freshProfile.roleChosenAt) {
+      return { error: "Initial role has already been chosen." };
+    }
+
+    const now = new Date();
     await db
       .update(profiles)
-      .set({ role, updatedAt: new Date() })
-      .where(eq(profiles.id, authData.user.id));
+      .set({
+        role,
+        roleChosenAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(profiles.id, authData.user.id),
+          eq(profiles.role, "community"),
+          sql`${profiles.roleChosenAt} IS NULL`
+        )
+      );
 
     await db.insert(auditLog).values({
       actorId: authData.user.id,
       action: `profile.initial_role:${role}`,
       targetType: "profile",
       targetId: authData.user.id,
-      metadata: { previous_role: authData.profile.role, new_role: role },
+      metadata: { previous_role: "community", new_role: role },
     });
 
     revalidatePath("/", "layout");
-    return { success: true };
+    return { success: true, role };
   } catch (err: unknown) {
     return { error: formatActionError(err) };
   }
@@ -610,6 +689,60 @@ export async function subscribeNewsletterAction(email: string, captchaToken?: st
 
     const res = await subscribeToNewsletter(validated.email);
     return { success: true, message: res.message };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
+  }
+}
+
+/**
+ * Confirm newsletter subscription via POSTed server action (prevents email scanner pre-fetching).
+ */
+export async function confirmNewsletterSubscriptionAction(token: string) {
+  if (!token || !token.trim()) {
+    return { error: "No confirmation token provided." };
+  }
+
+  try {
+    const ip = await getRequestIp();
+    const rateLimitKey = ip ? `newsletter:confirm:ip:${ip}` : "newsletter:confirm:global";
+    const limit = await checkRateLimit(rateLimitKey, 20, 3600);
+    if (!limit.allowed) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
+
+    const result = await confirmNewsletter(token.trim());
+    if (!result.success) {
+      return { error: result.error || "Invalid or expired confirmation link." };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
+  }
+}
+
+/**
+ * Unsubscribe from newsletter via POSTed server action (stateless HMAC verification).
+ */
+export async function unsubscribeNewsletterAction(email: string, token: string) {
+  if (!email || !token || !token.trim()) {
+    return { error: "Missing email address or unsubscribe token." };
+  }
+
+  try {
+    const ip = await getRequestIp();
+    const rateLimitKey = ip ? `newsletter:unsub:ip:${ip}` : "newsletter:unsub:global";
+    const limit = await checkRateLimit(rateLimitKey, 20, 3600);
+    if (!limit.allowed) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
+
+    const result = await unsubscribeNewsletter(email.trim(), token.trim());
+    if (!result.success) {
+      return { error: result.error || "Invalid or expired unsubscribe link." };
+    }
+
+    return { success: true };
   } catch (err: unknown) {
     return { error: formatActionError(err) };
   }

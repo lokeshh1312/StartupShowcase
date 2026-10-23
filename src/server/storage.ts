@@ -1,5 +1,8 @@
 import "server-only";
 import { randomUUID } from "crypto";
+import { eq, or, and, ne } from "drizzle-orm";
+import { db } from "@/db";
+import { startups } from "@/db/schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -113,6 +116,64 @@ export function validateImageBuffer(
 }
 
 /**
+ * Validates that an image URL is either empty or belongs strictly to the expected owner's folder
+ * in the startup-images bucket of our Supabase instance.
+ * Strictly rejects any traversal (../, %2e, encoded slashes) or foreign hosts.
+ */
+export function validateStartupImageUrl(
+  url?: string | null,
+  expectedOwnerId?: string
+): { valid: boolean; error?: string; path?: string } {
+  if (!url || !url.trim()) {
+    return { valid: true };
+  }
+
+  const trimmed = url.trim();
+
+  // 1. Path traversal checks
+  if (
+    trimmed.includes("..") ||
+    trimmed.toLowerCase().includes("%2e") ||
+    trimmed.toLowerCase().includes("%2f") ||
+    trimmed.toLowerCase().includes("%5c") ||
+    trimmed.includes("\\")
+  ) {
+    return { valid: false, error: "Invalid image URL: Path traversal is not permitted." };
+  }
+
+  if (!expectedOwnerId) {
+    return { valid: false, error: "Owner verification required for image URL validation." };
+  }
+
+  // 2. Expected prefix based on NEXT_PUBLIC_SUPABASE_URL + /storage/v1/object/public/startup-images/<expectedOwnerId>/
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  const expectedPrefix = `${supabaseUrl}/storage/v1/object/public/startup-images/${expectedOwnerId}/`;
+  const devMockPrefix = `/storage-mock/${expectedOwnerId}/`;
+
+  let remainder = "";
+  if (trimmed.startsWith(expectedPrefix)) {
+    remainder = trimmed.slice(expectedPrefix.length);
+  } else if (process.env.NODE_ENV !== "production" && trimmed.startsWith(devMockPrefix)) {
+    remainder = trimmed.slice(devMockPrefix.length);
+  } else {
+    return {
+      valid: false,
+      error: "Image URL must belong to the startup owner's folder in the startup-images bucket.",
+    };
+  }
+
+  // 3. Object name must be a single filename (e.g. uuid.ext) with allowed extension
+  if (!/^[a-zA-Z0-9_-]+\.(png|jpe?g|webp)$/i.test(remainder)) {
+    return {
+      valid: false,
+      error: "Invalid image object name format.",
+    };
+  }
+
+  return { valid: true, path: `${expectedOwnerId}/${remainder}` };
+}
+
+/**
  * Extracts storage object path within the 'startup-images' bucket from a full URL or relative path.
  */
 export function extractStoragePath(urlOrPath: string): string | null {
@@ -157,7 +218,12 @@ export async function uploadStartupImage(
   const admin = getStorageAdmin();
 
   if (!admin) {
-    // If running in an environment without service-role key (e.g. offline dev mock)
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "Missing required production environment variable: SUPABASE_SERVICE_ROLE_KEY"
+      );
+    }
+    // If running in development without service-role key (offline dev mock)
     const mockUrl = `/storage-mock/${objectPath}`;
     return { url: mockUrl, path: objectPath };
   }
@@ -186,20 +252,106 @@ export async function uploadStartupImage(
 
 /**
  * Deletes an old or orphaned storage object from the 'startup-images' bucket.
- * Does not throw if file does not exist or deletion fails.
+ * Refuses deletion if path does not belong to expectedOwnerId or if another startups row still references the URL.
  */
-export async function deleteStartupImage(urlOrPath?: string | null): Promise<boolean> {
-  if (!urlOrPath) return false;
-  const path = extractStoragePath(urlOrPath);
-  if (!path) return false;
+export async function deleteStartupImage(
+  urlOrPath: string | null | undefined,
+  expectedOwnerId: string,
+  currentStartupId?: string
+): Promise<boolean> {
+  if (!urlOrPath || !expectedOwnerId) return false;
+
+  const trimmed = urlOrPath.trim();
+
+  // 1. Traversal check
+  if (
+    trimmed.includes("..") ||
+    trimmed.toLowerCase().includes("%2e") ||
+    trimmed.toLowerCase().includes("%2f") ||
+    trimmed.toLowerCase().includes("%5c") ||
+    trimmed.includes("\\")
+  ) {
+    console.warn("[deleteStartupImage] Refused deletion due to traversal in path/URL:", trimmed);
+    return false;
+  }
+
+  // 2. Extract object path and verify first segment equals expectedOwnerId
+  let objectPath = "";
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("/storage-mock/")
+  ) {
+    const validation = validateStartupImageUrl(trimmed, expectedOwnerId);
+    if (!validation.valid || !validation.path) {
+      console.warn("[deleteStartupImage] Refused deletion:", validation.error);
+      return false;
+    }
+    objectPath = validation.path;
+  } else {
+    // Direct path format: e.g. "<ownerId>/<filename>.<ext>"
+    const segments = trimmed.split("/");
+    if (segments.length !== 2 || segments[0] !== expectedOwnerId) {
+      console.warn("[deleteStartupImage] Refused deletion: path first segment does not match expectedOwnerId.");
+      return false;
+    }
+    if (!/^[a-zA-Z0-9_-]+\.(png|jpe?g|webp)$/i.test(segments[1])) {
+      console.warn("[deleteStartupImage] Refused deletion: invalid filename format.");
+      return false;
+    }
+    objectPath = `${segments[0]}/${segments[1]}`;
+  }
+
+  // 3. Check if another startups row still references this image
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/+$/, "");
+  const publicUrl = supabaseUrl
+    ? `${supabaseUrl}/storage/v1/object/public/startup-images/${objectPath}`
+    : "";
+  const mockUrl = `/storage-mock/${objectPath}`;
+
+  const candidates = Array.from(
+    new Set([trimmed, objectPath, publicUrl, mockUrl])
+  ).filter((c) => Boolean(c && c.length > 0));
+
+  const refConditions = candidates.flatMap((c) => [
+    eq(startups.thumbnail, c),
+    eq(startups.coverImage, c),
+  ]);
+
+  const queryConditions = [or(...refConditions)];
+  if (currentStartupId) {
+    queryConditions.push(ne(startups.id, currentStartupId));
+  }
+
+  try {
+    const existingRef = await db
+      .select({ id: startups.id })
+      .from(startups)
+      .where(and(...queryConditions))
+      .limit(1);
+
+    if (existingRef.length > 0) {
+      // Another startup still references this image, preserve it
+      return false;
+    }
+  } catch (err: unknown) {
+    console.warn("[deleteStartupImage Reference Check Warning]:", err);
+    // If DB check fails, skip deletion safely to prevent data loss
+    return false;
+  }
 
   const admin = getStorageAdmin();
-  if (!admin) return true;
+  if (!admin) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Missing required production environment variable: SUPABASE_SERVICE_ROLE_KEY");
+    }
+    return true;
+  }
 
   try {
     const { error } = await admin.storage
       .from("startup-images")
-      .remove([path]);
+      .remove([objectPath]);
 
     if (error) {
       console.warn("[Storage Delete Warning]:", error.message);

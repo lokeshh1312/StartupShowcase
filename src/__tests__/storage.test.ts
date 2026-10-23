@@ -1,5 +1,12 @@
-import { describe, it, expect } from "vitest";
-import { validateImageBuffer, MAX_IMAGE_SIZE_BYTES } from "@/server/storage";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  validateImageBuffer,
+  MAX_IMAGE_SIZE_BYTES,
+  validateStartupImageUrl,
+  deleteStartupImage,
+} from "@/server/storage";
+import { db } from "@/db";
+import { createStartup, updateStartup } from "@/server/startups";
 
 describe("Image Upload Validation (validateImageBuffer)", () => {
   it("rejects empty buffers", () => {
@@ -75,5 +82,236 @@ describe("Image Upload Validation (validateImageBuffer)", () => {
     const res = validateImageBuffer(badBuffer, "image/png");
     expect(res.valid).toBe(false);
     expect(res.error).toContain("Invalid image file format");
+  });
+});
+
+describe("Storage URL Ownership & Path Validation (validateStartupImageUrl)", () => {
+  const originalEnv = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const mockBaseUrl = "https://xyzcompany.supabase.co";
+  const ownerId = "11111111-1111-1111-1111-111111111111";
+  const foreignOwnerId = "22222222-2222-2222-2222-222222222222";
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = mockBaseUrl;
+  });
+
+  afterEach(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = originalEnv;
+  });
+
+  it("accepts empty, undefined, or null URLs", () => {
+    expect(validateStartupImageUrl("", ownerId).valid).toBe(true);
+    expect(validateStartupImageUrl(null, ownerId).valid).toBe(true);
+    expect(validateStartupImageUrl(undefined, ownerId).valid).toBe(true);
+    expect(validateStartupImageUrl("   ", ownerId).valid).toBe(true);
+  });
+
+  it("accepts a valid public URL belonging to the submitting owner", () => {
+    const validUrl = `${mockBaseUrl}/storage/v1/object/public/startup-images/${ownerId}/logo_abc.png`;
+    const res = validateStartupImageUrl(validUrl, ownerId);
+    expect(res.valid).toBe(true);
+    expect(res.path).toBe(`${ownerId}/logo_abc.png`);
+  });
+
+  it("strictly rejects a URL belonging to a foreign user", () => {
+    const foreignUrl = `${mockBaseUrl}/storage/v1/object/public/startup-images/${foreignOwnerId}/logo_abc.png`;
+    const res = validateStartupImageUrl(foreignUrl, ownerId);
+    expect(res.valid).toBe(false);
+    expect(res.error).toContain("must belong to the startup owner's folder");
+  });
+
+  it("strictly rejects URLs from an untrusted / foreign host", () => {
+    const evilHostUrl = `https://evil-attacker.com/storage/v1/object/public/startup-images/${ownerId}/logo_abc.png`;
+    const res = validateStartupImageUrl(evilHostUrl, ownerId);
+    expect(res.valid).toBe(false);
+    expect(res.error).toContain("must belong to the startup owner's folder");
+  });
+
+  it("strictly rejects path traversal attempts (../, encoded dots, slashes)", () => {
+    const traversal1 = `${mockBaseUrl}/storage/v1/object/public/startup-images/${ownerId}/../other/pic.png`;
+    expect(validateStartupImageUrl(traversal1, ownerId).valid).toBe(false);
+    expect(validateStartupImageUrl(traversal1, ownerId).error).toContain("traversal");
+
+    const traversalEncodedDot = `${mockBaseUrl}/storage/v1/object/public/startup-images/${ownerId}/%2e%2e/other/pic.png`;
+    expect(validateStartupImageUrl(traversalEncodedDot, ownerId).valid).toBe(false);
+
+    const traversalBackslash = `${mockBaseUrl}/storage/v1/object/public/startup-images/${ownerId}\\..\\other\\pic.png`;
+    expect(validateStartupImageUrl(traversalBackslash, ownerId).valid).toBe(false);
+
+    const traversalEncodedSlash = `${mockBaseUrl}/storage/v1/object/public/startup-images/${ownerId}%2f..%2fother%2fpic.png`;
+    expect(validateStartupImageUrl(traversalEncodedSlash, ownerId).valid).toBe(false);
+  });
+
+  it("rejects invalid file names or extensions", () => {
+    const badExtUrl = `${mockBaseUrl}/storage/v1/object/public/startup-images/${ownerId}/malware.exe`;
+    expect(validateStartupImageUrl(badExtUrl, ownerId).valid).toBe(false);
+
+    const nestedFolderUrl = `${mockBaseUrl}/storage/v1/object/public/startup-images/${ownerId}/subfolder/logo.png`;
+    expect(validateStartupImageUrl(nestedFolderUrl, ownerId).valid).toBe(false);
+  });
+});
+
+describe("Storage Image Deletion (deleteStartupImage)", () => {
+  const originalEnv = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const mockBaseUrl = "https://xyzcompany.supabase.co";
+  const ownerId = "11111111-1111-1111-1111-111111111111";
+  const foreignOwnerId = "22222222-2222-2222-2222-222222222222";
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = mockBaseUrl;
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = originalEnv;
+  });
+
+  it("refuses to delete a path belonging to another user", async () => {
+    const foreignPath = `${foreignOwnerId}/target_image.png`;
+    const res = await deleteStartupImage(foreignPath, ownerId);
+    expect(res).toBe(false);
+
+    const foreignUrl = `${mockBaseUrl}/storage/v1/object/public/startup-images/${foreignOwnerId}/target_image.png`;
+    const resUrl = await deleteStartupImage(foreignUrl, ownerId);
+    expect(resUrl).toBe(false);
+  });
+
+  it("refuses to delete a path containing directory traversal", async () => {
+    const traversalPath = `../${foreignOwnerId}/secret.png`;
+    const res = await deleteStartupImage(traversalPath, ownerId);
+    expect(res).toBe(false);
+
+    const encodedTraversal = `${ownerId}/%2e%2e/pic.png`;
+    const res2 = await deleteStartupImage(encodedTraversal, ownerId);
+    expect(res2).toBe(false);
+  });
+
+  it("skips deletion if another startups row still references the image URL", async () => {
+    const targetUrl = `${mockBaseUrl}/storage/v1/object/public/startup-images/${ownerId}/shared_logo.png`;
+
+    // Mock db.select().from().where().limit() returning another startup row referencing this image
+    const mockLimit = vi.fn().mockResolvedValue([{ id: "another-startup-uuid" }]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle mock in unit test
+    vi.spyOn(db, "select").mockReturnValue({ from: mockFrom } as any);
+
+    const res = await deleteStartupImage(targetUrl, ownerId, "current-startup-uuid");
+    expect(res).toBe(false);
+  });
+});
+
+describe("Startup Submission & Edit Image Ownership Enforcement", () => {
+  const originalEnv = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const mockBaseUrl = "https://xyzcompany.supabase.co";
+  const founderId = "11111111-1111-1111-1111-111111111111";
+  const foreignId = "22222222-2222-2222-2222-222222222222";
+  const adminId = "99999999-9999-9999-9999-999999999999";
+
+  const validStartupData = {
+    name: "Acme Analytics",
+    ideaTitle: "AI Powered Intelligence",
+    tagline: "High speed business analytics",
+    description: "A complete platform for modern high speed business analytics across teams.",
+    category: "DeepTech" as const,
+    countryCode: "US",
+    stage: "MVP" as const,
+    month: "2026-10-01",
+  };
+
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = mockBaseUrl;
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = originalEnv;
+  });
+
+  it("rejects foreign-user thumbnail URL on createStartup", async () => {
+    const foreignThumbnail = `${mockBaseUrl}/storage/v1/object/public/startup-images/${foreignId}/logo.png`;
+    await expect(
+      createStartup(
+        {
+          ...validStartupData,
+          thumbnail: foreignThumbnail,
+        },
+        founderId
+      )
+    ).rejects.toThrow("Invalid thumbnail: Image URL must belong to the startup owner's folder");
+  });
+
+  it("rejects foreign-user coverImage URL on createStartup", async () => {
+    const foreignCover = `${mockBaseUrl}/storage/v1/object/public/startup-images/${foreignId}/banner.png`;
+    await expect(
+      createStartup(
+        {
+          ...validStartupData,
+          coverImage: foreignCover,
+        },
+        founderId
+      )
+    ).rejects.toThrow("Invalid cover image: Image URL must belong to the startup owner's folder");
+  });
+
+  it("rejects foreign-user thumbnail URL on updateStartup", async () => {
+    // Mock db.select().from().where().limit() returning the existing startup owned by founderId
+    const mockLimit = vi.fn().mockResolvedValue([
+      {
+        id: "startup-123",
+        ownerId: founderId,
+        status: "pending",
+        thumbnail: "",
+        coverImage: "",
+      },
+    ]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle mock in unit test
+    vi.spyOn(db, "select").mockReturnValue({ from: mockFrom } as any);
+
+    const foreignThumbnail = `${mockBaseUrl}/storage/v1/object/public/startup-images/${foreignId}/logo.png`;
+    await expect(
+      updateStartup(
+        "startup-123",
+        {
+          name: "Acme Updated",
+          thumbnail: foreignThumbnail,
+        },
+        founderId,
+        false
+      )
+    ).rejects.toThrow("Invalid thumbnail: Image URL must belong to the startup owner's folder");
+  });
+
+  it("admin editing startup uses existing startup ownerId for image validation", async () => {
+    // Mock db.select returning existing startup owned by founderId
+    const mockLimit = vi.fn().mockResolvedValue([
+      {
+        id: "startup-123",
+        ownerId: founderId,
+        status: "pending",
+        thumbnail: "",
+        coverImage: "",
+      },
+    ]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle mock in unit test
+    vi.spyOn(db, "select").mockReturnValue({ from: mockFrom } as any);
+
+    // If admin tries to supply an image from admin's own folder, it is rejected because image must belong to the startup owner
+    const adminOwnedUrl = `${mockBaseUrl}/storage/v1/object/public/startup-images/${adminId}/admin_pic.png`;
+    await expect(
+      updateStartup(
+        "startup-123",
+        {
+          name: "Admin Edited",
+          thumbnail: adminOwnedUrl,
+        },
+        adminId,
+        true
+      )
+    ).rejects.toThrow("Invalid thumbnail: Image URL must belong to the startup owner's folder");
   });
 });

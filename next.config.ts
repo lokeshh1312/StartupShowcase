@@ -52,6 +52,11 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   trailingSlash: false,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "3mb",
+    },
+  },
   images: {
     remotePatterns: supabaseHost
       ? [

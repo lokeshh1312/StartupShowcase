@@ -1194,6 +1194,64 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
+  -- 42: authenticated user cannot direct-update role_chosen_at
+  _check_name := '42 (NEG): authenticated user cannot direct-update role_chosen_at';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    UPDATE public.profiles SET role_chosen_at = now() WHERE id = _uid_a;
+    _passed := false;
+    _details := 'FAIL: User A was able to update their role_chosen_at directly';
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      _passed := true;
+      _details := 'Correctly blocked by grant / column privileges';
+    WHEN OTHERS THEN
+      IF SQLERRM LIKE '%Cannot change profile role_chosen_at%' OR SQLSTATE = '42501' THEN
+        _passed := true;
+        _details := 'Correctly blocked by protect_profile_columns trigger (' || SQLERRM || ')';
+      ELSE
+        _passed := false;
+        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+      END IF;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 43: authenticated user cannot update another user profile
+  _check_name := '43 (NEG): authenticated user cannot update another profile';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    UPDATE public.profiles SET display_name = 'Hacked Admin' WHERE id = _uid_d;
+    GET DIAGNOSTICS _rc = ROW_COUNT;
+    IF _rc = 0 THEN
+      _passed := true;
+      _details := '0 rows updated (RLS filtered)';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected 0 rows updated, got %s', _rc);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      IF SQLSTATE = '42501' THEN
+        _passed := true;
+        _details := 'Blocked by 42501';
+      ELSE
+        _passed := false;
+        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+      END IF;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+
   ----------------------------------------------------------------------
   -- UNCONDITIONAL CLEANUP BLOCK
   ----------------------------------------------------------------------
