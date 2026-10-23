@@ -66,7 +66,6 @@ BEGIN
   -- SETUP (as postgres)
   ----------------------------------------------------------------------
   -- Pre-cleanup in case of prior interrupted execution
-  DELETE FROM storage.objects WHERE bucket_id = 'startup-images' AND (name LIKE _uid_a::text || '/%' OR name LIKE _uid_b::text || '/%' OR name LIKE _uid_unverified::text || '/%');
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
   DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text);
   DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id);
@@ -982,25 +981,34 @@ BEGIN
   _check_name := '34 (NEG): unverified user cannot upload to storage.objects';
   _passed := false;
   _details := '';
-  PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_unverified::text, 'role', 'authenticated')::text, true);
   BEGIN
-    INSERT INTO storage.objects (bucket_id, name, owner, metadata)
-    VALUES ('startup-images', _uid_unverified::text || '/unverified.png', _uid_unverified, '{"mimetype":"image/png","size":1000}'::jsonb);
-    _passed := false;
-    _details := 'FAIL: Unverified user was able to insert into storage.objects';
-  EXCEPTION
-    WHEN insufficient_privilege THEN
-      _passed := true;
-      _details := 'Correctly blocked by RLS policy for unverified user';
-    WHEN OTHERS THEN
-      IF SQLSTATE = '42501' THEN
+    PERFORM set_config('role', 'authenticated', true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_unverified::text, 'role', 'authenticated')::text, true);
+    BEGIN
+      INSERT INTO storage.objects (bucket_id, name, owner, metadata)
+      VALUES ('startup-images', _uid_unverified::text || '/unverified.png', _uid_unverified, '{"mimetype":"image/png","size":1000}'::jsonb);
+      _passed := false;
+      _details := 'FAIL: Unverified user was able to insert into storage.objects';
+    EXCEPTION
+      WHEN insufficient_privilege THEN
         _passed := true;
-        _details := 'Correctly blocked by RLS (42501)';
-      ELSE
-        _passed := false;
-        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
-      END IF;
+        _details := 'Correctly blocked by RLS policy for unverified user';
+      WHEN OTHERS THEN
+        IF SQLSTATE = '42501' THEN
+          _passed := true;
+          _details := 'Correctly blocked by RLS (42501)';
+        ELSE
+          _passed := false;
+          _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+        END IF;
+    END;
+    RAISE EXCEPTION 'rls_test_rollback' USING ERRCODE = 'P0001';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      NULL;
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
@@ -1010,25 +1018,34 @@ BEGIN
   _check_name := '35 (NEG): authenticated user cannot write into another user folder in storage.objects';
   _passed := false;
   _details := '';
-  PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
   BEGIN
-    INSERT INTO storage.objects (bucket_id, name, owner, metadata)
-    VALUES ('startup-images', _uid_b::text || '/cross-user.png', _uid_a, '{"mimetype":"image/png","size":1000}'::jsonb);
-    _passed := false;
-    _details := 'FAIL: User A was able to write to User B storage folder';
-  EXCEPTION
-    WHEN insufficient_privilege THEN
-      _passed := true;
-      _details := 'Correctly blocked by RLS path prefix check';
-    WHEN OTHERS THEN
-      IF SQLSTATE = '42501' THEN
+    PERFORM set_config('role', 'authenticated', true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+    BEGIN
+      INSERT INTO storage.objects (bucket_id, name, owner, metadata)
+      VALUES ('startup-images', _uid_b::text || '/cross-user.png', _uid_a, '{"mimetype":"image/png","size":1000}'::jsonb);
+      _passed := false;
+      _details := 'FAIL: User A was able to write to User B storage folder';
+    EXCEPTION
+      WHEN insufficient_privilege THEN
         _passed := true;
-        _details := 'Correctly blocked by RLS (42501)';
-      ELSE
-        _passed := false;
-        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
-      END IF;
+        _details := 'Correctly blocked by RLS path prefix check';
+      WHEN OTHERS THEN
+        IF SQLSTATE = '42501' THEN
+          _passed := true;
+          _details := 'Correctly blocked by RLS (42501)';
+        ELSE
+          _passed := false;
+          _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+        END IF;
+    END;
+    RAISE EXCEPTION 'rls_test_rollback' USING ERRCODE = 'P0001';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      NULL;
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
@@ -1038,25 +1055,34 @@ BEGIN
   _check_name := '36 (NEG): wrong mime rejected in storage.objects where DB can enforce it';
   _passed := false;
   _details := '';
-  PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
   BEGIN
-    INSERT INTO storage.objects (bucket_id, name, owner, metadata)
-    VALUES ('startup-images', _uid_a::text || '/badge.svg', _uid_a, '{"mimetype":"image/svg+xml","size":1000}'::jsonb);
-    _passed := false;
-    _details := 'FAIL: Wrong MIME type (SVG) was allowed into storage.objects';
-  EXCEPTION
-    WHEN insufficient_privilege THEN
-      _passed := true;
-      _details := 'Correctly blocked by RLS MIME policy';
-    WHEN OTHERS THEN
-      IF SQLSTATE = '42501' THEN
+    PERFORM set_config('role', 'authenticated', true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+    BEGIN
+      INSERT INTO storage.objects (bucket_id, name, owner, metadata)
+      VALUES ('startup-images', _uid_a::text || '/badge.svg', _uid_a, '{"mimetype":"image/svg+xml","size":1000}'::jsonb);
+      _passed := false;
+      _details := 'FAIL: Wrong MIME type (SVG) was allowed into storage.objects';
+    EXCEPTION
+      WHEN insufficient_privilege THEN
         _passed := true;
-        _details := 'Correctly blocked by RLS MIME policy (42501)';
-      ELSE
-        _passed := false;
-        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
-      END IF;
+        _details := 'Correctly blocked by RLS MIME policy';
+      WHEN OTHERS THEN
+        IF SQLSTATE = '42501' THEN
+          _passed := true;
+          _details := 'Correctly blocked by RLS MIME policy (42501)';
+        ELSE
+          _passed := false;
+          _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+        END IF;
+    END;
+    RAISE EXCEPTION 'rls_test_rollback' USING ERRCODE = 'P0001';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      NULL;
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
@@ -1066,25 +1092,34 @@ BEGIN
   _check_name := '37 (NEG): oversize file rejected in storage.objects where DB can enforce it';
   _passed := false;
   _details := '';
-  PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
   BEGIN
-    INSERT INTO storage.objects (bucket_id, name, owner, metadata)
-    VALUES ('startup-images', _uid_a::text || '/giant.png', _uid_a, '{"mimetype":"image/png","size":5000000}'::jsonb);
-    _passed := false;
-    _details := 'FAIL: Oversize file (>2MB) was allowed into storage.objects';
-  EXCEPTION
-    WHEN insufficient_privilege THEN
-      _passed := true;
-      _details := 'Correctly blocked by RLS size policy';
-    WHEN OTHERS THEN
-      IF SQLSTATE = '42501' THEN
+    PERFORM set_config('role', 'authenticated', true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+    BEGIN
+      INSERT INTO storage.objects (bucket_id, name, owner, metadata)
+      VALUES ('startup-images', _uid_a::text || '/giant.png', _uid_a, '{"mimetype":"image/png","size":5000000}'::jsonb);
+      _passed := false;
+      _details := 'FAIL: Oversize file (>2MB) was allowed into storage.objects';
+    EXCEPTION
+      WHEN insufficient_privilege THEN
         _passed := true;
-        _details := 'Correctly blocked by RLS size policy (42501)';
-      ELSE
-        _passed := false;
-        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
-      END IF;
+        _details := 'Correctly blocked by RLS size policy';
+      WHEN OTHERS THEN
+        IF SQLSTATE = '42501' THEN
+          _passed := true;
+          _details := 'Correctly blocked by RLS size policy (42501)';
+        ELSE
+          _passed := false;
+          _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+        END IF;
+    END;
+    RAISE EXCEPTION 'rls_test_rollback' USING ERRCODE = 'P0001';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      NULL;
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
@@ -1094,14 +1129,23 @@ BEGIN
   _check_name := '38 (POS): verified user CAN upload valid image to own folder in storage.objects';
   _passed := false;
   _details := '';
-  PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
   BEGIN
-    INSERT INTO storage.objects (bucket_id, name, owner, metadata)
-    VALUES ('startup-images', _uid_a::text || '/valid_logo.png', _uid_a, '{"mimetype":"image/png","size":45000}'::jsonb);
-    _passed := true;
-    _details := 'Valid upload succeeded for verified user in own folder';
+    PERFORM set_config('role', 'authenticated', true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+    BEGIN
+      INSERT INTO storage.objects (bucket_id, name, owner, metadata)
+      VALUES ('startup-images', _uid_a::text || '/valid_logo.png', _uid_a, '{"mimetype":"image/png","size":45000}'::jsonb);
+      _passed := true;
+      _details := 'Valid upload succeeded for verified user in own folder';
+    EXCEPTION
+      WHEN OTHERS THEN
+        _passed := false;
+        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+    END;
+    RAISE EXCEPTION 'rls_test_rollback' USING ERRCODE = 'P0001';
   EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      NULL;
     WHEN OTHERS THEN
       _passed := false;
       _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
@@ -1114,18 +1158,34 @@ BEGIN
   _check_name := '39 (POS): anon can SELECT objects from startup-images bucket';
   _passed := false;
   _details := '';
-  PERFORM set_config('role', 'anon', true);
-  PERFORM set_config('request.jwt.claims', '', true);
   BEGIN
-    SELECT count(*) INTO _count FROM storage.objects WHERE bucket_id = 'startup-images';
-    IF _count >= 1 THEN
-      _passed := true;
-      _details := format('Anon successfully read %s object(s) from startup-images bucket', _count);
-    ELSE
-      _passed := false;
-      _details := 'FAIL: Expected at least 1 object visible to anon';
-    END IF;
+    -- Insert test image as verified User A inside the subtransaction
+    PERFORM set_config('role', 'authenticated', true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+    INSERT INTO storage.objects (bucket_id, name, owner, metadata)
+    VALUES ('startup-images', _uid_a::text || '/anon_readable.png', _uid_a, '{"mimetype":"image/png","size":1200}'::jsonb);
+
+    -- Switch to anon
+    PERFORM set_config('role', 'anon', true);
+    PERFORM set_config('request.jwt.claims', '', true);
+    BEGIN
+      SELECT count(*) INTO _count FROM storage.objects WHERE bucket_id = 'startup-images' AND name = _uid_a::text || '/anon_readable.png';
+      IF _count >= 1 THEN
+        _passed := true;
+        _details := format('Anon successfully read %s object(s) from startup-images bucket', _count);
+      ELSE
+        _passed := false;
+        _details := 'FAIL: Expected at least 1 object visible to anon';
+      END IF;
+    EXCEPTION
+      WHEN OTHERS THEN
+        _passed := false;
+        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+    END;
+    RAISE EXCEPTION 'rls_test_rollback' USING ERRCODE = 'P0001';
   EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      NULL;
     WHEN OTHERS THEN
       _passed := false;
       _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
@@ -1134,34 +1194,50 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- 40: authenticated user cannot delete or update another user image in storage.objects
+  -- 40: authenticated user cannot delete another user image in storage.objects
   _check_name := '40 (NEG): authenticated user cannot delete another user image in storage.objects';
   _passed := false;
   _details := '';
-  PERFORM set_config('role', 'authenticated', true);
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_b::text, 'role', 'authenticated')::text, true);
   BEGIN
-    DELETE FROM storage.objects WHERE bucket_id = 'startup-images' AND name = _uid_a::text || '/valid_logo.png';
-    GET DIAGNOSTICS _rc = ROW_COUNT;
-    IF _rc = 0 THEN
-      _passed := true;
-      _details := 'Zero rows affected when User B attempted to delete User A image';
-    ELSE
-      _passed := false;
-      _details := 'FAIL: User B was able to delete User A image';
-    END IF;
-  EXCEPTION
-    WHEN insufficient_privilege THEN
-      _passed := true;
-      _details := 'Blocked by insufficient_privilege';
-    WHEN OTHERS THEN
-      IF SQLSTATE = '42501' THEN
+    -- Insert User A image inside the subtransaction
+    PERFORM set_config('role', 'authenticated', true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+    INSERT INTO storage.objects (bucket_id, name, owner, metadata)
+    VALUES ('startup-images', _uid_a::text || '/victim_logo.png', _uid_a, '{"mimetype":"image/png","size":1200}'::jsonb);
+
+    -- Switch to User B and attempt to delete User A's image
+    PERFORM set_config('role', 'authenticated', true);
+    PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_b::text, 'role', 'authenticated')::text, true);
+    BEGIN
+      DELETE FROM storage.objects WHERE bucket_id = 'startup-images' AND name = _uid_a::text || '/victim_logo.png';
+      GET DIAGNOSTICS _rc = ROW_COUNT;
+      IF _rc = 0 THEN
         _passed := true;
-        _details := 'Blocked by 42501';
+        _details := 'Zero rows affected when User B attempted to delete User A image';
       ELSE
         _passed := false;
-        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+        _details := 'FAIL: User B was able to delete User A image';
       END IF;
+    EXCEPTION
+      WHEN insufficient_privilege THEN
+        _passed := true;
+        _details := 'Blocked by insufficient_privilege';
+      WHEN OTHERS THEN
+        IF SQLSTATE = '42501' THEN
+          _passed := true;
+          _details := 'Blocked by 42501';
+        ELSE
+          _passed := false;
+          _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+        END IF;
+    END;
+    RAISE EXCEPTION 'rls_test_rollback' USING ERRCODE = 'P0001';
+  EXCEPTION
+    WHEN SQLSTATE 'P0001' THEN
+      NULL;
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
@@ -1258,7 +1334,6 @@ BEGIN
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
 
-  DELETE FROM storage.objects WHERE bucket_id = 'startup-images' AND (name LIKE _uid_a::text || '/%' OR name LIKE _uid_b::text || '/%' OR name LIKE _uid_unverified::text || '/%');
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
   DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text);
   DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id);
@@ -1269,7 +1344,6 @@ EXCEPTION WHEN OTHERS THEN
   -- Ensure cleanup runs even if an unhandled error aborts the block
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
-  DELETE FROM storage.objects WHERE bucket_id = 'startup-images' AND (name LIKE _uid_a::text || '/%' OR name LIKE _uid_b::text || '/%' OR name LIKE _uid_unverified::text || '/%');
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
   DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text);
   DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id);

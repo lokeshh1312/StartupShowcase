@@ -16,8 +16,6 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
--- 2. Ensure RLS is enabled on storage.objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- 3. Public Read: Anyone can view images in 'startup-images'
 DROP POLICY IF EXISTS "startup_images_public_select" ON storage.objects;
