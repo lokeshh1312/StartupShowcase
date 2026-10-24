@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import { isAllowedImageUrl } from "@/lib/images";
 import {
   Package,
   GraduationCap,
@@ -79,6 +80,7 @@ export function StartupLogo({
   };
 
   const initial = (name || "S").charAt(0).toUpperCase();
+  const showImage = Boolean(logoUrl && isAllowedImageUrl(logoUrl));
 
   return (
     <div
@@ -89,9 +91,9 @@ export function StartupLogo({
       }}
       aria-label={`${name} logo`}
     >
-      {logoUrl ? (
+      {showImage ? (
         <Image
-          src={logoUrl}
+          src={logoUrl!}
           alt={name}
           fill
           sizes="(max-width: 768px) 48px, 80px"

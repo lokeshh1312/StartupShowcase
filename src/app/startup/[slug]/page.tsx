@@ -20,6 +20,7 @@ import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { formatLocation, getCountryName } from "@/lib/validation";
 import type { FounderInfo } from "@/db/schema";
 import { StartupLogo } from "@/components/common/startup-logo";
+import { isAllowedImageUrl } from "@/lib/images";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { VoteButton } from "@/components/startup/vote-button";
 import { SaveButton } from "@/components/startup/save-button";
@@ -143,7 +144,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
 
       {/* Main Profile Header */}
       <div className="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-        {startup.coverImage && (
+        {startup.coverImage && isAllowedImageUrl(startup.coverImage) && (
           <div className="relative w-full h-48 sm:h-64 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
             <Image
               src={startup.coverImage}

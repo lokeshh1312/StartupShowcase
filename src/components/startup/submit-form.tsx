@@ -21,6 +21,7 @@ import {
 } from "@/server/actions";
 import { CATEGORIES, STAGES } from "@/lib/validation";
 import { TurnstileWidget } from "@/components/common/turnstile";
+import { isAllowedImageUrl } from "@/lib/images";
 import type { Startup } from "@/db/schema";
 
 interface SubmitFormProps {
@@ -379,7 +380,7 @@ export function SubmitStartupForm({
               Startup Logo (PNG, JPEG, WebP &bull; Max 2 MB)
             </label>
 
-            {logoUrl ? (
+            {logoUrl && isAllowedImageUrl(logoUrl) ? (
               <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 group">
                 <Image
                   src={logoUrl}
@@ -432,7 +433,7 @@ export function SubmitStartupForm({
               Cover Image / Banner (PNG, JPEG, WebP &bull; Max 2 MB)
             </label>
 
-            {coverUrl ? (
+            {coverUrl && isAllowedImageUrl(coverUrl) ? (
               <div className="relative w-full h-24 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 group">
                 <Image
                   src={coverUrl}
