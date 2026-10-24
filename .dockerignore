@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.production
+.env.*
+!.env.example
+tests
+test-results
+coverage
+README.md
+SECURITY.md
+AGENTS.md
+docs
