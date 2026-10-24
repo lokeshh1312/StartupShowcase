@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Cookie, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Cookie, ArrowLeft } from "lucide-react";
 import { createMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createMetadata({
   title: "Cookie Policy",
   description:
-    "Plain-language cookie policy for Startup Showcase detailing essential session cookies, preferences, and privacy protections.",
+    "Plain-language cookie policy detailing essential session cookies, preferences, and privacy protections.",
   path: "/cookies",
 });
 
 export default function CookiesPage() {
+  const companyName =
+    process.env.NEXT_PUBLIC_COMPANY_NAME?.trim() || "Startup Showcase";
+  const contactEmail =
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "contact@startupshowcase.com";
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Back button */}
@@ -36,17 +41,6 @@ export default function CookiesPage() {
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Last updated: October 2026 • Effective Date: October 24, 2026
         </p>
-      </div>
-
-      {/* Mandatory Legal Disclaimer Notice */}
-      <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-start gap-3.5">
-        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-        <div className="text-xs text-amber-900 dark:text-amber-200 space-y-1">
-          <p className="font-bold">Important Notice & Disclaimer:</p>
-          <p className="leading-relaxed">
-            This plain-language cookie policy outlines how cookies and browser storage are utilized on Startup Showcase. It does not constitute formal legal counsel and should be verified by a qualified attorney in your jurisdiction prior to production launch.
-          </p>
-        </div>
       </div>
 
       {/* Content */}
@@ -107,7 +101,7 @@ export default function CookiesPage() {
             3. Third-Party Tracking & Advertising
           </h2>
           <p>
-            Startup Showcase does <strong>NOT</strong> use third-party advertising cookies, ad re-targeting pixels, or cross-site tracking scripts.
+            {companyName} does <strong>NOT</strong> use third-party advertising cookies, ad re-targeting pixels, or cross-site tracking scripts.
           </p>
           <p>
             If privacy analytics are enabled, we use lightweight, privacy-focused analytics (such as Plausible Analytics) which does not use cookies, does not collect personal identifiers, and respects visitor privacy by design.
@@ -141,7 +135,14 @@ export default function CookiesPage() {
               className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
             >
               Support Center
-            </Link>
+            </Link>{" "}
+            or email us at{" "}
+            <a
+              href={`mailto:${contactEmail}`}
+              className="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded"
+            >
+              {contactEmail}
+            </a>
             .
           </p>
         </section>

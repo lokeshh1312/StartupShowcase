@@ -28,13 +28,18 @@ No Vercel-specific code, configuration, or dependencies are used. The applicatio
 
 ## 1. Required Production Environment Variables
 
-All variables below must be configured in your hosting environment. At production boot, `scripts/start-production.sh` executes a pre-flight audit and will refuse to start if any required variable is missing.
+All variables below must be configured in your hosting environment. At production boot, `src/instrumentation.ts` and `scripts/start-production.sh` execute pre-flight audits and will refuse to start if any required variable is missing.
 
-> **Important**: All variables prefixed with `NEXT_PUBLIC_*` are inlined into the client-side JavaScript bundle **at build time**. If you change any `NEXT_PUBLIC_*` value, you **must rebuild** the application (`npm run build` or rebuild the Docker container with `--build-arg`).
+> [!IMPORTANT]
+> **Security Rule: Build Args vs Runtime Secrets**:
+> - **Build Args (Public only)**: Only `NEXT_PUBLIC_*` variables may be passed as Docker build arguments (`--build-arg`). Next.js bakes these directly into the client-side JavaScript bundles.
+> - **Runtime Secrets (Server only)**: All secrets (`DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TURNSTILE_SECRET_KEY`, `RESEND_API_KEY`, `VIEW_HASH_SECRET`, `NEWSLETTER_SECRET`) **MUST NEVER** be passed as Docker build arguments or committed to git. They must be supplied strictly at runtime via container `env_file`, VPS environment variables, or your hosting control panel.
 
 | Variable Name | Required? | Build vs Runtime | Description & Example |
 | :--- | :---: | :---: | :--- |
 | `NEXT_PUBLIC_SITE_URL` | **Yes** | **Both** | Canonical public site URL (NO trailing slash). Example: `https://startupshowcase.com` |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | **Yes** | **Both** | Public contact and support email address shown on `/privacy`, `/terms`, and `/cookies`. Example: `contact@startupshowcase.com` |
+| `NEXT_PUBLIC_COMPANY_NAME` | Optional | **Both** | Operating entity name (defaults to `Startup Showcase`). |
 | `NEXT_PUBLIC_SUPABASE_URL` | **Yes** | **Both** | Supabase Project API URL. Example: `https://xyzproject.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | **Yes** | **Both** | Supabase anonymous public key. |
 | `SUPABASE_SERVICE_ROLE_KEY` | **Yes** | Runtime | Supabase service-role key. **Server-only secret.** Never expose to client. |
@@ -65,8 +70,8 @@ All variables below must be configured in your hosting environment. At productio
 ### How to Determine the Exact Value:
 
 1. **Hostinger Node.js Web App Hosting**:
-   - Hostinger's edge router proxies incoming requests to your Node.js process: **`TRUSTED_PROXY_COUNT=1`**.
-   - If you also place Cloudflare in front of Hostinger: Cloudflare (1) + Hostinger router (1) = **`TRUSTED_PROXY_COUNT=2`**.
+   - Start with `1` and **VERIFY** using the Section 2 test below; it is unconfirmed for Hostinger as reverse proxy counts can vary across shared/cloud web app infrastructures.
+   - If you also place Cloudflare in front of Hostinger: start with `2` and verify using the Section 2 test below.
 
 2. **Hostinger VPS with Nginx or Caddy**:
    - Nginx running on the VPS forwarding directly to Node.js on `127.0.0.1:3000`: **`TRUSTED_PROXY_COUNT=1`**.
@@ -90,7 +95,14 @@ Now check the server logs (e.g. `docker compose logs` or `pm2 logs`). Inspect th
 
 ## 3. Path A: Hostinger Node.js Web App Hosting
 
-Hostinger provides managed Node.js web app hosting (Cloud Hosting or Business Web Hosting with Node.js support enabled).
+Hostinger provides managed Node.js web app hosting on select Cloud and Business plans.
+
+### Confirm with Hostinger Support that your Plan can run a Next.js Server App
+Before deploying on Hostinger Web App Hosting, contact Hostinger Support or check your plan specifications to confirm:
+- Your plan supports a **persistent, long-running Node.js process** (Node 20+ LTS).
+- Your plan allows custom port binding and internal reverse proxying to a standalone Node.js server.
+- Memory allocation is at least **1GB RAM** (Next.js server-side rendering requires sufficient memory under concurrent traffic).
+- If your plan only supports static web files or serverless functions with execution timeouts, use **Path B (Hostinger VPS)** instead, which gives you complete control over your server environment.
 
 ### Step 1: Prepare the Node.js Application in hPanel
 1. Log in to **Hostinger hPanel**.
@@ -333,6 +345,10 @@ In `next.config.ts`, the Content Security Policy is currently configured as **`C
 | `img-src` | `'self' data: blob: https:` | Supabase Storage logos, product screenshots, user avatars |
 | `connect-src` | `'self' https:` | Supabase REST/Auth API, Cloudflare Turnstile token validation, telemetry |
 
+> **Note on Analytics Hosts**: If privacy analytics are enabled, the CSP must explicitly allow the analytics provider's host:
+> - **Plausible**: Ensure `https://plausible.io` (or your custom `NEXT_PUBLIC_PLAUSIBLE_API_HOST`) is present in `script-src` and `connect-src`.
+> - **PostHog**: If using PostHog, add `https://app.posthog.com` and `https://us.i.posthog.com` (or `https://eu.i.posthog.com`) to `script-src` and `connect-src`.
+>
 > **Note on Resend**: Resend is invoked strictly from **server-side actions** (`server-only`). The browser client never connects directly to Resend, so no CSP connect directive for Resend is needed.
 
 ### Steps to Switch to Enforcing Mode:

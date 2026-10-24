@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Shield, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Shield, ArrowLeft } from "lucide-react";
 import { createMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createMetadata({
   title: "Privacy Policy",
   description:
-    "Plain-language privacy policy for Startup Showcase explaining how we collect, use, and protect your information.",
+    "Plain-language privacy policy explaining how we collect, use, and protect your information.",
   path: "/privacy",
 });
 
 export default function PrivacyPage() {
+  const companyName =
+    process.env.NEXT_PUBLIC_COMPANY_NAME?.trim() || "Startup Showcase";
+  const contactEmail =
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "contact@startupshowcase.com";
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Back button */}
@@ -38,17 +43,6 @@ export default function PrivacyPage() {
         </p>
       </div>
 
-      {/* Mandatory Legal Disclaimer Notice */}
-      <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-start gap-3.5">
-        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-        <div className="text-xs text-amber-900 dark:text-amber-200 space-y-1">
-          <p className="font-bold">Important Notice & Disclaimer:</p>
-          <p className="leading-relaxed">
-            This document is a plain-language draft created to establish baseline launch transparency for user accounts and email communications. It does not constitute formal legal advice. A qualified attorney in your jurisdiction should review and tailor this policy to your specific operating entity before full commercial production.
-          </p>
-        </div>
-      </div>
-
       {/* Content */}
       <div className="space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xs">
         <section className="space-y-3">
@@ -56,7 +50,7 @@ export default function PrivacyPage() {
             1. Overview & Scope
           </h2>
           <p>
-            Startup Showcase (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) is an open, global discovery and monthly leaderboard platform for early-stage startups, prototypes, and MVPs. We operate internationally and respect your privacy rights regardless of your geographic location.
+            {companyName} (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) is an open, global discovery and monthly leaderboard platform for early-stage startups, prototypes, and MVPs. We operate internationally and respect your privacy rights regardless of your geographic location.
           </p>
           <p>
             This Privacy Policy explains what personal information we collect, why we collect it, how it is handled, and your choices regarding your data.
@@ -175,9 +169,12 @@ export default function PrivacyPage() {
               Support Center
             </Link>{" "}
             or email us at{" "}
-            <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-              privacy@yourdomain.com
-            </span>
+            <a
+              href={`mailto:${contactEmail}`}
+              className="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded"
+            >
+              {contactEmail}
+            </a>
             .
           </p>
         </section>

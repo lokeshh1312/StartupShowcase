@@ -1,20 +1,23 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
+import { captureException } from "@/lib/error-tracking";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const startTime = Date.now();
+  const timestamp = new Date().toISOString();
 
   if (!process.env.DATABASE_URL) {
+    captureException(new Error("DATABASE_URL is not configured"), {
+      componentName: "HealthCheck",
+    });
+
     return NextResponse.json(
       {
         status: "error",
-        timestamp: new Date().toISOString(),
+        timestamp,
         db: "unconfigured",
-        responseTimeMs: Date.now() - startTime,
-        error: "DATABASE_URL is not set in environment",
       },
       {
         status: 503,
@@ -28,14 +31,12 @@ export async function GET() {
   try {
     // Lightweight database connectivity check
     await db.execute(sql`SELECT 1`);
-    const durationMs = Date.now() - startTime;
 
     return NextResponse.json(
       {
         status: "ok",
-        timestamp: new Date().toISOString(),
+        timestamp,
         db: "connected",
-        responseTimeMs: durationMs,
       },
       {
         status: 200,
@@ -45,19 +46,13 @@ export async function GET() {
       }
     );
   } catch (error) {
-    const durationMs = Date.now() - startTime;
-    const errorMessage =
-      error instanceof Error ? error.message : "Database connection failed";
-
-    console.error("[HealthCheck Error]: Database connectivity failed", error);
+    captureException(error, { componentName: "HealthCheck" });
 
     return NextResponse.json(
       {
         status: "error",
-        timestamp: new Date().toISOString(),
+        timestamp,
         db: "unreachable",
-        responseTimeMs: durationMs,
-        error: errorMessage,
       },
       {
         status: 503,

@@ -159,7 +159,7 @@ This checklist details every remaining manual step required before opening **Sta
 
 - [ ] **7.1 Attorney Review of Legal Pages**
   - Have a qualified attorney review `/privacy`, `/terms`, and `/cookies`.
-  - Replace company placeholder names, jurisdiction, and contact email addresses (`privacy@yourdomain.com`, `legal@yourdomain.com`).
+  - Ensure `NEXT_PUBLIC_CONTACT_EMAIL` and `NEXT_PUBLIC_COMPANY_NAME` are properly configured in your production environment settings.
 
 ---
 

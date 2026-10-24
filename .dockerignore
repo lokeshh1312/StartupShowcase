@@ -2,9 +2,10 @@ node_modules
 .next
 .git
 .gitignore
-.env*.local
-.env.development
-.env.test
+.env
+.env.production
+.env.*
+!.env.example
 tests
 test-results
 coverage
@@ -12,4 +13,3 @@ README.md
 SECURITY.md
 AGENTS.md
 docs
-Caddyfile

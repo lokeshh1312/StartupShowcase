@@ -51,6 +51,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key-placeholder"
           NEXT_PUBLIC_TURNSTILE_SITE_KEY: "mock-turnstile-site-key"
           NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "false"
+          NEXT_PUBLIC_CONTACT_EMAIL: "contact@example.com"
           DATABASE_URL: "postgres://mock:mock@localhost:5432/mock"
           SUPABASE_SERVICE_ROLE_KEY: "mock-service-role-key-placeholder"
           TRUSTED_PROXY_COUNT: "0"

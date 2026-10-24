@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileText, AlertTriangle, ArrowLeft } from "lucide-react";
+import { FileText, ArrowLeft } from "lucide-react";
 import { createMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createMetadata({
   title: "Terms of Service",
   description:
-    "Plain-language terms of service for Startup Showcase governing platform access, startup listings, voting, and community guidelines.",
+    "Plain-language terms of service governing platform access, startup listings, voting, and community guidelines.",
   path: "/terms",
 });
 
 export default function TermsPage() {
+  const companyName =
+    process.env.NEXT_PUBLIC_COMPANY_NAME?.trim() || "Startup Showcase";
+  const contactEmail =
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "contact@startupshowcase.com";
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Back button */}
@@ -38,17 +43,6 @@ export default function TermsPage() {
         </p>
       </div>
 
-      {/* Mandatory Legal Disclaimer Notice */}
-      <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-start gap-3.5">
-        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-        <div className="text-xs text-amber-900 dark:text-amber-200 space-y-1">
-          <p className="font-bold">Important Notice & Disclaimer:</p>
-          <p className="leading-relaxed">
-            This document is a plain-language draft provided for launch readiness. It establishes community expectations and platform rules in plain English. It does not constitute formal legal counsel. You should have a qualified lawyer in your jurisdiction review and update these terms prior to full commercial operation.
-          </p>
-        </div>
-      </div>
-
       {/* Content */}
       <div className="space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xs">
         <section className="space-y-3">
@@ -56,7 +50,7 @@ export default function TermsPage() {
             1. Acceptance of Terms
           </h2>
           <p>
-            By accessing or using Startup Showcase (&ldquo;the Platform&rdquo;), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the website or submit content.
+            By accessing or using {companyName} (&ldquo;the Platform&rdquo;), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the website or submit content.
           </p>
         </section>
 
@@ -80,7 +74,7 @@ export default function TermsPage() {
             3. Founder Submissions & Content Guidelines
           </h2>
           <p>
-            Startup Showcase exists to celebrate early-stage startups and prototypes worldwide. When submitting a startup:
+            {companyName} exists to celebrate early-stage startups and prototypes worldwide. When submitting a startup:
           </p>
           <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
             <li>
@@ -132,7 +126,7 @@ export default function TermsPage() {
             6. Intellectual Property & License
           </h2>
           <p>
-            Founders retain full ownership of their trademarks, logos, and submitted copy. By submitting a startup, you grant Startup Showcase a non-exclusive, worldwide, royalty-free license to display, promote, index, and feature your product information across the Platform and our monthly newsletters.
+            Founders retain full ownership of their trademarks, logos, and submitted copy. By submitting a startup, you grant {companyName} a non-exclusive, worldwide, royalty-free license to display, promote, index, and feature your product information across the Platform and our monthly newsletters.
           </p>
         </section>
 
@@ -141,10 +135,10 @@ export default function TermsPage() {
             7. Disclaimers & Limitation of Liability
           </h2>
           <p>
-            Startup Showcase is provided on an &ldquo;as is&rdquo; and &ldquo;as available&rdquo; basis. We do not provide investment, financial, legal, or business advice. We do not endorse any submitted product or guarantee the accuracy of claims made by founders.
+            {companyName} is provided on an &ldquo;as is&rdquo; and &ldquo;as available&rdquo; basis. We do not provide investment, financial, legal, or business advice. We do not endorse any submitted product or guarantee the accuracy of claims made by founders.
           </p>
           <p>
-            To the maximum extent permitted by applicable law, Startup Showcase shall not be liable for any indirect, incidental, or consequential damages resulting from your use of the platform.
+            To the maximum extent permitted by applicable law, {companyName} shall not be liable for any indirect, incidental, or consequential damages resulting from your use of the platform.
           </p>
         </section>
 
@@ -170,9 +164,12 @@ export default function TermsPage() {
               Support Center
             </Link>{" "}
             or emailed to{" "}
-            <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-              legal@yourdomain.com
-            </span>
+            <a
+              href={`mailto:${contactEmail}`}
+              className="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded"
+            >
+              {contactEmail}
+            </a>
             .
           </p>
         </section>
