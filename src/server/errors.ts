@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { captureException } from "@/lib/error-tracking";
 
 /**
  * Checks if an error message represents a known user-facing error condition:
@@ -75,6 +76,7 @@ export function formatActionError(err: unknown): string {
     if (isUserFacingError(trimmed)) {
       return trimmed;
     }
+    captureException(err, { context: "formatActionError:string" });
     console.error("[Action Unexpected Error]:", trimmed);
     return "Something went wrong. Please try again.";
   }
@@ -86,6 +88,7 @@ export function formatActionError(err: unknown): string {
       return msg;
     }
     // Unexpected error: log on server (avoiding secrets)
+    captureException(err, { context: "formatActionError:Error" });
     console.error("[Action Unexpected Error]:", err.message, err.stack);
     return "Something went wrong. Please try again.";
   }
@@ -101,11 +104,14 @@ export function formatActionError(err: unknown): string {
     if (isUserFacingError(msg)) {
       return msg;
     }
+    captureException(err, { context: "formatActionError:object" });
     console.error("[Action Unexpected Error]:", msg);
     return "Something went wrong. Please try again.";
   }
 
   // 5. Fallback unknown error
+  captureException(err, { context: "formatActionError:unknown" });
   console.error("[Action Unexpected Error]:", err);
   return "Something went wrong. Please try again.";
 }
+

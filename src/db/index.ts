@@ -11,15 +11,9 @@ const connectionString =
   process.env.DATABASE_URL ||
   (process.env.NODE_ENV === "test"
     ? "postgres://mock:mock@localhost:5432/mock"
-    : undefined);
+    : "postgres://unconfigured:unconfigured@127.0.0.1:5432/unconfigured");
 
 function createClient(): postgres.Sql {
-  if (!connectionString) {
-    throw new Error(
-      "DATABASE_URL is not configured. Please set DATABASE_URL in .env.local"
-    );
-  }
-
   // Supabase transaction pooler (port 6543) requires prepared statements disabled: prepare: false
   return postgres(connectionString, {
     prepare: false,

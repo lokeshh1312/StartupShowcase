@@ -13,6 +13,9 @@ const resourceLinks = [
   { href: "/faq", label: "FAQ" },
   { href: "/support", label: "Support" },
   { href: "/newsletter", label: "Newsletter" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms of Service" },
+  { href: "/cookies", label: "Cookie Policy" },
 ] as const;
 
 export function Footer() {
@@ -51,7 +54,7 @@ export function Footer() {
           {/* Platform & Support */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              Platform
+              Platform & Legal
             </h4>
             <ul className="space-y-2 text-xs">
               {resourceLinks.map(({ href, label }) => (
@@ -71,7 +74,7 @@ export function Footer() {
         {/* Bottom copyright */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
           <p>© {new Date().getFullYear()} Startup Showcase. Built for founders worldwide.</p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <Link href="/about" className="hover:underline">
               About
             </Link>
@@ -80,6 +83,15 @@ export function Footer() {
             </Link>
             <Link href="/support" className="hover:underline">
               Support
+            </Link>
+            <Link href="/privacy" className="hover:underline">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:underline">
+              Terms
+            </Link>
+            <Link href="/cookies" className="hover:underline">
+              Cookies
             </Link>
           </div>
         </div>

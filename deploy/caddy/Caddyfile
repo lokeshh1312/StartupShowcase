@@ -1,0 +1,44 @@
+# ==============================================================================
+# Caddyfile for Startup Showcase (Hostinger VPS / Alternative Web Server)
+# ==============================================================================
+# Replace 'yourdomain.com' with your actual domain name.
+# Caddy automatically provisions and renews Let's Encrypt certificates on port 80/443.
+# ==============================================================================
+
+yourdomain.com, www.yourdomain.com {
+    # Encode responses using modern gzip and zstd compression
+    encode zstd gzip
+
+    # Redirect www to apex domain
+    @www header_regexp host ^www\.(.*)$
+    handle @www {
+        redir https://{re.host.1}{uri} permanent
+    }
+
+    # Next.js Immutable Static Cache
+    @static path /_next/static/*
+    handle @static {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy 127.0.0.1:3000
+    }
+
+    # Reverse proxy to Next.js standalone server
+    handle {
+        reverse_proxy 127.0.0.1:3000 {
+            # Preserves client IP and passes standard proxy headers
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
+        }
+    }
+
+    # Security Headers
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}

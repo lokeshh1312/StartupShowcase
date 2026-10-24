@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { AlertCircle, RotateCcw, ArrowLeft } from "lucide-react";
+import { captureException } from "@/lib/error-tracking";
 
 export default function ErrorBoundary({
   error,
@@ -12,7 +13,11 @@ export default function ErrorBoundary({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log unexpected client error
+    // Report unexpected client error via error tracking
+    captureException(error, {
+      componentName: "RootErrorBoundary",
+      extra: { digest: error.digest },
+    });
     console.error("Runtime error caught in boundary:", error);
   }, [error]);
 

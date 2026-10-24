@@ -1,0 +1,61 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+      - next-migration
+  pull_request:
+    branches:
+      - main
+      - next-migration
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gates:
+    name: Lint, Typecheck, Test, and Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Run Vitest unit tests
+        run: npm test
+
+      - name: Build Next.js standalone application
+        run: npm run build
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: 1
+          NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+          NEXT_PUBLIC_SUPABASE_URL: "https://mockproject.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key-placeholder"
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: "mock-turnstile-site-key"
+          NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "false"
+          DATABASE_URL: "postgres://mock:mock@localhost:5432/mock"
+          SUPABASE_SERVICE_ROLE_KEY: "mock-service-role-key-placeholder"
+          TRUSTED_PROXY_COUNT: "0"
+          VIEW_HASH_SECRET: "mock-view-hash-secret-salt-at-least-32-chars"
+          NEWSLETTER_SECRET: "mock-newsletter-secret-salt-at-least-32-chars"
+          RESEND_API_KEY: "re_mock_test_key"
+          EMAIL_FROM: "Startup Showcase <updates@example.com>"
+          TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA"

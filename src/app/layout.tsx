@@ -12,7 +12,9 @@ import {
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/urls";
 import { UnverifiedBanner } from "@/components/common/unverified-banner";
+import { Analytics } from "@/components/analytics";
 import "./globals.css";
+
 
 const inter = Inter({
   subsets: ["latin"],
@@ -69,6 +71,7 @@ export default async function RootLayout({
             <Footer />
           </div>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
