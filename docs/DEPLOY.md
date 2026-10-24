@@ -99,7 +99,7 @@ Hostinger provides managed Node.js web app hosting on select Cloud and Business 
 
 ### Confirm with Hostinger Support that your Plan can run a Next.js Server App
 Before deploying on Hostinger Web App Hosting, contact Hostinger Support or check your plan specifications to confirm:
-- Your plan supports a **persistent, long-running Node.js process** (Node 20+ LTS).
+- Your plan supports a **persistent, long-running Node.js process** (Node 22+ LTS).
 - Your plan allows custom port binding and internal reverse proxying to a standalone Node.js server.
 - Memory allocation is at least **1GB RAM** (Next.js server-side rendering requires sufficient memory under concurrent traffic).
 - If your plan only supports static web files or serverless functions with execution timeouts, use **Path B (Hostinger VPS)** instead, which gives you complete control over your server environment.
@@ -108,7 +108,7 @@ Before deploying on Hostinger Web App Hosting, contact Hostinger Support or chec
 1. Log in to **Hostinger hPanel**.
 2. Navigate to **Websites** &rarr; Select your domain &rarr; **Node.js**.
 3. Click **Create Application**:
-   - **Node.js version**: Select **`20.x`** (LTS).
+   - **Node.js version**: Select **`22.x`** (LTS).
    - **Application mode**: `Production`.
    - **Application root**: `public_html` (or subfolder `app`).
    - **Application startup file**: `scripts/start-production.sh` (or `node_modules/.bin/next` with argument `start`).
