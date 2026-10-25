@@ -9,6 +9,7 @@ import { TurnstileWidget } from "@/components/common/turnstile";
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -25,6 +26,8 @@ export default function ForgotPasswordPage() {
       const res = await forgotPasswordAction(formData);
       if (res?.error) {
         setError(res.error);
+        setTurnstileToken("");
+        setTurnstileResetSignal((prev) => prev + 1);
       } else {
         setSent(true);
       }
@@ -90,7 +93,11 @@ export default function ForgotPasswordPage() {
             </div>
 
             <div className="flex justify-center pt-2">
-              <TurnstileWidget onVerify={(token) => setTurnstileToken(token)} />
+              <TurnstileWidget
+                onVerify={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken("")}
+                resetSignal={turnstileResetSignal}
+              />
             </div>
 
             <button

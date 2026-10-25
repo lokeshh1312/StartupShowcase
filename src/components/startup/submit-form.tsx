@@ -99,6 +99,7 @@ export function SubmitStartupForm({
 
   // CAPTCHA token
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
 
   const [error, setError] = useState("");
   const [submittedStartup, setSubmittedStartup] = useState<{
@@ -205,6 +206,8 @@ export function SubmitStartupForm({
         const res = await updateStartupAction(initialStartup.id, payload);
         if (res?.error) {
           setError(res.error);
+          setCaptchaToken("");
+          setCaptchaResetSignal((prev) => prev + 1);
         } else if (res?.startup) {
           setSubmittedStartup({
             id: res.startup.id,
@@ -216,6 +219,8 @@ export function SubmitStartupForm({
         const res = await submitStartupAction(payload);
         if (res?.error) {
           setError(res.error);
+          setCaptchaToken("");
+          setCaptchaResetSignal((prev) => prev + 1);
         } else if (res?.startup) {
           setSubmittedStartup({
             id: res.startup.id,
@@ -699,7 +704,11 @@ export function SubmitStartupForm({
       </div>
 
       {/* Cloudflare Turnstile CAPTCHA */}
-      <TurnstileWidget onVerify={(token) => setCaptchaToken(token)} />
+      <TurnstileWidget
+        onVerify={(token) => setCaptchaToken(token)}
+        onExpire={() => setCaptchaToken("")}
+        resetSignal={captchaResetSignal}
+      />
 
       {/* Submit / Save Button */}
       <div className="flex items-center justify-end gap-4">

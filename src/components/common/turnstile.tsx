@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface TurnstileProps {
   onVerify: (token: string) => void;
   onExpire?: () => void;
+  resetSignal?: number;
   className?: string;
 }
 
@@ -17,7 +18,7 @@ declare global {
           sitekey: string;
           callback: (token: string) => void;
           "expired-callback"?: () => void;
-          "error-callback"?: () => void;
+          "error-callback"?: (errorCode?: string | number) => void;
           theme?: "light" | "dark" | "auto";
         }
       ) => string;
@@ -28,11 +29,27 @@ declare global {
   }
 }
 
-export function TurnstileWidget({ onVerify, onExpire, className = "" }: TurnstileProps) {
+export function TurnstileWidget({
+  onVerify,
+  onExpire,
+  resetSignal,
+  className = "",
+}: TurnstileProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim();
+  const [hasError, setHasError] = useState(false);
 
+  // Keep onVerify / onExpire in refs, updated in an effect on every render
+  const onVerifyRef = useRef(onVerify);
+  const onExpireRef = useRef(onExpire);
+
+  useEffect(() => {
+    onVerifyRef.current = onVerify;
+    onExpireRef.current = onExpire;
+  });
+
+  // Render effect depends ONLY on siteKey
   useEffect(() => {
     if (!siteKey || !containerRef.current) return;
 
@@ -46,13 +63,22 @@ export function TurnstileWidget({ onVerify, onExpire, className = "" }: Turnstil
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
           callback: (token: string) => {
-            if (mounted) onVerify(token);
+            if (mounted) {
+              setHasError(false);
+              onVerifyRef.current(token);
+            }
           },
           "expired-callback": () => {
-            if (mounted) onExpire?.();
+            if (mounted) {
+              onExpireRef.current?.();
+            }
           },
-          "error-callback": () => {
-            if (mounted) onExpire?.();
+          "error-callback": (errorCode?: string | number) => {
+            console.warn("[Turnstile Error]:", errorCode);
+            if (mounted) {
+              setHasError(true);
+              onExpireRef.current?.();
+            }
           },
           theme: "auto",
         });
@@ -76,7 +102,7 @@ export function TurnstileWidget({ onVerify, onExpire, className = "" }: Turnstil
     }
 
     // Load script dynamically
-    const existingScript = document.getElementById("cloudflare-turnstile-script");
+    const existingScript = document.getElementById("cloudflare-turnstile-script") as HTMLScriptElement | null;
     if (!existingScript) {
       const script = document.createElement("script");
       script.id = "cloudflare-turnstile-script";
@@ -86,6 +112,13 @@ export function TurnstileWidget({ onVerify, onExpire, className = "" }: Turnstil
       script.onload = () => {
         if (mounted) renderWidget();
       };
+      script.onerror = (e) => {
+        console.warn("[Turnstile Script Load Error]:", e);
+        if (mounted) {
+          setHasError(true);
+          onExpireRef.current?.();
+        }
+      };
       document.head.appendChild(script);
     } else {
       existingScript.addEventListener("load", renderWidget);
@@ -93,6 +126,9 @@ export function TurnstileWidget({ onVerify, onExpire, className = "" }: Turnstil
 
     return () => {
       mounted = false;
+      if (existingScript) {
+        existingScript.removeEventListener("load", renderWidget);
+      }
       if (widgetIdRef.current && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current);
@@ -100,7 +136,28 @@ export function TurnstileWidget({ onVerify, onExpire, className = "" }: Turnstil
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, onVerify, onExpire]);
+  }, [siteKey]);
+
+  // Reset signal effect: when resetSignal changes, call reset and onExpire
+  const prevResetSignalRef = useRef(resetSignal);
+  useEffect(() => {
+    if (prevResetSignalRef.current !== resetSignal) {
+      prevResetSignalRef.current = resetSignal;
+      setHasError(false);
+      if (window.turnstile) {
+        try {
+          if (widgetIdRef.current) {
+            window.turnstile.reset(widgetIdRef.current);
+          } else {
+            window.turnstile.reset();
+          }
+        } catch (err) {
+          console.warn("[Turnstile Reset Error]:", err);
+        }
+      }
+      onExpireRef.current?.();
+    }
+  }, [resetSignal]);
 
   // If no site key configured in dev/test, render nothing
   if (!siteKey) {
@@ -108,8 +165,13 @@ export function TurnstileWidget({ onVerify, onExpire, className = "" }: Turnstil
   }
 
   return (
-    <div className={`flex justify-center my-3 ${className}`}>
+    <div className={`flex flex-col items-center my-3 ${className}`}>
       <div ref={containerRef} />
+      {hasError && (
+        <p className="text-xs text-red-500 mt-1.5 text-center" role="alert">
+          Verification could not load. Disable ad blockers or try another browser.
+        </p>
+      )}
     </div>
   );
 }

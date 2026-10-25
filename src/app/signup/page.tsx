@@ -19,6 +19,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("founder");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
   const [error, setError] = useState("");
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -44,6 +45,8 @@ export default function SignUpPage() {
       const res = await signUpAction(formData);
       if (res?.error) {
         setError(res.error);
+        setTurnstileToken("");
+        setTurnstileResetSignal((prev) => prev + 1);
       } else if (res?.needsConfirmation) {
         setSuccessNotice(res.email || email);
       } else {
@@ -183,7 +186,11 @@ export default function SignUpPage() {
             </div>
 
             <div className="flex justify-center pt-2">
-              <TurnstileWidget onVerify={(token) => setTurnstileToken(token)} />
+              <TurnstileWidget
+                onVerify={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken("")}
+                resetSignal={turnstileResetSignal}
+              />
             </div>
 
             <button
