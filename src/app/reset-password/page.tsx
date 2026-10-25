@@ -16,6 +16,7 @@ export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -41,6 +42,8 @@ export default function ResetPasswordPage() {
       const res = await resetPasswordAction(formData);
       if (res?.error) {
         setError(res.error);
+        setTurnstileToken("");
+        setTurnstileResetSignal((prev) => prev + 1);
       } else {
         router.push(
           redirectTo !== "/"
@@ -110,7 +113,11 @@ export default function ResetPasswordPage() {
           </div>
 
           <div className="flex justify-center pt-2">
-            <TurnstileWidget onVerify={(token) => setTurnstileToken(token)} />
+            <TurnstileWidget
+              onVerify={(token) => setTurnstileToken(token)}
+              onExpire={() => setTurnstileToken("")}
+              resetSignal={turnstileResetSignal}
+            />
           </div>
 
           <button

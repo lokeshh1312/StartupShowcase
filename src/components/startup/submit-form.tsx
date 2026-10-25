@@ -21,6 +21,7 @@ import {
 } from "@/server/actions";
 import { CATEGORIES, STAGES } from "@/lib/validation";
 import { TurnstileWidget } from "@/components/common/turnstile";
+import { isAllowedImageUrl } from "@/lib/images";
 import type { Startup } from "@/db/schema";
 
 interface SubmitFormProps {
@@ -98,6 +99,7 @@ export function SubmitStartupForm({
 
   // CAPTCHA token
   const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
 
   const [error, setError] = useState("");
   const [submittedStartup, setSubmittedStartup] = useState<{
@@ -204,6 +206,8 @@ export function SubmitStartupForm({
         const res = await updateStartupAction(initialStartup.id, payload);
         if (res?.error) {
           setError(res.error);
+          setCaptchaToken("");
+          setCaptchaResetSignal((prev) => prev + 1);
         } else if (res?.startup) {
           setSubmittedStartup({
             id: res.startup.id,
@@ -215,6 +219,8 @@ export function SubmitStartupForm({
         const res = await submitStartupAction(payload);
         if (res?.error) {
           setError(res.error);
+          setCaptchaToken("");
+          setCaptchaResetSignal((prev) => prev + 1);
         } else if (res?.startup) {
           setSubmittedStartup({
             id: res.startup.id,
@@ -379,7 +385,7 @@ export function SubmitStartupForm({
               Startup Logo (PNG, JPEG, WebP &bull; Max 2 MB)
             </label>
 
-            {logoUrl ? (
+            {logoUrl && isAllowedImageUrl(logoUrl) ? (
               <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 group">
                 <Image
                   src={logoUrl}
@@ -432,7 +438,7 @@ export function SubmitStartupForm({
               Cover Image / Banner (PNG, JPEG, WebP &bull; Max 2 MB)
             </label>
 
-            {coverUrl ? (
+            {coverUrl && isAllowedImageUrl(coverUrl) ? (
               <div className="relative w-full h-24 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 group">
                 <Image
                   src={coverUrl}
@@ -698,7 +704,11 @@ export function SubmitStartupForm({
       </div>
 
       {/* Cloudflare Turnstile CAPTCHA */}
-      <TurnstileWidget onVerify={(token) => setCaptchaToken(token)} />
+      <TurnstileWidget
+        onVerify={(token) => setCaptchaToken(token)}
+        onExpire={() => setCaptchaToken("")}
+        resetSignal={captchaResetSignal}
+      />
 
       {/* Submit / Save Button */}
       <div className="flex items-center justify-end gap-4">

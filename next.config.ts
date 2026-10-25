@@ -58,22 +58,36 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    remotePatterns: supabaseHost
-      ? [
-          {
-            protocol: supabaseProtocol,
-            hostname: supabaseHost,
-            port: supabasePort,
-            pathname: "/storage/v1/object/public/**",
-          },
-        ]
-      : [
-          {
-            protocol: "https",
-            hostname: "*.supabase.co",
-            pathname: "/storage/v1/object/public/**",
-          },
-        ],
+    remotePatterns: [
+      ...(supabaseHost
+        ? [
+            {
+              protocol: supabaseProtocol,
+              hostname: supabaseHost,
+              port: supabasePort,
+              pathname: "/storage/v1/object/public/**",
+            },
+          ]
+        : [
+            {
+              protocol: "https" as const,
+              hostname: "*.supabase.co",
+              pathname: "/storage/v1/object/public/**",
+            },
+          ]),
+      ...(process.env.NODE_ENV !== "production"
+        ? [
+            {
+              protocol: "https" as const,
+              hostname: "images.unsplash.com",
+            },
+            {
+              protocol: "http" as const,
+              hostname: "images.unsplash.com",
+            },
+          ]
+        : []),
+    ],
   },
   async headers() {
     return [

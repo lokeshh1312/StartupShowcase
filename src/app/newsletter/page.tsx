@@ -9,6 +9,7 @@ import { TurnstileWidget } from "@/components/common/turnstile";
 export default function NewsletterPage() {
   const [email, setEmail] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
   const [subscribed, setSubscribed] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -21,6 +22,8 @@ export default function NewsletterPage() {
       const res = await subscribeNewsletterAction(email.trim(), turnstileToken);
       if (res?.error) {
         setError(res.error);
+        setTurnstileToken("");
+        setTurnstileResetSignal((prev) => prev + 1);
       } else {
         setSubscribed(true);
       }
@@ -117,7 +120,11 @@ export default function NewsletterPage() {
               </button>
             </div>
             <div className="flex justify-center pt-2">
-              <TurnstileWidget onVerify={(token) => setTurnstileToken(token)} />
+              <TurnstileWidget
+                onVerify={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken("")}
+                resetSignal={turnstileResetSignal}
+              />
             </div>
             <p className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
