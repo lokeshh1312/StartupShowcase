@@ -70,6 +70,9 @@ export default function PrivacyPage() {
               <strong>Startup Submissions:</strong> When you submit a product, we collect the product name, tagline, description, category, country of origin, website URL, social links, logo, and product screenshots.
             </li>
             <li>
+              <strong>Payment Transaction Data:</strong> When you pay a submission fee, we store non-sensitive transaction records (Razorpay Order ID, Razorpay Payment ID, payment status, currency, amount, and payment timestamp). We <strong>never collect, handle, or store your credit card numbers, CVVs, or full banking credentials</strong> on our systems.
+            </li>
+            <li>
               <strong>Community Activity:</strong> We record your upvotes, bookmarks, and comments submitted on startup profiles to maintain leaderboard integrity and display community discussions.
             </li>
             <li>
@@ -89,6 +92,7 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
             <li>To publish and index startup discovery listings and monthly leaderboards.</li>
             <li>To manage your account, authenticate sessions, and deliver email confirmations.</li>
+            <li>To process and verify one-time startup submission listing fees.</li>
             <li>To enforce rate limits, prevent duplicate voting rings, and detect abusive behavior.</li>
             <li>To send service-critical notifications (password resets, submission approval/rejection notices).</li>
             <li>To send optional monthly digests when you have explicitly subscribed.</li>
@@ -100,14 +104,17 @@ export default function PrivacyPage() {
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            4. Service Providers & Subprocessors
+            4. Service Providers &amp; Subprocessors
           </h2>
           <p>
             We partner with trusted, secure infrastructure providers who process data on our behalf in compliance with industry security standards:
           </p>
           <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
             <li>
-              <strong>Supabase (PostgreSQL Database & Auth):</strong> Hosts our relational database, storage buckets (for logos and screenshots), and user authentication sessions with strict Row Level Security (RLS).
+              <strong>Razorpay (Payment Processor):</strong> Securely processes one-time submission listing fees. Payment credentials and card numbers are entered directly into Razorpay&apos;s PCI-DSS compliant interface. We do not store card numbers or CVVs.
+            </li>
+            <li>
+              <strong>Supabase (PostgreSQL Database &amp; Auth):</strong> Hosts our relational database, storage buckets (for logos and screenshots), and user authentication sessions with strict Row Level Security (RLS).
             </li>
             <li>
               <strong>Cloudflare Turnstile:</strong> Provides privacy-conscious CAPTCHA bot protection during account registration and startup submission without tracking users across websites.

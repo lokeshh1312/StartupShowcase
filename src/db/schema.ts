@@ -56,10 +56,10 @@ export const startups = pgTable(
       onDelete: "set null",
     }),
     status: text("status", {
-      enum: ["pending", "approved", "rejected"],
+      enum: ["awaiting_payment", "pending", "approved", "rejected"],
     })
       .notNull()
-      .default("pending"),
+      .default("awaiting_payment"),
     isSample: boolean("is_sample").notNull().default(false),
     name: text("name").notNull(),
     ideaTitle: text("idea_title").notNull(),
@@ -247,12 +247,47 @@ export const auditLog = pgTable(
   ]
 );
 
+// 10. Payments Table
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    startupId: uuid("startup_id")
+      .notNull()
+      .references(() => startups.id, { onDelete: "restrict" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    razorpayOrderId: text("razorpay_order_id").notNull().unique(),
+    razorpayPaymentId: text("razorpay_payment_id").unique(),
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull(),
+    status: text("status", {
+      enum: ["created", "paid", "failed", "refunded"],
+    }).notNull(),
+    webhookEventId: text("webhook_event_id").unique(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    refundedAt: timestamp("refunded_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_payments_startup_id").on(table.startupId),
+    index("idx_payments_user_id").on(table.userId),
+    index("idx_payments_status").on(table.status),
+    index("idx_payments_order_id").on(table.razorpayOrderId),
+    index("idx_payments_payment_id").on(table.razorpayPaymentId),
+  ]
+);
+
 // Relations
 export const profilesRelations = relations(profiles, ({ many }) => ({
   startups: many(startups),
   votes: many(startupVotes),
   saved: many(savedStartups),
   comments: many(startupComments),
+  payments: many(payments),
 }));
 
 export const startupsRelations = relations(startups, ({ one, many }) => ({
@@ -268,6 +303,18 @@ export const startupsRelations = relations(startups, ({ one, many }) => ({
   saved: many(savedStartups),
   comments: many(startupComments),
   views: many(startupViews),
+  payments: many(payments),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  user: one(profiles, {
+    fields: [payments.userId],
+    references: [profiles.id],
+  }),
+  startup: one(startups, {
+    fields: [payments.startupId],
+    references: [startups.id],
+  }),
 }));
 
 export const startupVotesRelations = relations(startupVotes, ({ one }) => ({
@@ -309,6 +356,9 @@ export type NewProfile = typeof profiles.$inferInsert;
 
 export type Startup = typeof startups.$inferSelect;
 export type NewStartup = typeof startups.$inferInsert;
+
+export type Payment = typeof payments.$inferSelect;
+export type NewPayment = typeof payments.$inferInsert;
 
 export type StartupVote = typeof startupVotes.$inferSelect;
 export type SavedStartup = typeof savedStartups.$inferSelect;

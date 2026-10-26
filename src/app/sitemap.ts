@@ -76,6 +76,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.4,
     },
     {
+      url: absoluteUrl("/refunds"),
+      lastModified: STATIC_PAGES_LAST_MODIFIED,
+      changeFrequency: "monthly",
+      priority: 0.4,
+    },
+    {
       url: absoluteUrl("/terms"),
       lastModified: STATIC_PAGES_LAST_MODIFIED,
       changeFrequency: "monthly",

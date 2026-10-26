@@ -41,6 +41,9 @@ DECLARE
   _uid_veteran uuid := '77777777-7777-4777-a777-777777777777';
   _startup_approved_id uuid := 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
   _startup_pending_id  uuid := 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb';
+  _startup_awaiting_id uuid := 'dddddddd-dddd-4ddd-dddd-dddddddddddd';
+  _payment_a_id        uuid := 'eeeeeeee-eeee-4eee-eeee-eeeeeeeeeeee';
+  _payment_b_id        uuid := 'ffffffff-ffff-4fff-ffff-ffffffffffff';
   _comment_test_id     uuid := 'cccccccc-cccc-4ccc-cccc-cccccccccccc';
 
   _check_name text;
@@ -57,6 +60,7 @@ DECLARE
   _voter_blocked boolean;
   _got_count boolean;
   _audit_count integer;
+  _pay_count integer;
 BEGIN
   -- Always ensure we start as postgres
   PERFORM set_config('role', 'postgres', true);
@@ -66,10 +70,11 @@ BEGIN
   -- SETUP (as postgres)
   ----------------------------------------------------------------------
   -- Pre-cleanup in case of prior interrupted execution
+  DELETE FROM public.payments WHERE id IN (_payment_a_id, _payment_b_id) OR startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id) OR razorpay_order_id LIKE 'order_rls_%';
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
-  DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text);
-  DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id);
-  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending', 'rls-community-pending');
+  DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text, _startup_awaiting_id::text);
+  DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id);
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending', 'rls-community-pending', 'rls-test-awaiting', 'rls-pending-direct');
   DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d, _uid_owner, _uid_unverified, _uid_fresh, _uid_veteran);
 
   -- Insert real users into auth.users so handle_new_user trigger creates real profiles
@@ -100,7 +105,7 @@ BEGIN
   -- Set veteran profile created_at to 48 hours ago
   UPDATE public.profiles SET created_at = (now() - interval '48 hours') WHERE id = _uid_veteran;
 
-  -- Create one approved (owned by _uid_owner) and one pending startup (owned by _uid_a) as postgres
+  -- Create one approved (owned by _uid_owner), one pending startup (owned by _uid_a), and one awaiting_payment startup (owned by _uid_a) as postgres
   INSERT INTO public.startups (
     id, slug, owner_id, status, is_sample, name, idea_title, tagline, description,
     category, country_code, stage, month, month_label, views_count, approved_at
@@ -118,6 +123,23 @@ BEGIN
     'RLS Pending Startup', 'Pending Idea', 'Pending Tagline', 'A comprehensive description for pending startup',
     'AgriTech', 'US', 'MVP', '2026-10-01'::date, 'October 2026', 0, NULL
   );
+
+  INSERT INTO public.startups (
+    id, slug, owner_id, status, is_sample, name, idea_title, tagline, description,
+    category, country_code, stage, month, month_label, views_count, approved_at
+  ) VALUES (
+    _startup_awaiting_id, 'rls-test-awaiting', _uid_a, 'awaiting_payment', false,
+    'RLS Awaiting Startup', 'Awaiting Idea', 'Awaiting Tagline', 'A comprehensive description for awaiting startup',
+    'AgriTech', 'US', 'MVP', '2026-10-01'::date, 'October 2026', 0, NULL
+  );
+
+  -- Insert payments as postgres: one for user A ('created') and one for user B ('paid')
+  INSERT INTO public.payments (
+    id, startup_id, user_id, razorpay_order_id, razorpay_payment_id,
+    amount_cents, currency, status, created_at, paid_at
+  ) VALUES
+  (_payment_a_id, _startup_awaiting_id, _uid_a, 'order_rls_test_a', 'pay_rls_test_a', 1000, 'USD', 'created', now(), NULL),
+  (_payment_b_id, _startup_approved_id, _uid_b, 'order_rls_test_b', 'pay_rls_test_b', 1000, 'USD', 'paid', now(), now());
 
   -- Insert a vote for user B on approved startup (used for isolation testing)
   INSERT INTO public.startup_votes (user_id, startup_id) VALUES (_uid_b, _startup_approved_id);
@@ -507,8 +529,8 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- 17: user can INSERT a pending startup with is_sample=false
-  _check_name := '17 (POS): user can INSERT pending startup with is_sample=false';
+  -- 17: user can INSERT an awaiting_payment startup with is_sample=false
+  _check_name := '17 (POS): user can INSERT awaiting_payment startup with is_sample=false';
   _passed := false;
   _details := '';
   PERFORM set_config('role', 'authenticated', true);
@@ -518,12 +540,12 @@ BEGIN
       slug, owner_id, status, is_sample, name, idea_title, tagline, description,
       category, country_code, stage, month, views_count
     ) VALUES (
-      'rls-positive-pending', _uid_a, 'pending', false, 'Positive Control Startup',
+      'rls-positive-pending', _uid_a, 'awaiting_payment', false, 'Positive Control Startup',
       'Idea Title', 'Tagline', 'A valid pending startup description for positive control',
       'AgriTech', 'US', 'MVP', '2026-10-01'::date, 0
     );
     _passed := true;
-    _details := 'Startup inserted successfully with status pending';
+    _details := 'Startup inserted successfully with status awaiting_payment';
   EXCEPTION
     WHEN OTHERS THEN
       _passed := false;
@@ -1327,6 +1349,246 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
+  -- 44: direct API insert with status 'pending' is rejected
+  _check_name := '44 (NEG): direct API insert with status pending is rejected';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.startups (
+      slug, owner_id, status, is_sample, name, idea_title, tagline, description,
+      category, country_code, stage, month, views_count
+    ) VALUES (
+      'rls-pending-direct', _uid_a, 'pending', false, 'Direct Pending Attempt',
+      'Pending Idea', 'Pending Tagline', 'Direct pending attempt description',
+      'AgriTech', 'US', 'MVP', '2026-10-01'::date, 0
+    );
+    _passed := false;
+    _details := 'FAIL: Direct insert with status pending succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (RLS check violation)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 45: authenticated user cannot INSERT into public.payments
+  _check_name := '45 (NEG): authenticated user cannot INSERT into public.payments';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    INSERT INTO public.payments (
+      startup_id, user_id, razorpay_order_id, amount_cents, currency, status
+    ) VALUES (
+      _startup_awaiting_id, _uid_a, 'order_hacked', 1000, 'USD', 'paid'
+    );
+    _passed := false;
+    _details := 'FAIL: Direct insert into payments succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient privilege)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 46: authenticated user cannot UPDATE public.payments
+  _check_name := '46 (NEG): authenticated user cannot UPDATE public.payments';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    UPDATE public.payments SET status = 'paid' WHERE id = _payment_a_id;
+    _passed := false;
+    _details := 'FAIL: Direct update on payments succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient privilege)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 47: authenticated user cannot DELETE from public.payments
+  _check_name := '47 (NEG): authenticated user cannot DELETE from public.payments';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    DELETE FROM public.payments WHERE id = _payment_a_id;
+    _passed := false;
+    _details := 'FAIL: Direct delete from payments succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (insufficient privilege)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 48: user cannot read another user's payment
+  _check_name := '48 (NEG): user cannot read another users payment';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    SELECT count(*) INTO _pay_count FROM public.payments WHERE id = _payment_b_id;
+    IF _pay_count = 0 THEN
+      _passed := true;
+      _details := '0 rows returned for other users payment (RLS filtered)';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: User A saw user Bs payment (%s rows)', _pay_count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 49: user can read own payment and admin can read all payments
+  _check_name := '49 (POS): user reads own payment and admin reads all payments';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    SELECT count(*) INTO _pay_count FROM public.payments WHERE id = _payment_a_id;
+    IF _pay_count = 1 THEN
+      PERFORM set_config('role', 'authenticated', true);
+      PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_d::text, 'role', 'authenticated')::text, true);
+      SELECT count(*) INTO _rc FROM public.payments WHERE id IN (_payment_a_id, _payment_b_id);
+      IF _rc = 2 THEN
+        _passed := true;
+        _details := 'User saw own payment (1 row) and admin saw all payments (2 rows)';
+      ELSE
+        _passed := false;
+        _details := format('FAIL: Admin expected 2 payments, saw %s', _rc);
+      END IF;
+    ELSE
+      _passed := false;
+      _details := format('FAIL: User A expected 1 payment, saw %s', _pay_count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 50: trigger blocks awaiting_payment -> pending without a paid payment
+  _check_name := '50 (NEG): trigger blocks awaiting_payment to pending without paid payment';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    UPDATE public.startups SET status = 'pending' WHERE id = _startup_awaiting_id;
+    _passed := false;
+    _details := 'FAIL: Transition awaiting_payment -> pending succeeded without paid payment';
+  EXCEPTION
+    WHEN SQLSTATE '23514' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 23514 (check_violation from trigger)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 51: trigger allows awaiting_payment -> pending with paid payment
+  _check_name := '51 (POS): trigger allows awaiting_payment to pending with paid payment';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    -- Subtransaction to mark paid, test transition, and roll back
+    BEGIN
+      UPDATE public.payments SET status = 'paid', paid_at = now() WHERE id = _payment_a_id;
+      UPDATE public.startups SET status = 'pending' WHERE id = _startup_awaiting_id;
+      GET DIAGNOSTICS _rc = ROW_COUNT;
+      IF _rc = 1 THEN
+        _passed := true;
+        _details := 'Transition succeeded with paid payment (1 row updated)';
+      ELSE
+        _passed := false;
+        _details := format('FAIL: Expected 1 row updated, got %s', _rc);
+      END IF;
+      -- Force subtransaction rollback to restore awaiting_payment state
+      RAISE EXCEPTION 'subtransaction_rollback' USING ERRCODE = 'P0001';
+    EXCEPTION
+      WHEN SQLSTATE 'P0001' AND SQLERRM = 'subtransaction_rollback' THEN
+        -- Expected rollback
+        NULL;
+      WHEN OTHERS THEN
+        _passed := false;
+        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+    END;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 52: non-owner cannot see another user's awaiting_payment startup
+  _check_name := '52 (NEG): non-owner cannot see another awaiting_payment startup';
+  _passed := false;
+  _details := '';
+  -- User B (non-owner) reads awaiting startup of User A
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_b::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    SELECT count(*) INTO _rc FROM public.startups WHERE id = _startup_awaiting_id;
+    IF _rc = 0 THEN
+      -- User A (owner) reads awaiting startup
+      PERFORM set_config('role', 'authenticated', true);
+      PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_a::text, 'role', 'authenticated')::text, true);
+      SELECT count(*) INTO _count FROM public.startups WHERE id = _startup_awaiting_id;
+      IF _count = 1 THEN
+        _passed := true;
+        _details := 'Non-owner saw 0 rows; owner saw 1 row (RLS filtered)';
+      ELSE
+        _passed := false;
+        _details := format('FAIL: Owner expected 1 row, saw %s', _count);
+      END IF;
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Non-owner saw %s rows for awaiting_payment startup', _rc);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
   ----------------------------------------------------------------------
   -- UNCONDITIONAL CLEANUP BLOCK
@@ -1334,20 +1596,22 @@ BEGIN
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
 
+  DELETE FROM public.payments WHERE id IN (_payment_a_id, _payment_b_id) OR startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id) OR razorpay_order_id LIKE 'order_rls_%';
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
-  DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text);
-  DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id);
-  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending', 'rls-community-pending');
+  DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text, _startup_awaiting_id::text);
+  DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id);
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending', 'rls-community-pending', 'rls-test-awaiting', 'rls-pending-direct');
   DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d, _uid_owner, _uid_unverified, _uid_fresh, _uid_veteran);
 
 EXCEPTION WHEN OTHERS THEN
   -- Ensure cleanup runs even if an unhandled error aborts the block
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
+  DELETE FROM public.payments WHERE id IN (_payment_a_id, _payment_b_id) OR startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id) OR razorpay_order_id LIKE 'order_rls_%';
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
-  DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text);
-  DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id);
-  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending', 'rls-community-pending');
+  DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text, _startup_awaiting_id::text);
+  DELETE FROM public.saved_startups WHERE startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id);
+  DELETE FROM public.startups WHERE slug IN ('rls-test-approved', 'rls-test-pending', 'rls-positive-pending', 'rls-hack-approved', 'rls-unverified-pending', 'rls-community-pending', 'rls-test-awaiting', 'rls-pending-direct');
   DELETE FROM auth.users WHERE id IN (_uid_a, _uid_b, _uid_c, _uid_d, _uid_owner, _uid_unverified, _uid_fresh, _uid_veteran);
   RAISE;
 END;

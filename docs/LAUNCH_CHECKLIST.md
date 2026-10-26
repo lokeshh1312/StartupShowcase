@@ -21,10 +21,11 @@ This checklist details every remaining manual step required before opening **Sta
   6. `supabase/migrations/0006_storage.sql`
   7. `supabase/migrations/0007_newsletter.sql`
   8. `supabase/migrations/0008_rate_limits_and_audit.sql`
+  9. `supabase/migrations/0009_payments.sql`
 
 - [ ] **1.3 Verify Row-Level Security (RLS)**
   - Open `supabase/tests/rls_checks.sql` in the Supabase SQL Editor and execute.
-  - Confirm that all **43 / 43 tests pass**.
+  - Confirm that all **52 / 52 checks pass**.
 
 - [ ] **1.4 Configure Storage Bucket**
   - Verify that the `startup-images` bucket exists and is set to **Public**.

@@ -13,6 +13,7 @@ const resourceLinks = [
   { href: "/faq", label: "FAQ" },
   { href: "/support", label: "Support" },
   { href: "/newsletter", label: "Newsletter" },
+  { href: "/refunds", label: "Refund Policy" },
   { href: "/privacy", label: "Privacy Policy" },
   { href: "/terms", label: "Terms of Service" },
   { href: "/cookies", label: "Cookie Policy" },
@@ -83,6 +84,9 @@ export function Footer() {
             </Link>
             <Link href="/support" className="hover:underline">
               Support
+            </Link>
+            <Link href="/refunds" className="hover:underline">
+              Refunds
             </Link>
             <Link href="/privacy" className="hover:underline">
               Privacy

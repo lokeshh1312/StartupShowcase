@@ -25,6 +25,13 @@ export default defineConfig({
       TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA",
       RESEND_API_KEY: "re_dummy_test_key_for_e2e",
       EMAIL_FROM: "Startup Showcase <test@example.com>",
+      NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "false",
+      RAZORPAY_KEY_ID: "rzp_test_e2e_dummy_key",
+      RAZORPAY_KEY_SECRET: "dummy_secret_e2e_testing",
+      RAZORPAY_WEBHOOK_SECRET: "dummy_webhook_secret_e2e",
+      NEXT_PUBLIC_RAZORPAY_KEY_ID: "rzp_test_e2e_dummy_key",
+      SUBMISSION_PRICE_USD_CENTS: "1000",
+      ALLOW_RAZORPAY_TEST_IN_PRODUCTION: "true",
     },
   },
 });

@@ -123,7 +123,32 @@ export default function TermsPage() {
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            6. Intellectual Property & License
+            6. Fees, Payments &amp; Payment Processing
+          </h2>
+          <p>
+            Startup submissions require a one-time review and listing fee of $10.00 USD. All payments are
+            processed by our third-party payment partner, <strong>Razorpay</strong>.
+          </p>
+          <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
+            <li>
+              <strong>No Card Data Storage:</strong> Startup Showcase <strong>never receives, handles, or stores your credit or debit card numbers, CVVs, or sensitive payment credentials</strong> on our systems. All card processing is conducted securely by Razorpay.
+            </li>
+            <li>
+              <strong>Currency:</strong> All fees are billed strictly in USD ($10.00 USD).
+            </li>
+            <li>
+              <strong>Refunds &amp; Cancellations:</strong> Submission fees are governed by our plain-language{" "}
+              <Link href="/refunds" className="text-blue-600 dark:text-blue-400 font-semibold underline">
+                Refund &amp; Cancellation Policy
+              </Link>
+              . Unpaid draft submissions may be deleted at any time from your dashboard without charge.
+            </li>
+          </ul>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            7. Intellectual Property &amp; License
           </h2>
           <p>
             Founders retain full ownership of their trademarks, logos, and submitted copy. By submitting a startup, you grant {companyName} a non-exclusive, worldwide, royalty-free license to display, promote, index, and feature your product information across the Platform and our monthly newsletters.
@@ -132,7 +157,7 @@ export default function TermsPage() {
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            7. Disclaimers & Limitation of Liability
+            8. Disclaimers &amp; Limitation of Liability
           </h2>
           <p>
             {companyName} is provided on an &ldquo;as is&rdquo; and &ldquo;as available&rdquo; basis. We do not provide investment, financial, legal, or business advice. We do not endorse any submitted product or guarantee the accuracy of claims made by founders.
@@ -144,7 +169,7 @@ export default function TermsPage() {
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            8. Termination & Changes
+            9. Termination &amp; Changes
           </h2>
           <p>
             We may suspend or terminate your account or access at any time for violations of these Terms. We reserve the right to modify these terms with reasonable notice posted on the platform.
@@ -153,7 +178,7 @@ export default function TermsPage() {
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            9. Contact
+            10. Contact
           </h2>
           <p>
             Questions regarding these Terms of Service should be directed to our{" "}

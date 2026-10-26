@@ -52,6 +52,12 @@ All variables below must be configured in your hosting environment. At productio
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | **Yes** | **Both** | Cloudflare Turnstile site key (public widget key). |
 | `TURNSTILE_SECRET_KEY` | **Yes** | Runtime | Cloudflare Turnstile secret key (for server-side token validation). |
 | `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED` | **Yes** | **Both** | `'true'` if Google OAuth button is enabled; `'false'` otherwise. |
+| `RAZORPAY_KEY_ID` | **Yes** | Runtime | Razorpay Key ID (Live key in production, e.g. `rzp_live_...`). |
+| `RAZORPAY_KEY_SECRET` | **Yes** | Runtime | Razorpay Key Secret. **Server-only secret.** Never expose to client. |
+| `RAZORPAY_WEBHOOK_SECRET` | **Yes** | Runtime | Razorpay Webhook Secret for validating `X-Razorpay-Signature`. **Server-only secret.** |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | **Yes** | **Both** | Razorpay Key ID for client checkout. |
+| `SUBMISSION_PRICE_USD_CENTS` | **Yes** | Runtime | Price in USD cents for submission listing fee (`1000` for $10.00 USD). |
+| `ALLOW_RAZORPAY_TEST_IN_PRODUCTION` | Optional | Runtime | Safety override (`true`/`false`). Default `false`. Set `true` only if testing test keys in production. |
 | `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Optional | **Both** | Custom Plausible domain (e.g. `startupshowcase.com`). Disabled if unset. |
 | `NEXT_PUBLIC_POSTHOG_KEY` | Optional | **Both** | PostHog public key. Disabled if unset. |
 | `PORT` | Optional | Runtime | Port to listen on (defaults to `3000`). |

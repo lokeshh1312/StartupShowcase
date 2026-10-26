@@ -21,10 +21,14 @@ interface AdminStartupItem {
   remoteFirst?: boolean | null;
   websiteUrl?: string | null;
   createdAt: Date;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "awaiting_payment";
   rejectionReason?: string | null;
   monthLabel: string;
   founder?: unknown;
+  paymentAmountCents?: number | null;
+  paymentCurrency?: string | null;
+  razorpayPaymentId?: string | null;
+  paidAt?: Date | null;
   duplicateWarning?: {
     id: string;
     name: string;
@@ -203,6 +207,11 @@ export function AdminPanel({
                       <span>Origin: {getCountryName(startup.countryCode)} ({startup.countryCode})</span>
                       <span>•</span>
                       <span>Cohort: {startup.monthLabel}</span>
+                      <span>•</span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                        Paid: ${((startup.paymentAmountCents ?? 1000) / 100).toFixed(2)} {startup.paymentCurrency || "USD"}
+                        {startup.razorpayPaymentId ? ` (ID: ${startup.razorpayPaymentId})` : ""}
+                      </span>
                       {startup.websiteUrl && (
                         <>
                           <span>•</span>

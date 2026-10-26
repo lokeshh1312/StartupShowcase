@@ -67,7 +67,7 @@ test.describe("Startup Showcase E2E Smoke Tests", () => {
   test("Content pages (About, FAQ, Support, Newsletter) render properly", async ({
     page,
   }) => {
-    for (const route of ["/about", "/faq", "/support", "/newsletter"]) {
+    for (const route of ["/about", "/faq", "/support", "/newsletter", "/refunds"]) {
       const res = await page.goto(route);
       expect(res?.status()).toBe(200);
     }
