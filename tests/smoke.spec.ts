@@ -85,6 +85,18 @@ test.describe("Startup Showcase E2E Smoke Tests", () => {
     }
   });
 
+  test("Auth forms render with CAPTCHA containers", async ({ page }) => {
+    await page.goto("/signup");
+    await expect(page.locator("input[type='email']")).toBeVisible();
+    await expect(page.locator("input[type='password']")).toBeVisible();
+
+    await page.goto("/forgot-password");
+    await expect(page.locator("input[type='email']")).toBeVisible();
+
+    await page.goto("/reset-password");
+    await expect(page.locator("input[type='password']").first()).toBeVisible();
+  });
+
   test("Protected pages redirect unauthenticated users cleanly", async ({
     page,
   }) => {

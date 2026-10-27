@@ -19,7 +19,7 @@ import {
   updateStartup,
 } from "@/server/startups";
 import { uploadStartupImage } from "@/server/storage";
-import { verifyTurnstileToken } from "@/server/captcha";
+import { verifyTurnstileToken, extractCaptchaToken } from "@/server/captcha";
 import {
   subscribeToNewsletter,
   confirmNewsletter,
@@ -220,7 +220,7 @@ export async function submitStartupAction(rawData: unknown) {
   try {
     // Extract captchaToken if provided in rawData
     const dataObj = (typeof rawData === "object" && rawData !== null ? rawData : {}) as Record<string, unknown>;
-    const captchaToken = typeof dataObj.captchaToken === "string" ? dataObj.captchaToken : undefined;
+    const captchaToken = extractCaptchaToken(dataObj);
 
     const ip = await getRequestIp();
     const captchaRes = await verifyTurnstileToken(captchaToken, ip);
@@ -602,9 +602,7 @@ export async function signUpAction(formData: FormData) {
     const password = formData.get("password")?.toString();
     const name = formData.get("name")?.toString()?.trim() || "";
     const role = formData.get("role")?.toString()?.trim() || "community";
-    const captchaToken =
-      formData.get("cf-turnstile-response")?.toString() ||
-      formData.get("captchaToken")?.toString();
+    const captchaToken = extractCaptchaToken(formData);
 
     if (!email || !password) {
       return { error: "Email and password are required." };
@@ -710,9 +708,7 @@ export async function signOutAction() {
 export async function forgotPasswordAction(formData: FormData) {
   try {
     const email = formData.get("email")?.toString()?.trim();
-    const captchaToken =
-      formData.get("cf-turnstile-response")?.toString() ||
-      formData.get("captchaToken")?.toString();
+    const captchaToken = extractCaptchaToken(formData);
 
     if (!email) {
       return { error: "Email is required." };
@@ -768,9 +764,7 @@ export async function forgotPasswordAction(formData: FormData) {
 export async function resetPasswordAction(formData: FormData) {
   try {
     const password = formData.get("password")?.toString();
-    const captchaToken =
-      formData.get("cf-turnstile-response")?.toString() ||
-      formData.get("captchaToken")?.toString();
+    const captchaToken = extractCaptchaToken(formData);
 
     if (!password || password.length < 10) {
       return { error: "Password must be at least 10 characters long." };
