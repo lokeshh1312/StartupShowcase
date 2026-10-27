@@ -350,14 +350,33 @@ export async function confirmPaymentAction(params: {
       return { error: "Forbidden: You do not own this submission." };
     }
 
-    // 3. To be safe, fetch payment from Razorpay API and check status, amount, and currency
+    // Check if already paid or refunded
+    if (paymentRecord.status === "paid") {
+      return { success: true };
+    }
+
+    if (paymentRecord.status === "refunded" || paymentRecord.status === "partially_refunded") {
+      return {
+        error: `Cannot confirm payment: payment status is already '${paymentRecord.status}'.`,
+      };
+    }
+
+    // 3. To be safe, fetch payment from Razorpay API and check status, order_id, amount, and currency
     const paymentFromRzp = await fetchRazorpayPayment(razorpayPaymentId);
     if (!paymentFromRzp) {
       return { error: "Failed to verify payment with Razorpay." };
     }
 
-    if (!["captured", "authorized"].includes(paymentFromRzp.status)) {
-      return { error: `Payment is not successful (status: ${paymentFromRzp.status}).` };
+    // Only mark paid after Razorpay confirms payment is captured (an authorized payment is not captured yet)
+    if (paymentFromRzp.status !== "captured") {
+      return {
+        error: `Payment is not captured (status: ${paymentFromRzp.status}). An authorized payment is not captured yet.`,
+      };
+    }
+
+    // Verify fetched Razorpay payment's order_id matches the order being confirmed
+    if (paymentFromRzp.order_id !== razorpayOrderId) {
+      return { error: "Payment order ID mismatch." };
     }
 
     if (paymentFromRzp.amount !== paymentRecord.amountCents) {

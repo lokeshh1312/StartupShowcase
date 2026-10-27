@@ -261,9 +261,10 @@ export const payments = pgTable(
     razorpayOrderId: text("razorpay_order_id").notNull().unique(),
     razorpayPaymentId: text("razorpay_payment_id").unique(),
     amountCents: integer("amount_cents").notNull(),
+    amountRefundedCents: integer("amount_refunded_cents").notNull().default(0),
     currency: text("currency").notNull(),
     status: text("status", {
-      enum: ["created", "paid", "failed", "refunded"],
+      enum: ["created", "paid", "failed", "refunded", "partially_refunded"],
     }).notNull(),
     webhookEventId: text("webhook_event_id").unique(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -278,6 +279,24 @@ export const payments = pgTable(
     index("idx_payments_status").on(table.status),
     index("idx_payments_order_id").on(table.razorpayOrderId),
     index("idx_payments_payment_id").on(table.razorpayPaymentId),
+  ]
+);
+
+// 11. Payment Events Table (Durable idempotency record for webhook events)
+export const paymentEvents = pgTable(
+  "payment_events",
+  {
+    id: text("id").primaryKey(),
+    eventType: text("event_type").notNull(),
+    paymentId: text("payment_id"),
+    orderId: text("order_id"),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_payment_events_created_at").on(table.createdAt),
   ]
 );
 
@@ -359,6 +378,9 @@ export type NewStartup = typeof startups.$inferInsert;
 
 export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
+
+export type PaymentEvent = typeof paymentEvents.$inferSelect;
+export type NewPaymentEvent = typeof paymentEvents.$inferInsert;
 
 export type StartupVote = typeof startupVotes.$inferSelect;
 export type SavedStartup = typeof savedStartups.$inferSelect;

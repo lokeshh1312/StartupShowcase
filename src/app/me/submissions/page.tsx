@@ -141,6 +141,13 @@ export default async function MySubmissionsPage() {
                         </span>
                       ) : startup.paymentStatus === "refunded" ? (
                         <span className="font-semibold text-slate-500">Refunded</span>
+                      ) : startup.paymentStatus === "partially_refunded" ? (
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">
+                          Partially Refunded
+                          {typeof startup.paymentAmountRefundedCents === "number" && startup.paymentAmountRefundedCents > 0
+                            ? ` ($${(startup.paymentAmountRefundedCents / 100).toFixed(2)} USD refunded)`
+                            : ""}
+                        </span>
                       ) : startup.status === "awaiting_payment" ? (
                         <span className="font-semibold text-amber-600 dark:text-amber-400">
                           Unpaid ($10.00 USD required)

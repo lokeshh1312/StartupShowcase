@@ -3,6 +3,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   payments,
+  paymentEvents,
   startups,
   auditLog,
 } from "@/db/schema";
@@ -178,18 +179,46 @@ export async function getOrCreateStartupOrder(
  * 3. Writes audit_log row
  * 4. Outside transaction: sends the existing "submission received" email.
  */
+export interface MarkPaymentPaidResult {
+  success: boolean;
+  startupId?: string;
+  alreadyPaid?: boolean;
+  alreadyRefunded?: boolean;
+  error?: string;
+}
+
 export async function markPaymentPaid(params: {
   razorpayOrderId: string;
   razorpayPaymentId?: string;
   webhookEventId?: string;
-}): Promise<{ success: boolean; startupId?: string; alreadyPaid?: boolean; error?: string }> {
+}): Promise<MarkPaymentPaidResult> {
   const { razorpayOrderId, razorpayPaymentId, webhookEventId } = params;
 
   let targetStartupId: string | null = null;
   let alreadyPaid = false;
 
   const result = await db.transaction(async (tx) => {
-    // 1. Find payment by razorpayOrderId
+    // 1. If webhookEventId is provided, record it durably in payment_events table
+    if (webhookEventId) {
+      const inserted = await tx
+        .insert(paymentEvents)
+        .values({
+          id: webhookEventId,
+          eventType: "payment.captured",
+          paymentId: razorpayPaymentId || null,
+          orderId: razorpayOrderId,
+          payload: { source: "markPaymentPaid" },
+        })
+        .onConflictDoNothing()
+        .returning({ id: paymentEvents.id });
+
+      // If another worker or replayed webhook already processed this event, exit early
+      if (inserted.length === 0) {
+        return { success: true, alreadyPaid: true };
+      }
+    }
+
+    // 2. Find payment by razorpayOrderId
     const [payment] = await tx
       .select()
       .from(payments)
@@ -208,7 +237,17 @@ export async function markPaymentPaid(params: {
       return { success: true, startupId: payment.startupId, alreadyPaid: true };
     }
 
-    // 2. Update payment record to paid
+    // CRITICAL: Prevent replayed or stale events from undoing a refund or partial refund!
+    if (payment.status === "refunded" || payment.status === "partially_refunded") {
+      return {
+        success: false,
+        error: `Cannot mark payment as paid: current status is '${payment.status}'. Stale capture event ignored.`,
+        startupId: payment.startupId,
+        alreadyRefunded: true,
+      };
+    }
+
+    // 3. Update payment record to paid
     const [updatedPayment] = await tx
       .update(payments)
       .set({
@@ -220,7 +259,7 @@ export async function markPaymentPaid(params: {
       .where(eq(payments.id, payment.id))
       .returning();
 
-    // 3. Move startup from awaiting_payment -> pending
+    // 4. Move startup from awaiting_payment -> pending
     const [updatedStartup] = await tx
       .update(startups)
       .set({
@@ -235,7 +274,7 @@ export async function markPaymentPaid(params: {
       )
       .returning();
 
-    // 4. Write audit_log row
+    // 5. Write audit_log row
     await tx.insert(auditLog).values({
       actorId: payment.userId,
       action: "payment.paid",
@@ -251,7 +290,7 @@ export async function markPaymentPaid(params: {
       },
     });
 
-    // 5. Gather email data
+    // 6. Gather email data
     const startupName = updatedStartup?.name || "your startup";
     const userRows = await tx.execute<{ email: string; display_name: string }>(sql`
       SELECT u.email, coalesce(p.display_name, 'Founder') as display_name
@@ -288,11 +327,16 @@ export async function markPaymentPaid(params: {
     );
   }
 
-  return { success: true, startupId: targetStartupId || undefined, alreadyPaid };
+  return {
+    success: true,
+    startupId: targetStartupId || undefined,
+    alreadyPaid,
+    alreadyRefunded: result.alreadyRefunded,
+  };
 }
 
 /**
- * Marks a payment as failed (idempotent, if not already paid).
+ * Marks a payment as failed (idempotent, if not already paid or refunded).
  */
 export async function markPaymentFailed(params: {
   razorpayOrderId?: string;
@@ -304,14 +348,37 @@ export async function markPaymentFailed(params: {
   if (!razorpayOrderId && !razorpayPaymentId) return;
 
   await db.transaction(async (tx) => {
+    if (webhookEventId) {
+      const inserted = await tx
+        .insert(paymentEvents)
+        .values({
+          id: webhookEventId,
+          eventType: "payment.failed",
+          paymentId: razorpayPaymentId || null,
+          orderId: razorpayOrderId || null,
+          payload: { source: "markPaymentFailed" },
+        })
+        .onConflictDoNothing()
+        .returning({ id: paymentEvents.id });
+
+      if (inserted.length === 0) {
+        return; // Already processed
+      }
+    }
+
     const condition = razorpayOrderId
       ? eq(payments.razorpayOrderId, razorpayOrderId)
       : eq(payments.razorpayPaymentId, razorpayPaymentId!);
 
     const [payment] = await tx.select().from(payments).where(condition).limit(1);
 
-    if (!payment || payment.status === "paid") {
-      return; // Never overwrite a paid payment with failed
+    if (
+      !payment ||
+      payment.status === "paid" ||
+      payment.status === "refunded" ||
+      payment.status === "partially_refunded"
+    ) {
+      return; // Never overwrite a paid or refunded payment with failed
     }
 
     await tx
@@ -336,19 +403,79 @@ export async function markPaymentFailed(params: {
   });
 }
 
+export interface ProcessRefundResult {
+  success: boolean;
+  isPartial: boolean;
+  amountRefundedCents: number;
+  totalRefundedCents: number;
+  paymentStatus: "refunded" | "partially_refunded";
+  alreadyProcessed?: boolean;
+  startupId?: string;
+  startupRejected?: boolean;
+  error?: string;
+}
+
 /**
- * Handles refund.processed webhook event:
- * Sets payment status='refunded', writes audit_log, and moves startup to 'rejected'
- * with reason "Refunded" if it is currently pending or approved.
+ * Handles refund processing (partial or full):
+ * - Records the refunded amount in `amount_refunded_cents`
+ * - If partial: sets status='partially_refunded' and DOES NOT reject the startup
+ * - If full: sets status='refunded' and moves startup to 'rejected' with reason 'Payment refunded'
+ * - Records durable webhookEventId in payment_events table
  */
 export async function processPaymentRefund(params: {
   razorpayPaymentId: string;
+  refundAmountCents?: number;
+  totalRefundedCents?: number;
   webhookEventId?: string;
   reason?: string;
-}): Promise<boolean> {
-  const { razorpayPaymentId, webhookEventId, reason = "Refunded" } = params;
+}): Promise<ProcessRefundResult> {
+  const {
+    razorpayPaymentId,
+    refundAmountCents,
+    totalRefundedCents,
+    webhookEventId,
+    reason = "Refunded",
+  } = params;
 
   return await db.transaction(async (tx) => {
+    // 1. Durably record webhook event ID in payment_events table
+    if (webhookEventId) {
+      const inserted = await tx
+        .insert(paymentEvents)
+        .values({
+          id: webhookEventId,
+          eventType: "refund.processed",
+          paymentId: razorpayPaymentId,
+          orderId: null,
+          payload: { source: "processPaymentRefund", refundAmountCents, totalRefundedCents },
+        })
+        .onConflictDoNothing()
+        .returning({ id: paymentEvents.id });
+
+      if (inserted.length === 0) {
+        // Event already processed durably!
+        const [existingPayment] = await tx
+          .select()
+          .from(payments)
+          .where(eq(payments.razorpayPaymentId, razorpayPaymentId))
+          .limit(1);
+
+        return {
+          success: true,
+          isPartial: existingPayment?.status === "partially_refunded",
+          amountRefundedCents: existingPayment?.amountRefundedCents ?? 0,
+          totalRefundedCents: existingPayment?.amountRefundedCents ?? 0,
+          paymentStatus:
+            existingPayment?.status === "partially_refunded"
+              ? "partially_refunded"
+              : "refunded",
+          alreadyProcessed: true,
+          startupId: existingPayment?.startupId,
+        };
+      }
+    }
+
+    // 2. Fetch payment record
     const [payment] = await tx
       .select()
       .from(payments)
@@ -356,20 +483,69 @@ export async function processPaymentRefund(params: {
       .limit(1);
 
     if (!payment) {
-      return false;
+      return {
+        success: false,
+        isPartial: false,
+        amountRefundedCents: 0,
+        totalRefundedCents: 0,
+        paymentStatus: "refunded",
+        error: "Payment record not found for refund.",
+      };
     }
 
-    // 1. Set payment status='refunded'
+    const previousRefundedCents = payment.amountRefundedCents || 0;
+
+    // Calculate new total refunded amount
+    let newTotalRefundedCents: number;
+    let thisRefundCents: number;
+
+    if (typeof totalRefundedCents === "number" && totalRefundedCents > 0) {
+      newTotalRefundedCents = totalRefundedCents;
+      thisRefundCents =
+        refundAmountCents ?? Math.max(0, newTotalRefundedCents - previousRefundedCents);
+    } else if (typeof refundAmountCents === "number" && refundAmountCents > 0) {
+      thisRefundCents = refundAmountCents;
+      newTotalRefundedCents = previousRefundedCents + refundAmountCents;
+    } else {
+      // Default: full refund
+      thisRefundCents = payment.amountCents - previousRefundedCents;
+      newTotalRefundedCents = payment.amountCents;
+    }
+
+    // Cap at total payment amount
+    if (newTotalRefundedCents > payment.amountCents) {
+      newTotalRefundedCents = payment.amountCents;
+    }
+
+    // Determine if full or partial refund
+    const isFullRefund = newTotalRefundedCents >= payment.amountCents;
+    const nextStatus = isFullRefund ? "refunded" : "partially_refunded";
+
+    // Idempotency: if already at full refund and marked refunded
+    if (payment.status === "refunded" && isFullRefund) {
+      return {
+        success: true,
+        isPartial: false,
+        amountRefundedCents: thisRefundCents,
+        totalRefundedCents: payment.amountRefundedCents,
+        paymentStatus: "refunded",
+        alreadyProcessed: true,
+        startupId: payment.startupId,
+      };
+    }
+
+    // 3. Update payment record
     await tx
       .update(payments)
       .set({
-        status: "refunded",
+        status: nextStatus,
+        amountRefundedCents: newTotalRefundedCents,
         refundedAt: new Date(),
         webhookEventId: webhookEventId || payment.webhookEventId,
       })
       .where(eq(payments.id, payment.id));
 
-    // 2. Audit log for payment refund
+    // 4. Audit log for refund
     await tx.insert(auditLog).values({
       actorId: payment.userId,
       action: "payment.refunded",
@@ -378,39 +554,59 @@ export async function processPaymentRefund(params: {
       metadata: {
         razorpay_payment_id: razorpayPaymentId,
         webhook_event_id: webhookEventId,
+        refund_amount_cents: thisRefundCents,
+        total_refunded_cents: newTotalRefundedCents,
+        amount_cents: payment.amountCents,
+        is_partial: !isFullRefund,
+        status: nextStatus,
         reason,
       },
     });
 
-    // 3. If startup is pending or approved, move to 'rejected' with reason 'Refunded'
-    const [startup] = await tx
-      .select({ id: startups.id, status: startups.status })
-      .from(startups)
-      .where(eq(startups.id, payment.startupId))
-      .limit(1);
+    let startupRejected = false;
 
-    if (startup && (startup.status === "pending" || startup.status === "approved")) {
-      await tx
-        .update(startups)
-        .set({
-          status: "rejected",
-          updatedAt: new Date(),
-        })
-        .where(eq(startups.id, startup.id));
+    // 5. ONLY automatically reject the startup if it is a FULL refund!
+    // Never reject solely because a partial refund occurred.
+    if (isFullRefund) {
+      const [startup] = await tx
+        .select({ id: startups.id, status: startups.status })
+        .from(startups)
+        .where(eq(startups.id, payment.startupId))
+        .limit(1);
 
-      await tx.insert(auditLog).values({
-        actorId: null,
-        action: "startup.status_change:rejected",
-        targetType: "startup",
-        targetId: startup.id,
-        metadata: {
-          previous_status: startup.status,
-          new_status: "rejected",
-          reason: "Refunded",
-        },
-      });
+      if (startup && (startup.status === "pending" || startup.status === "approved")) {
+        await tx
+          .update(startups)
+          .set({
+            status: "rejected",
+            updatedAt: new Date(),
+          })
+          .where(eq(startups.id, startup.id));
+
+        await tx.insert(auditLog).values({
+          actorId: null,
+          action: "startup.status_change:rejected",
+          targetType: "startup",
+          targetId: startup.id,
+          metadata: {
+            previous_status: startup.status,
+            new_status: "rejected",
+            reason: "Payment refunded",
+          },
+        });
+
+        startupRejected = true;
+      }
     }
 
-    return true;
+    return {
+      success: true,
+      isPartial: !isFullRefund,
+      amountRefundedCents: thisRefundCents,
+      totalRefundedCents: newTotalRefundedCents,
+      paymentStatus: nextStatus,
+      startupId: payment.startupId,
+      startupRejected,
+    };
   });
 }

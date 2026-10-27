@@ -73,6 +73,16 @@ test.describe("Startup Showcase E2E Smoke Tests", () => {
     }
   });
 
+  test("Refund policy page renders with plain-language guidelines and details", async ({
+    page,
+  }) => {
+    const res = await page.goto("/refunds");
+    expect(res?.status()).toBe(200);
+    await expect(page.locator("h1")).toContainText(/Refund & Cancellation Policy/i);
+    await expect(page.locator("body")).toContainText(/10.00 USD/i);
+    await expect(page.locator("body")).toContainText(/Razorpay/i);
+  });
+
   test("Auth pages render properly", async ({ page }) => {
     for (const route of [
       "/login",

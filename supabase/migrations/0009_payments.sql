@@ -17,8 +17,9 @@ CREATE TABLE IF NOT EXISTS public.payments (
   razorpay_order_id text NOT NULL UNIQUE,
   razorpay_payment_id text UNIQUE,
   amount_cents integer NOT NULL,
+  amount_refunded_cents integer NOT NULL DEFAULT 0,
   currency text NOT NULL,
-  status text NOT NULL CHECK (status IN ('created', 'paid', 'failed', 'refunded')),
+  status text NOT NULL CHECK (status IN ('created', 'paid', 'failed', 'refunded', 'partially_refunded')),
   webhook_event_id text UNIQUE,
   created_at timestamptz NOT NULL DEFAULT now(),
   paid_at timestamptz,
@@ -43,6 +44,28 @@ DROP POLICY IF EXISTS "payments_select_policy" ON public.payments;
 CREATE POLICY "payments_select_policy" ON public.payments
   FOR SELECT TO authenticated
   USING (auth.uid() = user_id OR public.is_admin());
+
+-- 4B. Create public.payment_events table for durable event deduplication
+CREATE TABLE IF NOT EXISTS public.payment_events (
+  id text PRIMARY KEY,
+  event_type text NOT NULL,
+  payment_id text,
+  order_id text,
+  payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_payment_events_created_at ON public.payment_events(created_at);
+
+REVOKE ALL ON public.payment_events FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.payment_events TO authenticated;
+
+ALTER TABLE public.payment_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "payment_events_select_policy" ON public.payment_events;
+CREATE POLICY "payment_events_select_policy" ON public.payment_events
+  FOR SELECT TO authenticated
+  USING (public.is_admin());
 
 -- 5. Update Startups RLS Policies
 -- A. Insert: direct API insert must have status = 'awaiting_payment' (never 'pending' or 'approved')
@@ -90,11 +113,11 @@ BEGIN
 
   IF TG_OP = 'UPDATE' THEN
     -- Any transition from 'awaiting_payment' to 'pending' (or approved/rejected)
-    -- MUST have a payment row with status = 'paid'. Applies to EVERY caller (including server role).
+    -- MUST have a payment row with status = 'paid' or 'partially_refunded'. Applies to EVERY caller (including server role).
     IF OLD.status = 'awaiting_payment' AND NEW.status <> 'awaiting_payment' THEN
       IF NOT EXISTS (
         SELECT 1 FROM public.payments p
-        WHERE p.startup_id = NEW.id AND p.status = 'paid'
+        WHERE p.startup_id = NEW.id AND p.status IN ('paid', 'partially_refunded')
       ) THEN
         RAISE EXCEPTION 'Cannot transition startup % from awaiting_payment to % without a paid payment record',
           NEW.id, NEW.status
@@ -118,7 +141,7 @@ BEGIN
     IF auth.uid() IS NOT NULL AND NOT public.is_admin() THEN
       IF OLD.status <> 'awaiting_payment' OR EXISTS (
         SELECT 1 FROM public.payments p
-        WHERE p.startup_id = OLD.id AND p.status = 'paid'
+        WHERE p.startup_id = OLD.id AND p.status IN ('paid', 'partially_refunded')
       ) THEN
         RAISE EXCEPTION 'Paid startups cannot be deleted by the owner. Please contact support.'
           USING ERRCODE = '42501';

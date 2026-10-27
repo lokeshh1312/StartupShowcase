@@ -58,8 +58,9 @@ export type FormattedStartup = Startup & {
   isLiked?: boolean;
   isSaved?: boolean;
   rank?: number;
-  paymentStatus?: "created" | "paid" | "failed" | "refunded" | null;
+  paymentStatus?: "created" | "paid" | "failed" | "refunded" | "partially_refunded" | null;
   paymentAmountCents?: number | null;
+  paymentAmountRefundedCents?: number | null;
   paymentCurrency?: string | null;
   razorpayPaymentId?: string | null;
   razorpayOrderId?: string | null;
@@ -121,6 +122,7 @@ export function formatStartupRow(row: Record<string, unknown>): FormattedStartup
     rank: row.rank !== undefined ? Number(row.rank) : undefined,
     paymentStatus: (row.paymentStatus ?? row.payment_status ?? null) as FormattedStartup["paymentStatus"],
     paymentAmountCents: row.paymentAmountCents !== undefined ? Number(row.paymentAmountCents) : (row.payment_amount_cents !== undefined && row.payment_amount_cents !== null ? Number(row.payment_amount_cents) : null),
+    paymentAmountRefundedCents: row.paymentAmountRefundedCents !== undefined ? Number(row.paymentAmountRefundedCents) : (row.payment_amount_refunded_cents !== undefined && row.payment_amount_refunded_cents !== null ? Number(row.payment_amount_refunded_cents) : null),
     paymentCurrency: (row.paymentCurrency ?? row.payment_currency ?? null) as string | null,
     razorpayPaymentId: (row.razorpayPaymentId ?? row.razorpay_payment_id ?? null) as string | null,
     razorpayOrderId: (row.razorpayOrderId ?? row.razorpay_order_id ?? null) as string | null,
@@ -1259,6 +1261,7 @@ export async function getMySubmissions(
       vote_count: string | number;
       payment_status: string | null;
       payment_amount_cents: number | null;
+      payment_amount_refunded_cents: number | null;
       payment_currency: string | null;
       razorpay_order_id: string | null;
       razorpay_payment_id: string | null;
@@ -1269,6 +1272,7 @@ export async function getMySubmissions(
       COALESCE(vote_agg.count, 0)::int AS vote_count,
       p.status AS payment_status,
       p.amount_cents AS payment_amount_cents,
+      p.amount_refunded_cents AS payment_amount_refunded_cents,
       p.currency AS payment_currency,
       p.razorpay_order_id,
       p.razorpay_payment_id
@@ -1279,7 +1283,7 @@ export async function getMySubmissions(
       GROUP BY startup_id
     ) vote_agg ON vote_agg.startup_id = startups.id
     LEFT JOIN LATERAL (
-      SELECT status, amount_cents, currency, razorpay_order_id, razorpay_payment_id
+      SELECT status, amount_cents, amount_refunded_cents, currency, razorpay_order_id, razorpay_payment_id
       FROM public.payments
       WHERE public.payments.startup_id = startups.id
       ORDER BY created_at DESC
