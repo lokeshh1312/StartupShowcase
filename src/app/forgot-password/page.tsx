@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
 
     const formData = new FormData();
     formData.append("email", email);
-    formData.append("turnstileToken", turnstileToken);
+    formData.append("captchaToken", turnstileToken);
 
     startTransition(async () => {
       const res = await forgotPasswordAction(formData);

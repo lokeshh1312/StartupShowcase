@@ -35,6 +35,44 @@ export function validateTurnstileEnv() {
 validateTurnstileEnv();
 
 /**
+ * Extracts a CAPTCHA / Cloudflare Turnstile token from a FormData, URLSearchParams, or plain object.
+ * Checks candidate keys in order:
+ *   1. "captchaToken" (standardized client field name)
+ *   2. "turnstileToken" (legacy/alternative client field name)
+ *   3. "cf-turnstile-response" (default Cloudflare Turnstile form POST field name)
+ * Returns the first non-empty trimmed string, or undefined if none found.
+ */
+export function extractCaptchaToken(
+  formData?: FormData | URLSearchParams | Record<string, unknown> | null
+): string | undefined {
+  if (!formData) return undefined;
+
+  const candidateKeys = ["captchaToken", "turnstileToken", "cf-turnstile-response"] as const;
+
+  if (typeof (formData as { get?: unknown }).get === "function") {
+    const getter = formData as FormData | URLSearchParams;
+    for (const key of candidateKeys) {
+      const raw = getter.get(key);
+      const val = typeof raw === "string" ? raw.trim() : raw?.toString()?.trim();
+      if (val) return val;
+    }
+    return undefined;
+  }
+
+  if (typeof formData === "object") {
+    const obj = formData as Record<string, unknown>;
+    for (const key of candidateKeys) {
+      const raw = obj[key];
+      if (typeof raw === "string" && raw.trim()) {
+        return raw.trim();
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * Verifies a Cloudflare Turnstile token on the server using siteverify.
  * In development, if TURNSTILE_SECRET_KEY is not configured, verification is skipped safely.
  */
