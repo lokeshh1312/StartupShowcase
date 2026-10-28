@@ -8,8 +8,13 @@ import {
 import { markPaymentPaid, processPaymentRefund } from "@/server/payments";
 import { POST as webhookPost } from "@/app/api/webhooks/razorpay/route";
 import { db } from "@/db";
-import { payments, paymentEvents } from "@/db/schema";
+import { payments, paymentEvents, startups } from "@/db/schema";
 import { NextRequest } from "next/server";
+import * as emailModule from "@/server/email";
+import { confirmPaymentAction } from "@/server/actions";
+import { deleteStartup } from "@/server/startups";
+import * as razorpayServer from "@/server/razorpay";
+import * as authServer from "@/lib/supabase/server";
 
 describe("Payments - Server-side price enforcement", () => {
   const originalEnv = process.env.SUBMISSION_PRICE_USD_CENTS;
@@ -341,14 +346,18 @@ describe("Payments - Partial and Full Refunds", () => {
         }),
         select: () => ({
           from: (table: unknown) => ({
-            where: () => ({
-              limit: () => {
-                if (table === payments) {
-                  return [mockPayment];
-                }
-                return [mockStartup];
-              },
-            }),
+            where: () => {
+              const queryObj = {
+                limit: () => {
+                  if (table === payments) {
+                    return [mockPayment];
+                  }
+                  return [mockStartup];
+                },
+                for: () => queryObj,
+              };
+              return queryObj;
+            },
           }),
         }),
         update: () => ({
@@ -485,17 +494,35 @@ describe("Payments - Stale Event Replay & State Transitions", () => {
           }),
         }),
         select: () => ({
-          from: () => ({
-            where: () => ({
-              limit: () => [mockPayment],
-            }),
+          from: (table: unknown) => ({
+            where: () => {
+              const queryObj = {
+                limit: () => {
+                  if (table === payments) {
+                    return [mockPayment];
+                  }
+                  return [mockStartup];
+                },
+                for: () => queryObj,
+              };
+              return queryObj;
+            },
           }),
         }),
-        update: () => ({
-          set: (vals: Partial<MockPaymentRecord>) => ({
+        update: (table: unknown) => ({
+          set: (vals: Record<string, unknown>) => ({
             where: () => {
-              Object.assign(mockPayment, vals);
-              return [mockPayment];
+              if (table === payments || vals.paidAt !== undefined) {
+                Object.assign(mockPayment, vals);
+                return {
+                  returning: () => [mockPayment],
+                };
+              } else {
+                Object.assign(mockStartup, vals);
+                return {
+                  returning: () => [mockStartup],
+                };
+              }
             },
           }),
         }),
@@ -508,6 +535,45 @@ describe("Payments - Stale Event Replay & State Transitions", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("late payment.captured after refund does not change status", async () => {
+    mockPayment.status = "refunded";
+    const result = await markPaymentPaid({
+      razorpayOrderId: "order_1",
+      razorpayPaymentId: "pay_rzp_1",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Payment was refunded.");
+    expect(mockPayment.status).toBe("refunded");
+  });
+
+  it("concurrent markPaymentPaid calls (simulate sequentially) mark paid once and send one email", async () => {
+    mockPayment.status = "created";
+    let emailSentCount = 0;
+    vi.spyOn(emailModule, "fireAndForgetEmail").mockImplementation(() => {
+      emailSentCount++;
+    });
+
+    const firstCall = await markPaymentPaid({
+      razorpayOrderId: "order_1",
+      razorpayPaymentId: "pay_rzp_1",
+    });
+
+    expect(firstCall.success).toBe(true);
+    expect(firstCall.alreadyPaid).toBe(false);
+    expect(mockPayment.status).toBe("paid");
+    expect(emailSentCount).toBe(1);
+
+    const secondCall = await markPaymentPaid({
+      razorpayOrderId: "order_1",
+      razorpayPaymentId: "pay_rzp_1",
+    });
+
+    expect(secondCall.success).toBe(true);
+    expect(secondCall.alreadyPaid).toBe(true);
+    expect(emailSentCount).toBe(1);
   });
 
   it("prevents replaying a payment.captured event from undoing a full refund", async () => {
@@ -580,10 +646,16 @@ describe("Payments - Webhook Route Idempotency & Event Routing", () => {
 
     vi.spyOn(db, "insert").mockImplementation((() => ({
       values: (vals: Record<string, unknown>) => ({
-        onConflictDoNothing: async () => {
-          if (typeof vals.id === "string") recordedEvents.add(vals.id);
-          return [];
-        },
+        onConflictDoNothing: () => ({
+          returning: () => {
+            const evId = (vals.eventId || vals.id) as string;
+            if (recordedEvents.has(evId)) {
+              return [];
+            }
+            recordedEvents.add(evId);
+            return [{ eventId: evId, id: evId }];
+          },
+        }),
       }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
     })) as any);
@@ -696,5 +768,152 @@ describe("Payments - Webhook Route Idempotency & Event Routing", () => {
     const data = await res.json();
     expect(res.status).toBe(200);
     expect(data.ignored).toBe(true);
+  });
+});
+
+describe("Payments - confirmPaymentAction validation", () => {
+  let mockPayment: MockPaymentRecord;
+
+  beforeEach(() => {
+    mockPayment = {
+      id: "pay_1",
+      startupId: "startup_1",
+      userId: "user_1",
+      razorpayOrderId: "order_1",
+      razorpayPaymentId: "pay_rzp_1",
+      amountCents: 1000,
+      amountRefundedCents: 0,
+      currency: "USD",
+      status: "created",
+      webhookEventId: null,
+    };
+
+    vi.spyOn(authServer, "getCurrentUserProfile").mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock user
+      user: { id: "user_1" } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock profile
+      profile: { id: "user_1", role: "founder" } as any,
+    });
+
+    vi.spyOn(razorpayServer, "verifyPaymentSignature").mockReturnValue(true);
+
+    vi.spyOn(db, "select").mockImplementation((() => ({
+      from: () => ({
+        where: () => ({
+          limit: () => [mockPayment],
+        }),
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("authorized status rejected (requires captured status)", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayPayment").mockResolvedValue({
+      id: "pay_rzp_1",
+      order_id: "order_1",
+      amount: 1000,
+      currency: "USD",
+      status: "authorized",
+    });
+
+    const res = await confirmPaymentAction({
+      startupId: "startup_1",
+      razorpayOrderId: "order_1",
+      razorpayPaymentId: "pay_rzp_1",
+      razorpaySignature: "sig_1",
+    });
+
+    expect(res).toEqual({
+      error: "Payment is not captured (status: authorized). An authorized payment is not captured yet.",
+    });
+  });
+
+  it("order id mismatch rejected", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayPayment").mockResolvedValue({
+      id: "pay_rzp_1",
+      order_id: "different_order_id",
+      amount: 1000,
+      currency: "USD",
+      status: "captured",
+    });
+
+    const res = await confirmPaymentAction({
+      startupId: "startup_1",
+      razorpayOrderId: "order_1",
+      razorpayPaymentId: "pay_rzp_1",
+      razorpaySignature: "sig_1",
+    });
+
+    expect(res).toEqual({
+      error: "Payment order ID mismatch.",
+    });
+  });
+});
+
+describe("Payments - Immutability: payments can never be deleted for paid/refunded startups", () => {
+  beforeEach(() => {
+    vi.spyOn(db, "delete").mockImplementation((() => ({
+      where: vi.fn(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("blocks deleting a startup that has a paid payment record", async () => {
+    vi.spyOn(db, "select").mockImplementation((() => ({
+      from: (table: unknown) => ({
+        where: () => {
+          const queryObj = {
+            limit: () => {
+              if (table === startups) {
+                return [{ id: "s1", ownerId: "u1", status: "pending", thumbnail: null, coverImage: null }];
+              }
+              return [{ id: "p1", status: "paid", createdAt: new Date() }];
+            },
+            // For startupPayments query which does not use limit
+            then: (resolve: (v: unknown) => unknown) =>
+              resolve([{ id: "p1", status: "paid", createdAt: new Date() }]),
+          };
+          return queryObj;
+        },
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+
+    await expect(deleteStartup("s1", "u1", true)).rejects.toThrow(
+      "Startups with paid or refunded payments cannot be deleted. Paid startups can be rejected but not deleted."
+    );
+  });
+
+  it("blocks deleting a startup that has a refunded payment record", async () => {
+    vi.spyOn(db, "select").mockImplementation((() => ({
+      from: (table: unknown) => ({
+        where: () => {
+          const queryObj = {
+            limit: () => {
+              if (table === startups) {
+                return [{ id: "s1", ownerId: "u1", status: "rejected", thumbnail: null, coverImage: null }];
+              }
+              return [{ id: "p1", status: "refunded", createdAt: new Date() }];
+            },
+            then: (resolve: (v: unknown) => unknown) =>
+              resolve([{ id: "p1", status: "refunded", createdAt: new Date() }]),
+          };
+          return queryObj;
+        },
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+
+    await expect(deleteStartup("s1", "u1", false)).rejects.toThrow(
+      "Startups with paid or refunded payments cannot be deleted. Paid startups can be rejected but not deleted."
+    );
   });
 });

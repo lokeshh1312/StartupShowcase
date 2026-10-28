@@ -198,31 +198,12 @@ export async function markPaymentPaid(params: {
   let alreadyPaid = false;
 
   const result = await db.transaction(async (tx) => {
-    // 1. If webhookEventId is provided, record it durably in payment_events table
-    if (webhookEventId) {
-      const inserted = await tx
-        .insert(paymentEvents)
-        .values({
-          id: webhookEventId,
-          eventType: "payment.captured",
-          paymentId: razorpayPaymentId || null,
-          orderId: razorpayOrderId,
-          payload: { source: "markPaymentPaid" },
-        })
-        .onConflictDoNothing()
-        .returning({ id: paymentEvents.id });
-
-      // If another worker or replayed webhook already processed this event, exit early
-      if (inserted.length === 0) {
-        return { success: true, alreadyPaid: true };
-      }
-    }
-
-    // 2. Find payment by razorpayOrderId
+    // 1. Lock payment row via SELECT ... FOR UPDATE
     const [payment] = await tx
       .select()
       .from(payments)
       .where(eq(payments.razorpayOrderId, razorpayOrderId))
+      .for("update")
       .limit(1);
 
     if (!payment) {
@@ -237,17 +218,26 @@ export async function markPaymentPaid(params: {
       return { success: true, startupId: payment.startupId, alreadyPaid: true };
     }
 
-    // CRITICAL: Prevent replayed or stale events from undoing a refund or partial refund!
+    // Never revive a refunded payment
     if (payment.status === "refunded" || payment.status === "partially_refunded") {
       return {
         success: false,
-        error: `Cannot mark payment as paid: current status is '${payment.status}'. Stale capture event ignored.`,
+        error: "Payment was refunded.",
         startupId: payment.startupId,
         alreadyRefunded: true,
       };
     }
 
-    // 3. Update payment record to paid
+    // Only transition to 'paid' from status 'created' or 'failed'
+    if (payment.status !== "created" && payment.status !== "failed") {
+      return {
+        success: false,
+        error: `Cannot transition payment from status '${payment.status}' to 'paid'.`,
+        startupId: payment.startupId,
+      };
+    }
+
+    // 2. Update payment record to paid
     const [updatedPayment] = await tx
       .update(payments)
       .set({
@@ -259,7 +249,7 @@ export async function markPaymentPaid(params: {
       .where(eq(payments.id, payment.id))
       .returning();
 
-    // 4. Move startup from awaiting_payment -> pending
+    // 3. Move startup from awaiting_payment -> pending
     const [updatedStartup] = await tx
       .update(startups)
       .set({
@@ -274,7 +264,7 @@ export async function markPaymentPaid(params: {
       )
       .returning();
 
-    // 5. Write audit_log row
+    // 4. Write audit_log row
     await tx.insert(auditLog).values({
       actorId: payment.userId,
       action: "payment.paid",
@@ -290,7 +280,7 @@ export async function markPaymentPaid(params: {
       },
     });
 
-    // 6. Gather email data
+    // 5. Gather email data
     const startupName = updatedStartup?.name || "your startup";
     const userRows = await tx.execute<{ email: string; display_name: string }>(sql`
       SELECT u.email, coalesce(p.display_name, 'Founder') as display_name
@@ -336,7 +326,7 @@ export async function markPaymentPaid(params: {
 }
 
 /**
- * Marks a payment as failed (idempotent, if not already paid or refunded).
+ * Marks a payment as failed (idempotent, never overwrites paid or refunded).
  */
 export async function markPaymentFailed(params: {
   razorpayOrderId?: string;
@@ -348,37 +338,27 @@ export async function markPaymentFailed(params: {
   if (!razorpayOrderId && !razorpayPaymentId) return;
 
   await db.transaction(async (tx) => {
-    if (webhookEventId) {
-      const inserted = await tx
-        .insert(paymentEvents)
-        .values({
-          id: webhookEventId,
-          eventType: "payment.failed",
-          paymentId: razorpayPaymentId || null,
-          orderId: razorpayOrderId || null,
-          payload: { source: "markPaymentFailed" },
-        })
-        .onConflictDoNothing()
-        .returning({ id: paymentEvents.id });
-
-      if (inserted.length === 0) {
-        return; // Already processed
-      }
-    }
-
     const condition = razorpayOrderId
       ? eq(payments.razorpayOrderId, razorpayOrderId)
       : eq(payments.razorpayPaymentId, razorpayPaymentId!);
 
-    const [payment] = await tx.select().from(payments).where(condition).limit(1);
+    const [payment] = await tx
+      .select()
+      .from(payments)
+      .where(condition)
+      .for("update")
+      .limit(1);
 
     if (
       !payment ||
       payment.status === "paid" ||
-      payment.status === "refunded" ||
-      payment.status === "partially_refunded"
+      payment.status === "refunded"
     ) {
       return; // Never overwrite a paid or refunded payment with failed
+    }
+
+    if (payment.status !== "created") {
+      return;
     }
 
     await tx
@@ -443,14 +423,12 @@ export async function processPaymentRefund(params: {
       const inserted = await tx
         .insert(paymentEvents)
         .values({
-          id: webhookEventId,
+          eventId: webhookEventId,
           eventType: "refund.processed",
-          paymentId: razorpayPaymentId,
-          orderId: null,
-          payload: { source: "processPaymentRefund", refundAmountCents, totalRefundedCents },
+          razorpayPaymentId,
         })
         .onConflictDoNothing()
-        .returning({ id: paymentEvents.id });
+        .returning({ eventId: paymentEvents.eventId });
 
       if (inserted.length === 0) {
         // Event already processed durably!
@@ -458,6 +436,7 @@ export async function processPaymentRefund(params: {
           .select()
           .from(payments)
           .where(eq(payments.razorpayPaymentId, razorpayPaymentId))
+          .for("update")
           .limit(1);
 
         return {
@@ -475,11 +454,12 @@ export async function processPaymentRefund(params: {
       }
     }
 
-    // 2. Fetch payment record
+    // 2. Fetch payment record with row lock
     const [payment] = await tx
       .select()
       .from(payments)
       .where(eq(payments.razorpayPaymentId, razorpayPaymentId))
+      .for("update")
       .limit(1);
 
     if (!payment) {

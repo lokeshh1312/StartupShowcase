@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, X, ShieldCheck, ExternalLink } from "lucide-react";
+import { Check, X, ShieldCheck, ExternalLink, Info } from "lucide-react";
 import { moderateStartupAction } from "@/server/actions";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { getCountryName } from "@/lib/validation";
@@ -168,6 +168,14 @@ export function AdminPanel({
           {error}
         </div>
       )}
+
+      {/* Policy Notice for Admins */}
+      <div className="flex items-start gap-3 p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+        <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+        <div>
+          <span className="font-semibold">Review &amp; Moderation Policy:</span> Paid startups can be rejected but not deleted. Abandoned unpaid drafts are cleared automatically after 7 days.
+        </div>
+      </div>
 
       {/* Tab: Pending */}
       {activeTab === "pending" && (

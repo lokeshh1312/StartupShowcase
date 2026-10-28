@@ -355,9 +355,9 @@ export async function confirmPaymentAction(params: {
       return { success: true };
     }
 
-    if (paymentRecord.status === "refunded" || paymentRecord.status === "partially_refunded") {
+    if (paymentRecord.status === "refunded") {
       return {
-        error: `Cannot confirm payment: payment status is already '${paymentRecord.status}'.`,
+        error: "Payment was refunded.",
       };
     }
 

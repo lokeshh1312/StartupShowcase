@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FileText, ArrowLeft } from "lucide-react";
 import { createMetadata } from "@/lib/seo";
+import { getSubmissionPriceCents, formatSubmissionPriceUsd } from "@/server/razorpay";
 
 export const metadata: Metadata = createMetadata({
   title: "Terms of Service",
@@ -11,6 +12,7 @@ export const metadata: Metadata = createMetadata({
 });
 
 export default function TermsPage() {
+  const formattedPrice = formatSubmissionPriceUsd(getSubmissionPriceCents());
   const companyName =
     process.env.NEXT_PUBLIC_COMPANY_NAME?.trim() || "Startup Showcase";
   const contactEmail =
@@ -126,7 +128,7 @@ export default function TermsPage() {
             6. Fees, Payments &amp; Payment Processing
           </h2>
           <p>
-            Startup submissions require a one-time review and listing fee of $10.00 USD. All payments are
+            Startup submissions require a one-time review and listing fee of {formattedPrice}. All payments are
             processed by our third-party payment partner, <strong>Razorpay</strong>.
           </p>
           <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
@@ -134,7 +136,7 @@ export default function TermsPage() {
               <strong>No Card Data Storage:</strong> Startup Showcase <strong>never receives, handles, or stores your credit or debit card numbers, CVVs, or sensitive payment credentials</strong> on our systems. All card processing is conducted securely by Razorpay.
             </li>
             <li>
-              <strong>Currency:</strong> All fees are billed strictly in USD ($10.00 USD).
+              <strong>Currency:</strong> All fees are billed strictly in USD ({formattedPrice}).
             </li>
             <li>
               <strong>Refunds &amp; Cancellations:</strong> Submission fees are governed by our plain-language{" "}

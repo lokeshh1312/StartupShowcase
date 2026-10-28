@@ -64,7 +64,7 @@ export async function cleanupUnpaidStartups(options?: {
         AND s.created_at < (now() - (${days} || ' days')::interval)
         AND NOT EXISTS (
           SELECT 1 FROM public.payments p
-          WHERE p.startup_id = s.id AND p.status = 'paid'
+          WHERE p.startup_id = s.id AND p.status IN ('paid', 'refunded')
         )
       ORDER BY s.created_at ASC;
     `;
@@ -112,9 +112,14 @@ export async function cleanupUnpaidStartups(options?: {
         }
       }
 
-      // Delete in transaction: payment records first (due to ON DELETE RESTRICT on startup_id), then startup
+      // Delete in transaction: payment records first via cleanup rule (status IN ('created','failed') and older than 7 days), then startup
       await sql.begin(async (tx) => {
-        await tx`DELETE FROM public.payments WHERE startup_id = ${startup.id}::uuid;`;
+        await tx`
+          DELETE FROM public.payments
+          WHERE startup_id = ${startup.id}::uuid
+            AND status IN ('created', 'failed')
+            AND created_at < (now() - interval '7 days');
+        `;
         await tx`DELETE FROM public.startups WHERE id = ${startup.id}::uuid;`;
         await tx`
           INSERT INTO public.audit_log (actor_id, action, target_type, target_id, metadata, created_at)

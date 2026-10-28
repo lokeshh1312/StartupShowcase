@@ -70,6 +70,7 @@ BEGIN
   -- SETUP (as postgres)
   ----------------------------------------------------------------------
   -- Pre-cleanup in case of prior interrupted execution
+  UPDATE public.payments SET status = 'failed', created_at = (now() - interval '8 days') WHERE id IN (_payment_a_id, _payment_b_id) OR startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id) OR razorpay_order_id LIKE 'order_rls_%';
   DELETE FROM public.payments WHERE id IN (_payment_a_id, _payment_b_id) OR startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id) OR razorpay_order_id LIKE 'order_rls_%';
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
   DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text, _startup_awaiting_id::text);
@@ -1590,12 +1591,163 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
+  -- 53: trigger blocks DELETE on public.payments with status 'paid' for any caller
+  _check_name := '53 (NEG): trigger blocks DELETE on paid payments';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    DELETE FROM public.payments WHERE id = _payment_b_id;
+    _passed := false;
+    _details := 'FAIL: Delete on paid payment succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (enforce_payments_delete_restriction)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 54: trigger blocks DELETE on created payments younger than 7 days
+  _check_name := '54 (NEG): trigger blocks DELETE on payments created < 7 days ago';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    DELETE FROM public.payments WHERE id = _payment_a_id;
+    _passed := false;
+    _details := 'FAIL: Delete on recent created payment succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (enforce_payments_delete_restriction)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 55: trigger allows DELETE on created payments older than 7 days
+  _check_name := '55 (POS): trigger allows DELETE on created payments older than 7 days';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    BEGIN
+      INSERT INTO public.payments (
+        id, startup_id, user_id, razorpay_order_id, amount_cents, currency, status, created_at
+      ) VALUES (
+        '12345678-1234-4234-a234-123456789012'::uuid, _startup_awaiting_id, _uid_a,
+        'order_rls_old_draft', 1000, 'USD', 'created', now() - interval '8 days'
+      );
+      DELETE FROM public.payments WHERE id = '12345678-1234-4234-a234-123456789012'::uuid;
+      GET DIAGNOSTICS _rc = ROW_COUNT;
+      IF _rc = 1 THEN
+        _passed := true;
+        _details := 'Delete succeeded on created payment > 7 days old (1 row deleted)';
+      ELSE
+        _passed := false;
+        _details := format('FAIL: Expected 1 row deleted, got %s', _rc);
+      END IF;
+      RAISE EXCEPTION 'subtransaction_rollback' USING ERRCODE = 'P0001';
+    EXCEPTION
+      WHEN SQLSTATE 'P0001' AND SQLERRM = 'subtransaction_rollback' THEN
+        NULL;
+      WHEN OTHERS THEN
+        _passed := false;
+        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+    END;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 56: trigger blocks DELETE on startup that has a paid or refunded payment
+  _check_name := '56 (NEG): trigger blocks DELETE on startup with paid payment';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    DELETE FROM public.startups WHERE id = _startup_approved_id;
+    _passed := false;
+    _details := 'FAIL: Delete on startup with paid payment succeeded';
+  EXCEPTION
+    WHEN SQLSTATE '42501' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 42501 (enforce_startup_payment_transition)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 57: payments.user_id ON DELETE RESTRICT blocks deleting user
+  _check_name := '57 (NEG): payments.user_id ON DELETE RESTRICT blocks user deletion';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    DELETE FROM auth.users WHERE id = _uid_a;
+    _passed := false;
+    _details := 'FAIL: Delete on auth.users succeeded despite foreign key RESTRICT on payments';
+  EXCEPTION
+    WHEN SQLSTATE '23503' THEN
+      _passed := true;
+      _details := 'Caught expected SQLSTATE 23503 (foreign_key_violation RESTRICT)';
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 58: deleting an unpaid draft startup with no payments succeeds
+  _check_name := '58 (POS): deleting unpaid draft startup with no payments succeeds';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    BEGIN
+      INSERT INTO public.startups (
+        id, slug, owner_id, status, is_sample, name, idea_title, tagline, description,
+        category, country_code, stage, month, views_count
+      ) VALUES (
+        '87654321-4321-4321-a321-123456789012'::uuid, 'rls-draft-nopay', _uid_a, 'awaiting_payment', false,
+        'Draft No Pay', 'Draft Idea', 'Draft Tagline', 'Draft description',
+        'FinTech', 'US', 'Idea', '2026-10-01'::date, 0
+      );
+      DELETE FROM public.startups WHERE id = '87654321-4321-4321-a321-123456789012'::uuid;
+      GET DIAGNOSTICS _rc = ROW_COUNT;
+      IF _rc = 1 THEN
+        _passed := true;
+        _details := 'Delete succeeded on unpaid draft startup without payments (1 row deleted)';
+      ELSE
+        _passed := false;
+        _details := format('FAIL: Expected 1 row deleted, got %s', _rc);
+      END IF;
+      RAISE EXCEPTION 'subtransaction_rollback' USING ERRCODE = 'P0001';
+    EXCEPTION
+      WHEN SQLSTATE 'P0001' AND SQLERRM = 'subtransaction_rollback' THEN
+        NULL;
+      WHEN OTHERS THEN
+        _passed := false;
+        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+    END;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
   ----------------------------------------------------------------------
   -- UNCONDITIONAL CLEANUP BLOCK
   ----------------------------------------------------------------------
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
 
+  UPDATE public.payments SET status = 'failed', created_at = (now() - interval '8 days') WHERE id IN (_payment_a_id, _payment_b_id) OR startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id) OR razorpay_order_id LIKE 'order_rls_%';
   DELETE FROM public.payments WHERE id IN (_payment_a_id, _payment_b_id) OR startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id) OR razorpay_order_id LIKE 'order_rls_%';
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
   DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text, _startup_awaiting_id::text);
@@ -1607,6 +1759,7 @@ EXCEPTION WHEN OTHERS THEN
   -- Ensure cleanup runs even if an unhandled error aborts the block
   PERFORM set_config('role', 'postgres', true);
   PERFORM set_config('request.jwt.claims', '', true);
+  UPDATE public.payments SET status = 'failed', created_at = (now() - interval '8 days') WHERE id IN (_payment_a_id, _payment_b_id) OR startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id) OR razorpay_order_id LIKE 'order_rls_%';
   DELETE FROM public.payments WHERE id IN (_payment_a_id, _payment_b_id) OR startup_id IN (_startup_approved_id, _startup_pending_id, _startup_awaiting_id) OR razorpay_order_id LIKE 'order_rls_%';
   DELETE FROM public.startup_comments WHERE id = _comment_test_id;
   DELETE FROM public.audit_log WHERE target_id IN (_comment_test_id::text, _startup_pending_id::text, _startup_awaiting_id::text);

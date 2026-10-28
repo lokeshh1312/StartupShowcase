@@ -18,6 +18,13 @@ export function getSubmissionPriceCents(): number {
 }
 
 /**
+ * Returns formatted submission price string (e.g. "$10.00 USD").
+ */
+export function formatSubmissionPriceUsd(cents: number = getSubmissionPriceCents()): string {
+  return `$${(cents / 100).toFixed(2)} USD`;
+}
+
+/**
  * Returns whether Razorpay server credentials are configured.
  */
 export function isRazorpayConfigured(): boolean {

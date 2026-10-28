@@ -59,16 +59,22 @@ export async function POST(request: NextRequest) {
   // Durable event ID from X-Razorpay-Event-Id header or payload event.id
   const eventId = request.headers.get("x-razorpay-event-id") || event.id || undefined;
 
-  // 3. Durable Idempotency check via payment_events table
+  // 3. Durable Idempotency: insert event id first (ON CONFLICT DO NOTHING)
   if (eventId) {
-    const [existingEvent] = await db
-      .select({ id: paymentEvents.id })
-      .from(paymentEvents)
-      .where(eq(paymentEvents.id, eventId))
-      .limit(1);
+    const inserted = await db
+      .insert(paymentEvents)
+      .values({
+        eventId,
+        eventType: event.event,
+        razorpayPaymentId:
+          event.payload?.payment?.entity?.id ||
+          event.payload?.refund?.entity?.payment_id ||
+          null,
+      })
+      .onConflictDoNothing()
+      .returning({ eventId: paymentEvents.eventId });
 
-    if (existingEvent) {
-      // Event already processed durably; return early without re-executing
+    if (inserted.length === 0) {
       return NextResponse.json({ received: true, idempotent: true });
     }
   }
@@ -78,26 +84,23 @@ export async function POST(request: NextRequest) {
       case "payment.captured": {
         const paymentEntity = event.payload?.payment?.entity;
         if (!paymentEntity || !paymentEntity.order_id || !paymentEntity.id) {
+          console.warn("[Webhook Warning]: payment.captured missing entity/order_id/id");
           return NextResponse.json({ received: true });
         }
 
-        // Only mark payment paid after Razorpay confirms payment is captured
-        if (paymentEntity.status && paymentEntity.status !== "captured") {
+        // Accept only Razorpay payment status "captured" (not "authorized")
+        if (paymentEntity.status !== "captured") {
           console.warn(
             `[Webhook Warning]: payment.captured event has non-captured status: ${paymentEntity.status}`
           );
           return NextResponse.json({ received: true, ignored: true });
         }
 
-        // Verify currency is USD
-        if (paymentEntity.currency !== "USD") {
-          console.error("[Webhook Error]: Rejected non-USD payment:", paymentEntity.currency);
-          return NextResponse.json({ received: true });
-        }
-
         // Verify against stored payment record
         const [storedPayment] = await db
           .select({
+            id: payments.id,
+            razorpayOrderId: payments.razorpayOrderId,
             amountCents: payments.amountCents,
             currency: payments.currency,
             status: payments.status,
@@ -106,6 +109,7 @@ export async function POST(request: NextRequest) {
           .where(eq(payments.razorpayOrderId, paymentEntity.order_id))
           .limit(1);
 
+        // If the stored row is missing or mismatched, log and return 200 without marking paid
         if (!storedPayment) {
           console.error(
             `[Webhook Error]: Payment record not found for order ${paymentEntity.order_id}`
@@ -113,34 +117,26 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ received: true });
         }
 
-        // PREVENT STALE EVENTS FROM UNDOING A LATER REFUND OR PARTIAL REFUND
         if (
-          storedPayment.status === "refunded" ||
-          storedPayment.status === "partially_refunded"
+          paymentEntity.order_id !== storedPayment.razorpayOrderId ||
+          paymentEntity.amount !== storedPayment.amountCents ||
+          paymentEntity.currency !== storedPayment.currency
         ) {
-          console.warn(
-            `[Webhook Warning]: Ignoring replayed payment.captured for order ${paymentEntity.order_id} because payment is already '${storedPayment.status}'.`
-          );
-          if (eventId) {
-            await db
-              .insert(paymentEvents)
-              .values({
-                id: eventId,
-                eventType: event.event,
-                paymentId: paymentEntity.id,
-                orderId: paymentEntity.order_id,
-                payload: (event as unknown as Record<string, unknown>) || {},
-              })
-              .onConflictDoNothing();
-          }
-          return NextResponse.json({ received: true, ignored: true });
-        }
-
-        if (storedPayment.amountCents !== paymentEntity.amount) {
           console.error(
-            `[Webhook Error]: Payment amount mismatch. Stored: ${storedPayment.amountCents}, received: ${paymentEntity.amount}`
+            `[Webhook Error]: Payment mismatch for order ${paymentEntity.order_id}: ` +
+              `order_id (${paymentEntity.order_id} vs ${storedPayment.razorpayOrderId}), ` +
+              `amount (${paymentEntity.amount} vs ${storedPayment.amountCents}), ` +
+              `currency (${paymentEntity.currency} vs ${storedPayment.currency})`
           );
           return NextResponse.json({ received: true });
+        }
+
+        // If stored payment is already refunded, do not revive it
+        if (storedPayment.status === "refunded") {
+          console.warn(
+            `[Webhook Warning]: Stored payment for order ${paymentEntity.order_id} is refunded.`
+          );
+          return NextResponse.json({ received: true, ignored: true });
         }
 
         await markPaymentPaid({
@@ -153,22 +149,10 @@ export async function POST(request: NextRequest) {
 
       case "payment.authorized": {
         // An authorized payment is not captured yet.
-        // Record event and return 200 without marking payment paid or moving startup.
+        // Event was recorded above; return 200 without marking payment paid or moving startup.
         console.info(
           `[Webhook Info]: Payment ${event.payload?.payment?.entity?.id} is authorized, awaiting capture.`
         );
-        if (eventId) {
-          await db
-            .insert(paymentEvents)
-            .values({
-              id: eventId,
-              eventType: event.event,
-              paymentId: event.payload?.payment?.entity?.id || null,
-              orderId: event.payload?.payment?.entity?.order_id || null,
-              payload: (event as unknown as Record<string, unknown>) || {},
-            })
-            .onConflictDoNothing();
-        }
         return NextResponse.json({ received: true, awaiting_capture: true });
       }
 
@@ -201,19 +185,7 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        // Record and ignore unhandled events
-        if (eventId) {
-          await db
-            .insert(paymentEvents)
-            .values({
-              id: eventId,
-              eventType: event.event,
-              paymentId: null,
-              orderId: null,
-              payload: (event as unknown as Record<string, unknown>) || {},
-            })
-            .onConflictDoNothing();
-        }
+        // Other events acknowledged
         break;
     }
 

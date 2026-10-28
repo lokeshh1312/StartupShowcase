@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, and, sql, desc, SQL } from "drizzle-orm";
+import { eq, and, sql, desc, SQL, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   startups,
@@ -807,25 +807,57 @@ export async function deleteStartup(
     throw new Error("Forbidden: You cannot delete this startup.");
   }
 
-  // Non-admins can only delete awaiting_payment startups (cannot delete paid or pending)
-  if (!isAdmin) {
-    if (existing.status !== "awaiting_payment") {
-      throw new Error("Paid or submitted startups cannot be deleted by founders. Please contact support.");
-    }
-    const paidPayment = await db
-      .select({ id: payments.id })
-      .from(payments)
-      .where(and(eq(payments.startupId, startupId), eq(payments.status, "paid")))
-      .limit(1);
-    if (paidPayment.length > 0) {
-      throw new Error("Paid startups cannot be deleted by founders. Please contact support.");
-    }
+  // Block deleting a startup (any caller, incl. admin and server) that has a payments row with status paid or refunded
+  const startupPayments = await db
+    .select({
+      id: payments.id,
+      status: payments.status,
+      createdAt: payments.createdAt,
+    })
+    .from(payments)
+    .where(eq(payments.startupId, startupId));
+
+  const hasPaidOrRefunded = startupPayments.some(
+    (p) => p.status === "paid" || p.status === "refunded"
+  );
+  if (hasPaidOrRefunded) {
+    throw new Error(
+      "Startups with paid or refunded payments cannot be deleted. Paid startups can be rejected but not deleted."
+    );
+  }
+
+  // Non-admins can only delete awaiting_payment startups
+  if (!isAdmin && existing.status !== "awaiting_payment") {
+    throw new Error(
+      "Only unpaid draft submissions awaiting payment can be deleted."
+    );
+  }
+
+  // If payment records exist for this draft, verify they satisfy the cleanup rule (status created/failed and > 7 days old)
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recentPayments = startupPayments.filter(
+    (p) => p.createdAt > sevenDaysAgo
+  );
+  if (recentPayments.length > 0) {
+    throw new Error(
+      "Payment records cannot be deleted unless older than 7 days. Abandoned drafts can be cleared via cleanup."
+    );
+  }
+
+  // Delete eligible draft payments (> 7 days old created/failed) via the cleanup rule
+  if (startupPayments.length > 0) {
+    await db
+      .delete(payments)
+      .where(
+        and(
+          eq(payments.startupId, startupId),
+          inArray(payments.status, ["created", "failed"]),
+          sql`${payments.createdAt} < (now() - interval '7 days')`
+        )
+      );
   }
 
   const targetOwnerId = existing.ownerId || userId;
-
-  // Delete any payment records first due to ON DELETE RESTRICT on startup_id
-  await db.delete(payments).where(eq(payments.startupId, startupId));
 
   await db.delete(startups).where(eq(startups.id, startupId));
 

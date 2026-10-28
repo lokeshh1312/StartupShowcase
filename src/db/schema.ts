@@ -257,7 +257,7 @@ export const payments = pgTable(
       .references(() => startups.id, { onDelete: "restrict" }),
     userId: uuid("user_id")
       .notNull()
-      .references(() => profiles.id, { onDelete: "cascade" }),
+      .references(() => profiles.id, { onDelete: "restrict" }),
     razorpayOrderId: text("razorpay_order_id").notNull().unique(),
     razorpayPaymentId: text("razorpay_payment_id").unique(),
     amountCents: integer("amount_cents").notNull(),
@@ -286,18 +286,13 @@ export const payments = pgTable(
 export const paymentEvents = pgTable(
   "payment_events",
   {
-    id: text("id").primaryKey(),
+    eventId: text("event_id").primaryKey(),
     eventType: text("event_type").notNull(),
-    paymentId: text("payment_id"),
-    orderId: text("order_id"),
-    payload: jsonb("payload").$type<Record<string, unknown>>().notNull().default({}),
-    createdAt: timestamp("created_at", { withTimezone: true })
+    razorpayPaymentId: text("razorpay_payment_id"),
+    receivedAt: timestamp("received_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-  },
-  (table) => [
-    index("idx_payment_events_created_at").on(table.createdAt),
-  ]
+  }
 );
 
 // Relations

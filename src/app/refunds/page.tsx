@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowLeft, ShieldCheck, RefreshCw, Mail } from "lucide-react";
+import { getSubmissionPriceCents, formatSubmissionPriceUsd } from "@/server/razorpay";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default function RefundsPage() {
+  const formattedPrice = formatSubmissionPriceUsd(getSubmissionPriceCents());
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
       {/* Back button */}
@@ -60,7 +62,7 @@ export default function RefundsPage() {
             <span>1. What the Listing Fee Covers</span>
           </h2>
           <p>
-            Startup Showcase charges a one-time listing fee of exactly <strong>$10.00 USD</strong> for
+            Startup Showcase charges a one-time listing fee of exactly <strong>{formattedPrice}</strong> for
             each submitted startup. This fee supports:
           </p>
           <ul className="list-disc pl-5 space-y-1 text-xs">
@@ -89,7 +91,7 @@ export default function RefundsPage() {
               <h3 className="font-bold text-slate-900 dark:text-white text-xs">A. Moderation Rejections</h3>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
                 If your submission is reviewed and rejected by our team for reasons other than bad-faith abuse
-                or illegal content, a full refund ($10.00 USD) may be requested or issued at our discretion.
+                or illegal content, a full refund ({formattedPrice}) may be requested or issued at our discretion.
               </p>
             </div>
             <div>

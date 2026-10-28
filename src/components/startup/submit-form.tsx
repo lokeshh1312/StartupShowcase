@@ -31,12 +31,14 @@ interface SubmitFormProps {
   countries: Array<{ code: string; name: string }>;
   userDisplayName?: string;
   initialStartup?: Partial<Startup>;
+  formattedPrice?: string;
 }
 
 export function SubmitStartupForm({
   countries,
   userDisplayName,
   initialStartup,
+  formattedPrice = "$10.00 USD",
 }: SubmitFormProps) {
   const isEditing = Boolean(initialStartup?.id);
 
@@ -311,7 +313,7 @@ export function SubmitStartupForm({
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
             {verifyingPayment
               ? "Please wait while our server authoritatively verifies your payment signature with Razorpay."
-              : "Your startup submission details are securely saved as awaiting payment. To enter the review queue, complete the one-time $10.00 USD listing fee."}
+              : `Your startup submission details are securely saved as awaiting payment. To enter the review queue, complete the one-time ${formattedPrice} listing fee.`}
           </p>
         </div>
 
@@ -329,7 +331,7 @@ export function SubmitStartupForm({
               className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <CreditCard className="w-4 h-4" />
-              <span>Pay Listing Fee ($10.00 USD)</span>
+              <span>Pay Listing Fee ({formattedPrice})</span>
             </button>
           )}
           <Link
@@ -833,7 +835,7 @@ export function SubmitStartupForm({
                 Review &amp; Listing Fee
               </p>
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Listing fee: <span className="font-extrabold text-blue-600 dark:text-blue-400">$10.00</span>, one time, secure payment by Razorpay
+                Listing fee: <span className="font-extrabold text-blue-600 dark:text-blue-400">{formattedPrice}</span>, one time, secure payment by Razorpay
               </p>
             </div>
           </div>
