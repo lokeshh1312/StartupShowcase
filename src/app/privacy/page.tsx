@@ -1,20 +1,19 @@
+import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Shield, ArrowLeft } from "lucide-react";
 import { createMetadata } from "@/lib/seo";
+import { legalName, gstin, address, getContactEmail } from "@/lib/company";
 
 export const metadata: Metadata = createMetadata({
-  title: "Privacy Policy",
+  title: "Privacy Policy | Startup Showcase",
   description:
-    "Plain-language privacy policy explaining how we collect, use, and protect your information.",
+    "Privacy Policy explaining how WAVERISE CONSULTANCY PRIVATE LIMITED collects, uses, stores, and shares information when you use Startup Showcase.",
   path: "/privacy",
 });
 
 export default function PrivacyPage() {
-  const companyName =
-    process.env.NEXT_PUBLIC_COMPANY_NAME?.trim() || "Startup Showcase";
-  const contactEmail =
-    process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "contact@startupshowcase.com";
+  const contactEmail = getContactEmail();
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -25,7 +24,7 @@ export default function PrivacyPage() {
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Discovery</span>
+          <span>Back to Home</span>
         </Link>
       </div>
 
@@ -33,156 +32,216 @@ export default function PrivacyPage() {
       <div className="space-y-4 mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-medium">
           <Shield className="w-4 h-4" />
-          <span>Legal & Transparency</span>
+          <span>Data Protection</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
           Privacy Policy
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Last updated: October 2026 • Effective Date: October 24, 2026
+          Effective Date: 25-10-2026
         </p>
       </div>
 
       {/* Content */}
       <div className="space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xs">
         <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            1. Overview & Scope
-          </h2>
           <p>
-            {companyName} (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) is an open, global discovery and monthly leaderboard platform for early-stage startups, prototypes, and MVPs. We operate internationally and respect your privacy rights regardless of your geographic location.
-          </p>
-          <p>
-            This Privacy Policy explains what personal information we collect, why we collect it, how it is handled, and your choices regarding your data.
+            This Privacy Policy explains how {legalName} (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) collects, uses, stores, and shares information when you use Startup Showcase.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            2. Information We Collect
+            1. Information We Collect
           </h2>
-          <p>We collect information in the following categories:</p>
-          <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
-            <li>
-              <strong>Account Information:</strong> When you sign up, we collect your email address, chosen password (cryptographically hashed by Supabase Auth), username, avatar, and optional profile bio. If you sign in via Google OAuth, we receive your email and basic profile details from Google.
-            </li>
-            <li>
-              <strong>Startup Submissions:</strong> When you submit a product, we collect the product name, tagline, description, category, country of origin, website URL, social links, logo, and product screenshots.
-            </li>
-            <li>
-              <strong>Payment Transaction Data:</strong> When you pay a submission fee, we store non-sensitive transaction records (Razorpay Order ID, Razorpay Payment ID, payment status, currency, amount, and payment timestamp). We <strong>never collect, handle, or store your credit card numbers, CVVs, or full banking credentials</strong> on our systems.
-            </li>
-            <li>
-              <strong>Community Activity:</strong> We record your upvotes, bookmarks, and comments submitted on startup profiles to maintain leaderboard integrity and display community discussions.
-            </li>
-            <li>
-              <strong>Newsletter Subscriptions:</strong> If you opt in to our monthly newsletter, we store your email address and subscription timestamp.
-            </li>
-            <li>
-              <strong>Technical & Security Telemetry:</strong> To prevent fraud, vote manipulation, and automated attacks, we process client IP addresses (evaluated through rate-limiting middleware), anonymized view-hash salts for startup view counts, and Cloudflare Turnstile verification tokens.
-            </li>
+          <p>
+            Depending on how you use the platform, we may collect the following information.
+          </p>
+
+          <h3 className="text-base font-bold text-slate-900 dark:text-white pt-2">
+            Information You Provide
+          </h3>
+          <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+            <li>Name and email address.</li>
+            <li>Account and contact information.</li>
+            <li>Startup name, website, country, industry, and business description.</li>
+            <li>Logos, images, and other content submitted for publication.</li>
+            <li>Messages, feedback, and customer-support requests.</li>
+          </ul>
+
+          <h3 className="text-base font-bold text-slate-900 dark:text-white pt-2">
+            Transaction Information
+          </h3>
+          <p>
+            We may process order details, service purchased, payment status, transaction references, and relevant billing information.
+          </p>
+          <p>
+            Payments may be processed by Razorpay or another payment provider. We do not intend to store complete payment-card numbers, card security codes, or payment authentication credentials on our platform.
+          </p>
+
+          <h3 className="text-base font-bold text-slate-900 dark:text-white pt-2">
+            Technical Information
+          </h3>
+          <p>
+            Depending on our website configuration, we may collect technical information such as IP address, browser type, device information, usage logs, and pages visited.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            2. How We Use Information
+          </h2>
+          <p>We may use information to:</p>
+          <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+            <li>Create and manage user accounts.</li>
+            <li>Review and publish startup submissions.</li>
+            <li>Deliver purchased services.</li>
+            <li>Process and verify payments.</li>
+            <li>Respond to questions and complaints.</li>
+            <li>Maintain website security and prevent fraud.</li>
+            <li>Improve website functionality and user experience.</li>
+            <li>Comply with legal, accounting, tax, and regulatory requirements.</li>
+            <li>Send service-related communications.</li>
+            <li>Send promotional communications where permitted by law.</li>
           </ul>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            3. How We Use Your Information
+            3. Public Startup Information
           </h2>
-          <p>We use collected data solely for legitimate platform purposes:</p>
-          <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
-            <li>To publish and index startup discovery listings and monthly leaderboards.</li>
-            <li>To manage your account, authenticate sessions, and deliver email confirmations.</li>
-            <li>To process and verify one-time startup submission listing fees.</li>
-            <li>To enforce rate limits, prevent duplicate voting rings, and detect abusive behavior.</li>
-            <li>To send service-critical notifications (password resets, submission approval/rejection notices).</li>
-            <li>To send optional monthly digests when you have explicitly subscribed.</li>
+          <p>
+            Information submitted for publication may be visible to visitors and may be indexed by search engines or shared by third parties.
+          </p>
+          <p>
+            Please do not submit confidential or sensitive information that you do not want publicly displayed. You are responsible for ensuring that you have permission to publish information about your startup and its representatives.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            4. Payment Providers and Other Service Providers
+          </h2>
+          <p>
+            We may share relevant information with payment providers, including Razorpay, to process transactions, verify payments, prevent fraud, and handle disputes.
+          </p>
+          <p>
+            We may also use hosting providers, email services, analytics tools, and other service providers to operate our platform. Information is shared as reasonably necessary for the relevant service and subject to applicable legal requirements.
+          </p>
+          <p>Service providers we currently use include:</p>
+          <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+            <li>Razorpay – payment processing.</li>
+            <li>Supabase – database, user authentication, and file storage.</li>
+            <li>Cloudflare Turnstile – spam and bot protection on forms; it may process your IP address and browser signals.</li>
+            <li>Resend – delivery of transactional emails.</li>
+            <li>Hostinger – website hosting.</li>
           </ul>
-          <p className="font-semibold text-slate-900 dark:text-white">
-            We do NOT sell, rent, or trade your personal information to third-party data brokers or advertisers.
+          <p>Optional analytics tools are used only if enabled on the website.</p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            5. Cookies and Similar Technologies
+          </h2>
+          <p>
+            Our website may use cookies or similar technologies for essential functionality, security, preferences, and analytics where implemented.
+          </p>
+          <p>
+            You may manage cookies through your browser settings. Disabling some cookies may affect website functionality.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            4. Service Providers &amp; Subprocessors
+            6. Data Retention
           </h2>
           <p>
-            We partner with trusted, secure infrastructure providers who process data on our behalf in compliance with industry security standards:
-          </p>
-          <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
-            <li>
-              <strong>Razorpay (Payment Processor):</strong> Securely processes one-time submission listing fees. Payment credentials and card numbers are entered directly into Razorpay&apos;s PCI-DSS compliant interface. We do not store card numbers or CVVs.
-            </li>
-            <li>
-              <strong>Supabase (PostgreSQL Database &amp; Auth):</strong> Hosts our relational database, storage buckets (for logos and screenshots), and user authentication sessions with strict Row Level Security (RLS).
-            </li>
-            <li>
-              <strong>Cloudflare Turnstile:</strong> Provides privacy-conscious CAPTCHA bot protection during account registration and startup submission without tracking users across websites.
-            </li>
-            <li>
-              <strong>Resend:</strong> Delivers transactional authentication emails and monthly digest newsletters.
-            </li>
-            <li>
-              <strong>Privacy Analytics:</strong> When enabled, privacy-friendly analytics (e.g. Plausible) operate without persistent cross-site cookies or fingerprinting.
-            </li>
-          </ul>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            5. Your Data Rights (GDPR & Global Standards)
-          </h2>
-          <p>
-            Under GDPR, CCPA, and global privacy frameworks, you hold full control over your personal data:
-          </p>
-          <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
-            <li>
-              <strong>Right of Access & Portability:</strong> You may request a copy of the personal information associated with your account.
-            </li>
-            <li>
-              <strong>Right to Rectification:</strong> You can edit your profile, startup submissions, and comments at any time directly through the platform.
-            </li>
-            <li>
-              <strong>Right to Erasure (&ldquo;Right to be Forgotten&rdquo;):</strong> You may request complete deletion of your account, startups, and comments by contacting support.
-            </li>
-            <li>
-              <strong>Right to Unsubscribe:</strong> Every newsletter email contains a 1-click unsubscribe link that permanently removes your address from the mailing list.
-            </li>
-          </ul>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            6. Data Retention & Security
-          </h2>
-          <p>
-            We retain account data for as long as your account remains active. If you delete your account or request data removal, we purge personal records and associated assets, retaining only anonymized platform aggregates required for system integrity.
+            We retain information for as long as reasonably necessary to operate our platform, provide services, maintain listings, handle disputes, and meet legal and accounting obligations.
           </p>
           <p>
-            All network communication is encrypted in transit using modern TLS (HTTPS). Database storage is protected by PostgreSQL Row Level Security (RLS) policies, preventing unauthorized cross-tenant data access.
+            When information is no longer required, we will take reasonable steps to delete or anonymize it, subject to applicable law.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            7. Contact Us
+            7. Data Security
           </h2>
           <p>
-            For privacy inquiries, data subject access requests, or deletion notices, please visit our{" "}
-            <Link
-              href="/support"
-              className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-            >
-              Support Center
-            </Link>{" "}
-            or email us at{" "}
+            We use reasonable technical and organizational measures intended to protect information against unauthorized access, loss, misuse, or disclosure. However, no internet transmission or electronic storage method can be guaranteed completely secure.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            8. International Processing
+          </h2>
+          <p>
+            Our platform may serve users from different countries. Depending on our hosting and service providers, information may be processed or stored outside your country, subject to applicable legal requirements.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            9. Your Privacy Rights
+          </h2>
+          <p>
+            Depending on applicable law, you may have the right to request access to, correction of, or deletion of personal information, or to raise a grievance concerning its processing.
+          </p>
+          <p>
+            You can contact us using the details below. We may need to verify your identity before responding. Certain records may need to be retained where required by law.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            10. Third-Party Websites
+          </h2>
+          <p>
+            Our website may link to startup websites, social media profiles, and other external services. We are not responsible for their privacy practices. Please review their privacy policies separately.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            11. Children&apos;s Privacy
+          </h2>
+          <p>
+            Startup Showcase is designed for startup discovery and business-related use and is not specifically directed at children. If you believe a child has provided personal information inappropriately, contact us so we can review the matter.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            12. Changes to This Policy
+          </h2>
+          <p>
+            We may update this Privacy Policy from time to time. The latest version will be published on this page with its effective date.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            13. Contact Us
+          </h2>
+          <p>For privacy questions or requests:</p>
+          <p>
+            <strong>{legalName}</strong>
+          </p>
+          <p>
+            <strong>GSTIN:</strong> {gstin}
+          </p>
+          <p>
+            <strong>Address:</strong> {address}
+          </p>
+          <p>
+            <strong>Email:</strong>{" "}
             <a
               href={`mailto:${contactEmail}`}
-              className="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded"
+              className="text-blue-600 dark:text-blue-400 hover:underline"
             >
               {contactEmail}
             </a>
-            .
           </p>
         </section>
       </div>

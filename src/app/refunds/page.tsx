@@ -1,173 +1,189 @@
 import React from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, ShieldCheck, RefreshCw, Mail } from "lucide-react";
-import { getSubmissionPriceCents, formatSubmissionPriceUsd } from "@/server/razorpay";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import type { Metadata } from "next";
+import { createMetadata } from "@/lib/seo";
+import { legalName, gstin, address, getContactEmail } from "@/lib/company";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createMetadata({
   title: "Refund & Cancellation Policy | Startup Showcase",
   description:
-    "Plain-language refund and cancellation policy for Startup Showcase submission listing fees.",
-  openGraph: {
-    title: "Refund & Cancellation Policy | Startup Showcase",
-    description:
-      "Plain-language refund and cancellation policy for Startup Showcase submission listing fees.",
-  },
-};
+    "Refund and Cancellation Policy for startup submission services on Startup Showcase, operated by WAVERISE CONSULTANCY PRIVATE LIMITED.",
+  path: "/refunds",
+});
 
 export default function RefundsPage() {
-  const formattedPrice = formatSubmissionPriceUsd(getSubmissionPriceCents());
+  const contactEmail = getContactEmail();
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Back button */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>Back to Home</span>
-      </Link>
+      <div className="mb-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Home</span>
+        </Link>
+      </div>
 
       {/* Header */}
-      <div className="space-y-3">
+      <div className="space-y-4 mb-8">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-medium">
+          <RefreshCw className="w-4 h-4" />
+          <span>Refund Guidelines</span>
+        </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
           Refund &amp; Cancellation Policy
         </h1>
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          Last updated: October 2026 &bull; Plain-language guidelines for submission fees
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Effective Date: 25-10-2026
         </p>
       </div>
 
-      {/* Draft Notice Banner */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-start gap-3">
-        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-        <div className="space-y-1 text-xs leading-relaxed">
-          <p className="font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-            Draft Policy — Subject to Legal Review
-          </p>
-          <p>
-            This document outlines our operational refund and cancellation procedures in plain
-            language. It is currently a draft pending final counsel review and is published for
-            transparency with founders and visitors.
-          </p>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="prose prose-slate dark:prose-invert max-w-none space-y-8 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-        {/* Section 1 */}
+      {/* Content */}
+      <div className="space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xs">
         <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <span>1. What the Listing Fee Covers</span>
+          <p>
+            This policy applies to startup submission services purchased through Startup Showcase, operated by {legalName}.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            1. Service and Price
           </h2>
           <p>
-            Startup Showcase charges a one-time listing fee of exactly <strong>{formattedPrice}</strong> for
-            each submitted startup. This fee supports:
+            The standard fee is <strong>US$10 per startup submission</strong>, as displayed on the checkout page.
           </p>
-          <ul className="list-disc pl-5 space-y-1 text-xs">
-            <li>Editorial and compliance review by human moderators</li>
-            <li>Anti-spam, malware, and authenticity checks</li>
-            <li>Permanent public directory listing upon approval</li>
-            <li>Eligibility for the monthly global leaderboard and community voting</li>
+          <p>
+            The service includes the submission and review of one startup profile for potential publication. It is a digital service; no physical product is shipped.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            2. Refund Eligibility
+          </h2>
+          <p>
+            You may contact us to request a refund review in circumstances including:
+          </p>
+          <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+            <li>Duplicate payment for the same order.</li>
+            <li>Successful payment but non-delivery of the purchased service.</li>
+            <li>Our inability to provide a service that we accepted payment for.</li>
+            <li>An incorrectly processed or unauthorized transaction.</li>
+            <li>Any other circumstance where a refund is required by applicable law.</li>
           </ul>
           <p>
-            Prices are authoritative on our server in USD. We do not charge recurring subscriptions or
-            hidden renewal fees.
+            Refund requests will be assessed based on the transaction, the service status, the reason for the request, and applicable law.
           </p>
         </section>
 
-        {/* Section 2 */}
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <span>2. Refund Terms and Eligibility</span>
-          </h2>
-          <p>
-            We strive to be transparent and fair with every founder:
-          </p>
-          <div className="space-y-3 pl-2 border-l-2 border-slate-200 dark:border-slate-700">
-            <div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-xs">A. Moderation Rejections</h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                If your submission is reviewed and rejected by our team for reasons other than bad-faith abuse
-                or illegal content, a full refund ({formattedPrice}) may be requested or issued at our discretion.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-xs">B. Voluntary Withdrawal Prior to Review</h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                If you have submitted payment and wish to withdraw your startup before our moderators have
-                begun review, you can contact us to request a full refund.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-xs">C. Post-Approval Edits</h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                Once a startup is approved and live on the public directory, future profile updates and edits
-                are always free of charge. Approved submissions cannot be self-deleted, but founders can
-                contact support to request delisting.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 3 */}
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            3. How Refunds Are Processed
+            3. Rejected Startup Submissions
+          </h2>
+          <p>Payment does not guarantee publication.</p>
+          <p>
+            If your startup submission is rejected, you are entitled to a full refund of the US$10 submission fee. This does not apply where the submission was rejected because it involved fraud, spam, deliberately misleading or unlawful content, or another serious breach of our Terms &amp; Conditions.
+          </p>
+          <p>
+            You do not need to request this separately in most cases: we will start the refund to your original payment method after rejecting the submission. If you have not received a refund, contact us with your order ID and we will review it.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            4. Cancellation Requests
           </h2>
           <p>
-            All refunds are issued directly through our payment processor, <strong>Razorpay</strong>, back to
-            the original payment method (credit/debit card, bank transfer, or supported wallet).
+            If you wish to cancel a submission, contact us as soon as possible.
           </p>
-          <ul className="list-disc pl-5 space-y-1 text-xs">
-            <li><strong>Processing Timeline:</strong> Once processed by our team, refunds typically appear in your account within 5 to 10 business days, depending on your bank or card issuer.</li>
-            <li><strong>Directory Status:</strong> When a refund is processed, the associated startup submission is automatically withdrawn with the status marked as &ldquo;Rejected&rdquo; and reason &ldquo;Refunded&rdquo;.</li>
-            <li><strong>Audit Logging:</strong> Every refund is recorded in our system audit log with the corresponding Razorpay payment and event identifiers.</li>
+          <p>
+            We will review the request based on whether the service has been reviewed, published, activated, or otherwise delivered. A change of mind after service delivery may not qualify for a refund, subject to applicable law and the terms shown at checkout.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            5. Failed or Pending Payments
+          </h2>
+          <p>
+            If an amount has been deducted but your order is not confirmed, contact us with your transaction reference.
+          </p>
+          <p>
+            We will check the payment status and coordinate the appropriate resolution where necessary. Reversals and refunds may take additional time depending on the payment provider and bank.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            6. How to Request a Refund
+          </h2>
+          <p>
+            Email{" "}
+            <a
+              href={`mailto:${contactEmail}`}
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {contactEmail}
+            </a>{" "}
+            with:
+          </p>
+          <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+            <li>Your name and registered email address.</li>
+            <li>Order ID or payment reference.</li>
+            <li>Payment date and amount.</li>
+            <li>Reason for your request.</li>
+            <li>Relevant supporting details, if necessary.</li>
           </ul>
+          <p>Never send your password, OTP, or complete card details.</p>
         </section>
 
-        {/* Section 4 */}
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            4. Cancellation of Unpaid Drafts
+            7. Refund Processing
           </h2>
           <p>
-            If you start a submission and do not complete payment, your project remains in the
-            &ldquo;Awaiting Payment&rdquo; state. You can freely delete unpaid drafts at any time directly
-            from your <Link href="/me/submissions" className="text-blue-600 dark:text-blue-400 underline">My Submissions</Link> dashboard without incurring any charge.
+            If a refund is approved, we will initiate it through the applicable payment provider or payment method where possible.
           </p>
-          <p className="text-xs text-slate-500">
-            Unpaid drafts older than 7 days may be periodically cleaned up by automated system maintenance.
+          <p>
+            The time required for the funds to appear in your account depends on the payment provider, bank, and payment method. We will communicate any available updates.
           </p>
         </section>
 
-        {/* Section 5 */}
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            5. Payment Processing &amp; Card Security
+            8. Statutory Rights
           </h2>
           <p>
-            All payments are securely handled by our third-party payment partner, <strong>Razorpay</strong>.
-            Startup Showcase <strong>never receives, processes, or stores your credit card numbers, CVVs, or sensitive banking details</strong> on our servers. All transactions are encrypted with bank-level TLS encryption.
+            Nothing in this policy limits any consumer, cancellation, or refund rights that cannot legally be excluded under applicable law.
           </p>
         </section>
 
-        {/* Section 6 */}
-        <section className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
-          <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span>Have Questions or Need a Refund?</span>
-          </h3>
-          <p className="text-xs text-slate-600 dark:text-slate-400">
-            If you have questions about a payment, want to request a refund, or need assistance with your submission, please contact us at:
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            9. Contact Details
+          </h2>
+          <p>
+            <strong>{legalName}</strong>
           </p>
-          <p className="text-xs font-mono font-semibold text-blue-600 dark:text-blue-400">
-            support@startupshowcase.org
+          <p>
+            <strong>GSTIN:</strong> {gstin}
           </p>
-          <p className="text-[11px] text-slate-400">
-            Please include your registered email address and startup name in your message so we can look up your record quickly.
+          <p>
+            <strong>Address:</strong> {address}
+          </p>
+          <p>
+            <strong>Email:</strong>{" "}
+            <a
+              href={`mailto:${contactEmail}`}
+              className="text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {contactEmail}
+            </a>
           </p>
         </section>
       </div>

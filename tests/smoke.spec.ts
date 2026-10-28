@@ -79,8 +79,30 @@ test.describe("Startup Showcase E2E Smoke Tests", () => {
     const res = await page.goto("/refunds");
     expect(res?.status()).toBe(200);
     await expect(page.locator("h1")).toContainText(/Refund & Cancellation Policy/i);
-    await expect(page.locator("body")).toContainText(/10.00 USD/i);
-    await expect(page.locator("body")).toContainText(/Razorpay/i);
+    await expect(page.locator("body")).toContainText(/US\$10/i);
+  });
+
+  test("Legal and business pages return 200 and contain page title and operating entity", async ({
+    page,
+  }) => {
+    const pages = [
+      { route: "/about", title: "About Us" },
+      { route: "/contact", title: "Contact Us" },
+      { route: "/pricing", title: "Pricing & Services" },
+      { route: "/terms", title: "Terms & Conditions" },
+      { route: "/privacy", title: "Privacy Policy" },
+      { route: "/refunds", title: "Refund & Cancellation Policy" },
+      { route: "/delivery", title: "Delivery Policy" },
+    ];
+
+    for (const { route, title } of pages) {
+      const res = await page.goto(route);
+      expect(res?.status(), `Expected ${route} to return 200`).toBe(200);
+      await expect(page.locator("h1")).toContainText(title);
+      await expect(page.locator("body")).toContainText(
+        "WAVERISE CONSULTANCY PRIVATE LIMITED"
+      );
+    }
   });
 
   test("Auth pages render properly", async ({ page }) => {
