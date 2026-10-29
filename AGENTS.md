@@ -24,3 +24,4 @@
 7. **Type Safety & Component Sizing**: Keep components small and typed. No `any` unless explicitly commented with a reason.
 8. **Accessibility (a11y)**: Semantic HTML, properly labelled form fields, visible focus states, keyboard-operable menus and modals, and sufficient colour contrast in both light and dark themes.
 9. **Ambiguity Resolution**: When something is ambiguous, choose the simplest secure option and list the assumption in your report.
+10. **Database & Script Safety**: Never run seed, tests or scripts against the production DATABASE_URL. Do not run npm run seed:local unless a local database is configured.

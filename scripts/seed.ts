@@ -8,20 +8,33 @@ import { formatLocation, formatMonthLabel, normalizeMonthToDate, normalizeUrl } 
 // Load environment variables from .env.local
 dotenv.config({ path: ".env.local" });
 
+export function isLocalDatabaseUrl(urlStr?: string): boolean {
+  if (!urlStr) return false;
+  try {
+    const parsed = new URL(urlStr);
+    const hostname = parsed.hostname.toLowerCase();
+    return hostname === "localhost" || hostname === "127.0.0.1";
+  } catch {
+    return /^postgres(?:ql)?:\/\/[^@]*@(localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/i.test(urlStr);
+  }
+}
+
 async function seed() {
+  const allowSeed = process.env.ALLOW_SEED === "true";
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!allowSeed || !isLocalDatabaseUrl(connectionString)) {
+    console.error("Refusing to seed: not a local database");
+    process.exit(1);
+  }
+
   if (process.env.NODE_ENV === "production") {
     console.error("ERROR: Refusing to run seed script in production environment (NODE_ENV=production).");
     process.exit(1);
   }
 
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    console.error("ERROR: DATABASE_URL is not set. Ensure .env.local exists with DATABASE_URL.");
-    process.exit(1);
-  }
-
   console.log("Connecting to Supabase Postgres (prepare: false)...");
-  const client = postgres(connectionString, { prepare: false });
+  const client = postgres(connectionString!, { prepare: false });
   const db = drizzle(client);
 
   console.log(`Seeding ${INITIAL_STARTUPS.length} sample startups...`);
@@ -142,7 +155,9 @@ async function seed() {
   await client.end();
 }
 
-seed().catch((err) => {
-  console.error("Seeding failed:", err);
-  process.exit(1);
-});
+if (process.argv[1]?.replace(/\\/g, "/").endsWith("scripts/seed.ts")) {
+  seed().catch((err) => {
+    console.error("Seeding failed:", err);
+    process.exit(1);
+  });
+}
