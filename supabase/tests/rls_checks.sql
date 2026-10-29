@@ -1741,6 +1741,60 @@ BEGIN
   END;
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
+  -- 59: column public.payments.amount_refunded_cents exists
+  _check_name := '59 (POS): column public.payments.amount_refunded_cents exists';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    SELECT count(*) INTO _count
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'payments'
+      AND column_name = 'amount_refunded_cents';
+    IF _count = 1 THEN
+      _passed := true;
+      _details := 'Column public.payments.amount_refunded_cents exists';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected column amount_refunded_cents to exist, found count %s', _count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 60: update payments status to partially_refunded accepted by constraint
+  _check_name := '60 (POS): payments status partially_refunded accepted by constraint';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    BEGIN
+      UPDATE public.payments SET status = 'partially_refunded' WHERE id = _payment_b_id;
+      GET DIAGNOSTICS _rc = ROW_COUNT;
+      IF _rc = 1 THEN
+        _passed := true;
+        _details := 'Update to partially_refunded accepted by constraint (1 row updated)';
+      ELSE
+        _passed := false;
+        _details := format('FAIL: Expected 1 row updated, got %s', _rc);
+      END IF;
+      RAISE EXCEPTION 'subtransaction_rollback' USING ERRCODE = 'RB001';
+    EXCEPTION
+      WHEN SQLSTATE 'RB001' THEN
+        NULL;
+      WHEN OTHERS THEN
+        _passed := false;
+        _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+    END;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
   ----------------------------------------------------------------------
   -- UNCONDITIONAL CLEANUP BLOCK
   ----------------------------------------------------------------------
