@@ -1545,9 +1545,9 @@ BEGIN
         _details := format('FAIL: Expected 1 row updated, got %s', _rc);
       END IF;
       -- Force subtransaction rollback to restore awaiting_payment state
-      RAISE EXCEPTION 'subtransaction_rollback' USING ERRCODE = 'P0001';
+      RAISE EXCEPTION 'subtransaction_rollback' USING ERRCODE = 'RB001';
     EXCEPTION
-      WHEN SQLSTATE 'P0001' AND SQLERRM = 'subtransaction_rollback' THEN
+      WHEN SQLSTATE 'RB001' THEN
         -- Expected rollback
         NULL;
       WHEN OTHERS THEN
@@ -1654,9 +1654,9 @@ BEGIN
         _passed := false;
         _details := format('FAIL: Expected 1 row deleted, got %s', _rc);
       END IF;
-      RAISE EXCEPTION 'subtransaction_rollback' USING ERRCODE = 'P0001';
+      RAISE EXCEPTION 'subtransaction_rollback' USING ERRCODE = 'RB001';
     EXCEPTION
-      WHEN SQLSTATE 'P0001' AND SQLERRM = 'subtransaction_rollback' THEN
+      WHEN SQLSTATE 'RB001' THEN
         NULL;
       WHEN OTHERS THEN
         _passed := false;
@@ -1730,9 +1730,9 @@ BEGIN
         _passed := false;
         _details := format('FAIL: Expected 1 row deleted, got %s', _rc);
       END IF;
-      RAISE EXCEPTION 'subtransaction_rollback' USING ERRCODE = 'P0001';
+      RAISE EXCEPTION 'subtransaction_rollback' USING ERRCODE = 'RB001';
     EXCEPTION
-      WHEN SQLSTATE 'P0001' AND SQLERRM = 'subtransaction_rollback' THEN
+      WHEN SQLSTATE 'RB001' THEN
         NULL;
       WHEN OTHERS THEN
         _passed := false;
