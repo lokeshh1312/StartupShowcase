@@ -172,12 +172,12 @@ export function SubmitStartupForm({
     }
   };
 
-  const triggerCheckout = (data: {
+  const triggerCheckout = async (data: {
     startup: { id: string; name: string; slug: string };
     order: { orderId: string; amount: number; currency: string; keyId: string };
   }) => {
     setPaymentError("");
-    openRazorpayCheckout({
+    const opened = await openRazorpayCheckout({
       keyId: data.order.keyId,
       orderId: data.order.orderId,
       amount: data.order.amount,
@@ -211,6 +211,12 @@ export function SubmitStartupForm({
         // Keeps user on pending payment screen
       },
     });
+
+    if (!opened) {
+      setPaymentError(
+        "We couldn't open the payment window. Turn off your ad blocker or Brave Shields for this site, then click Pay again."
+      );
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -254,41 +260,49 @@ export function SubmitStartupForm({
     };
 
     startTransition(async () => {
-      if (isEditing && initialStartup?.id) {
-        const res = await updateStartupAction(initialStartup.id, payload);
-        if (res?.error) {
-          setError(res.error);
-          setCaptchaToken("");
-          setCaptchaResetSignal((prev) => prev + 1);
-        } else if (res?.startup) {
-          setSubmittedStartup({
-            id: res.startup.id,
-            name: res.startup.name,
-            slug: res.startup.slug,
-          });
-        }
-      } else {
-        const res = await submitStartupAction(payload);
-        if (res?.error) {
-          setError(res.error);
-          setCaptchaToken("");
-          setCaptchaResetSignal((prev) => prev + 1);
-        } else if (res?.startup) {
-          if (res.paymentRequired && res.order) {
-            const orderData = {
-              startup: { id: res.startup.id, name: res.startup.name, slug: res.startup.slug },
-              order: res.order,
-            };
-            setPendingPayment(orderData);
-            triggerCheckout(orderData);
-          } else {
+      try {
+        if (isEditing && initialStartup?.id) {
+          const res = await updateStartupAction(initialStartup.id, payload);
+          if (res?.error) {
+            setError(res.error);
+            setCaptchaToken("");
+            setCaptchaResetSignal((prev) => prev + 1);
+          } else if (res?.startup) {
             setSubmittedStartup({
               id: res.startup.id,
               name: res.startup.name,
               slug: res.startup.slug,
             });
           }
+        } else {
+          const res = await submitStartupAction(payload);
+          if (res?.error) {
+            setError(res.error);
+            setCaptchaToken("");
+            setCaptchaResetSignal((prev) => prev + 1);
+          } else if (res?.startup) {
+            if (res.paymentRequired && res.order) {
+              const orderData = {
+                startup: { id: res.startup.id, name: res.startup.name, slug: res.startup.slug },
+                order: res.order,
+              };
+              setPendingPayment(orderData);
+              triggerCheckout(orderData);
+            } else {
+              setSubmittedStartup({
+                id: res.startup.id,
+                name: res.startup.name,
+                slug: res.startup.slug,
+              });
+            }
+          } else {
+            setError("No response from the server. Please try again.");
+          }
         }
+      } catch {
+        setError("Something went wrong submitting your startup. Please try again.");
+        setCaptchaToken("");
+        setCaptchaResetSignal((prev) => prev + 1);
       }
     });
   };
