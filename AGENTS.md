@@ -11,8 +11,14 @@
 - **Backend & Database**: Supabase Postgres + Supabase Auth + Supabase Storage
 - **ORM & Migrations**: Drizzle ORM for typed queries and schema migrations (SQL migrations committed in `/supabase/migrations`)
 - **Validation**: `zod` for all runtime and server-side input validation
-- **Testing**: Vitest for unit tests, Playwright for end-to-end smoke tests
+- **Testing**: Vitest for unit tests
 - **Deployment Target**: Portable Node build (`output: "standalone"` in `next.config`). No Vercel-specific code, configuration, or packages anywhere.
+
+## STANDING RULES (CRITICAL - PRODUCTION DATABASE SAFETY)
+- Never run `npm run test:e2e`, Playwright, `scripts/cleanup-unpaid.ts`, `scripts/seed.ts`, or any other script that loads `.env.local` or connects to DATABASE_URL. The `.env.local` file points at the LIVE production database.
+- Only run: `npm run lint`, `npx tsc --noEmit`, `npm test` (unit tests with mocks) and `npm run build`.
+- If a task seems to need a database, a browser test, or a script that touches data, stop and ask me first instead of running it.
+- Never print, copy or commit values from `.env.local`.
 
 ## RULES
 1. **Branching & Commits**: Work on branch `next-migration`. Make one commit per completed phase with a clear message.
