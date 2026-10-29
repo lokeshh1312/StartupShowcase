@@ -613,6 +613,7 @@ describe("Payments - Webhook Route Idempotency & Event Routing", () => {
   const webhookSecret = "webhook_secret_route_test";
   let recordedEvents: Set<string>;
   let mockPayment: MockPaymentRecord;
+  let mockStartup: MockStartupRecord;
 
   beforeEach(() => {
     process.env.RAZORPAY_WEBHOOK_SECRET = webhookSecret;
@@ -626,8 +627,34 @@ describe("Payments - Webhook Route Idempotency & Event Routing", () => {
       currency: "USD",
       status: "created",
       razorpayOrderId: "order_webhook_1",
-      razorpayPaymentId: null,
+      razorpayPaymentId: "pay_webhook_1",
       webhookEventId: null,
+    };
+    mockStartup = {
+      id: "startup_webhook_1",
+      status: "approved",
+      name: "Acme Webhook Startup",
+    };
+
+    const handleInsert = (vals: Record<string, unknown>) => {
+      const evId = (vals.eventId || vals.id) as string;
+      const doInsert = () => {
+        if (evId && recordedEvents.has(evId)) {
+          return [];
+        }
+        if (evId) recordedEvents.add(evId);
+        return [{ eventId: evId, id: evId }];
+      };
+      return {
+        onConflictDoNothing: () => {
+          const ret = doInsert();
+          return {
+            returning: () => ret,
+            then: (resolve: (v: unknown) => unknown) => resolve(ret),
+          };
+        },
+        returning: () => [{ ...vals, id: evId || "gen_id" }],
+      };
     };
 
     vi.spyOn(db, "select").mockImplementation((() => ({
@@ -637,6 +664,9 @@ describe("Payments - Webhook Route Idempotency & Event Routing", () => {
             if (table === paymentEvents) {
               return recordedEvents.has("evt_test_duplicate") ? [{ id: "evt_test_duplicate" }] : [];
             }
+            if (table === startups) {
+              return [mockStartup];
+            }
             return [mockPayment];
           },
         }),
@@ -645,20 +675,53 @@ describe("Payments - Webhook Route Idempotency & Event Routing", () => {
     })) as any);
 
     vi.spyOn(db, "insert").mockImplementation((() => ({
-      values: (vals: Record<string, unknown>) => ({
-        onConflictDoNothing: () => ({
-          returning: () => {
-            const evId = (vals.eventId || vals.id) as string;
-            if (recordedEvents.has(evId)) {
-              return [];
-            }
-            recordedEvents.add(evId);
-            return [{ eventId: evId, id: evId }];
-          },
-        }),
-      }),
+      values: handleInsert,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
     })) as any);
+
+    vi.spyOn(db, "transaction").mockImplementation(async (callback) => {
+      const mockTx = {
+        insert: () => ({
+          values: handleInsert,
+        }),
+        select: () => ({
+          from: (table: unknown) => ({
+            where: () => {
+              const queryObj = {
+                limit: () => {
+                  if (table === payments) {
+                    return [mockPayment];
+                  }
+                  return [mockStartup];
+                },
+                for: () => queryObj,
+              };
+              return queryObj;
+            },
+          }),
+        }),
+        update: (table: unknown) => ({
+          set: (vals: Record<string, unknown>) => ({
+            where: () => {
+              if (table === payments || vals.paidAt !== undefined || vals.amountRefundedCents !== undefined) {
+                Object.assign(mockPayment, vals);
+                return {
+                  returning: () => [mockPayment],
+                };
+              } else {
+                Object.assign(mockStartup, vals);
+                return {
+                  returning: () => [mockStartup],
+                };
+              }
+            },
+          }),
+        }),
+        execute: async () => [{ email: "founder@example.com", display_name: "Founder" }],
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle transaction type requires mock cast
+      return await callback(mockTx as any);
+    });
   });
 
   afterEach(() => {
@@ -768,6 +831,231 @@ describe("Payments - Webhook Route Idempotency & Event Routing", () => {
     const data = await res.json();
     expect(res.status).toBe(200);
     expect(data.ignored).toBe(true);
+  });
+
+  // TEST 1: refund.processed with an event id actually sets the payment to refunded and rejects the startup
+  it("refund.processed with an event id actually sets the payment to refunded and rejects the startup", async () => {
+    mockPayment.status = "paid";
+    mockPayment.razorpayPaymentId = "pay_test_refund_1";
+    mockPayment.amountCents = 1000;
+    mockStartup.status = "approved";
+
+    const payload = JSON.stringify({
+      id: "evt_refund_processed_1",
+      event: "refund.processed",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_test_refund_1",
+            amount: 1000,
+            amount_refunded: 1000,
+            currency: "USD",
+            status: "refunded",
+          },
+        },
+        refund: {
+          entity: {
+            id: "rfnd_1",
+            payment_id: "pay_test_refund_1",
+            amount: 1000,
+            currency: "USD",
+            status: "processed",
+          },
+        },
+      },
+    });
+    const sig = crypto.createHmac("sha256", webhookSecret).update(payload).digest("hex");
+
+    const req = new NextRequest("http://localhost:3000/api/webhooks/razorpay", {
+      method: "POST",
+      headers: {
+        "x-razorpay-signature": sig,
+        "x-razorpay-event-id": "evt_refund_processed_1",
+      },
+      body: payload,
+    });
+
+    const res = await webhookPost(req);
+    expect(res.status).toBe(200);
+
+    expect(mockPayment.status).toBe("refunded");
+    expect(mockPayment.amountRefundedCents).toBe(1000);
+    expect(mockStartup.status).toBe("rejected");
+    expect(recordedEvents.has("evt_refund_processed_1")).toBe(true);
+  });
+
+  // TEST 2: The same refund event delivered twice is applied once
+  it("the same refund event delivered twice is applied once", async () => {
+    mockPayment.status = "paid";
+    mockPayment.razorpayPaymentId = "pay_test_refund_2";
+    mockPayment.amountCents = 1000;
+    mockStartup.status = "approved";
+
+    const payload = JSON.stringify({
+      id: "evt_refund_twice_1",
+      event: "refund.processed",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_test_refund_2",
+            amount: 1000,
+            amount_refunded: 1000,
+            currency: "USD",
+            status: "refunded",
+          },
+        },
+        refund: {
+          entity: {
+            id: "rfnd_2",
+            payment_id: "pay_test_refund_2",
+            amount: 1000,
+            currency: "USD",
+            status: "processed",
+          },
+        },
+      },
+    });
+    const sig = crypto.createHmac("sha256", webhookSecret).update(payload).digest("hex");
+
+    const makeReq = () =>
+      new NextRequest("http://localhost:3000/api/webhooks/razorpay", {
+        method: "POST",
+        headers: {
+          "x-razorpay-signature": sig,
+          "x-razorpay-event-id": "evt_refund_twice_1",
+        },
+        body: payload,
+      });
+
+    // First delivery
+    const res1 = await webhookPost(makeReq());
+    expect(res1.status).toBe(200);
+    expect(mockPayment.status).toBe("refunded");
+    expect(mockStartup.status).toBe("rejected");
+
+    // Second delivery (replay)
+    const res2 = await webhookPost(makeReq());
+    expect(res2.status).toBe(200);
+    const data2 = await res2.json();
+    expect(data2.idempotent).toBe(true);
+  });
+
+  // TEST 3: If markPaymentPaid throws mid-way, the event id is NOT stored, and a retry of the same event then succeeds and marks paid
+  it("if markPaymentPaid throws mid-way, the event id is NOT stored, and a retry of the same event then succeeds and marks paid", async () => {
+    mockPayment.status = "created";
+    mockPayment.razorpayOrderId = "order_retry_test";
+    mockPayment.amountCents = 1000;
+    mockStartup.status = "awaiting_payment";
+
+    const payload = JSON.stringify({
+      id: "evt_payment_retry_1",
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_retry_1",
+            order_id: "order_retry_test",
+            amount: 1000,
+            currency: "USD",
+            status: "captured",
+          },
+        },
+      },
+    });
+    const sig = crypto.createHmac("sha256", webhookSecret).update(payload).digest("hex");
+
+    const makeReq = () =>
+      new NextRequest("http://localhost:3000/api/webhooks/razorpay", {
+        method: "POST",
+        headers: {
+          "x-razorpay-signature": sig,
+          "x-razorpay-event-id": "evt_payment_retry_1",
+        },
+        body: payload,
+      });
+
+    // Simulate transient failure during transaction on first attempt
+    let throwError = true;
+    const realTxImpl = vi.mocked(db.transaction).getMockImplementation();
+
+    vi.spyOn(db, "transaction").mockImplementation(async (callback) => {
+      if (throwError) {
+        // Rollback simulation: throw mid-way before committing
+        throw new Error("Simulated database transient deadlock/connection error");
+      }
+      return realTxImpl!(callback);
+    });
+
+    // First attempt fails with 500
+    const res1 = await webhookPost(makeReq());
+    expect(res1.status).toBe(500);
+
+    // Event ID must NOT be stored because transaction rolled back!
+    expect(recordedEvents.has("evt_payment_retry_1")).toBe(false);
+    expect(mockPayment.status).toBe("created");
+
+    // Second attempt (retry) succeeds
+    throwError = false;
+    const res2 = await webhookPost(makeReq());
+    expect(res2.status).toBe(200);
+
+    // Now marked paid, event ID stored, startup pending
+    expect(mockPayment.status).toBe("paid");
+    expect(mockStartup.status).toBe("pending");
+    expect(recordedEvents.has("evt_payment_retry_1")).toBe(true);
+  });
+
+  // TEST 4: A partial refund via webhook keeps the startup approved
+  it("a partial refund via webhook keeps the startup approved", async () => {
+    mockPayment.status = "paid";
+    mockPayment.razorpayPaymentId = "pay_test_partial_1";
+    mockPayment.amountCents = 1000;
+    mockPayment.amountRefundedCents = 0;
+    mockStartup.status = "approved";
+
+    const payload = JSON.stringify({
+      id: "evt_partial_refund_1",
+      event: "refund.processed",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_test_partial_1",
+            amount: 1000,
+            amount_refunded: 300,
+            currency: "USD",
+            status: "captured",
+          },
+        },
+        refund: {
+          entity: {
+            id: "rfnd_part_1",
+            payment_id: "pay_test_partial_1",
+            amount: 300,
+            currency: "USD",
+            status: "processed",
+          },
+        },
+      },
+    });
+    const sig = crypto.createHmac("sha256", webhookSecret).update(payload).digest("hex");
+
+    const req = new NextRequest("http://localhost:3000/api/webhooks/razorpay", {
+      method: "POST",
+      headers: {
+        "x-razorpay-signature": sig,
+        "x-razorpay-event-id": "evt_partial_refund_1",
+      },
+      body: payload,
+    });
+
+    const res = await webhookPost(req);
+    expect(res.status).toBe(200);
+
+    expect(mockPayment.status).toBe("partially_refunded");
+    expect(mockPayment.amountRefundedCents).toBe(300);
+    // Startup must remain approved!
+    expect(mockStartup.status).toBe("approved");
+    expect(recordedEvents.has("evt_partial_refund_1")).toBe(true);
   });
 });
 

@@ -7,6 +7,30 @@ import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * For events the route ignores (payment.authorized, unknown events, mismatch/ignored cases),
+ * record the event id in a separate insert AFTER deciding to ignore, so it cannot block a later valid event.
+ */
+async function recordIgnoredEvent(
+  eventId: string | undefined,
+  eventType: string,
+  razorpayPaymentId?: string | null
+) {
+  if (!eventId) return;
+  try {
+    await db
+      .insert(paymentEvents)
+      .values({
+        eventId,
+        eventType,
+        razorpayPaymentId: razorpayPaymentId || null,
+      })
+      .onConflictDoNothing();
+  } catch (err) {
+    console.warn("[Webhook Warning]: Failed to record ignored event:", err);
+  }
+}
+
 export async function POST(request: NextRequest) {
   let rawBody: string;
   try {
@@ -59,32 +83,13 @@ export async function POST(request: NextRequest) {
   // Durable event ID from X-Razorpay-Event-Id header or payload event.id
   const eventId = request.headers.get("x-razorpay-event-id") || event.id || undefined;
 
-  // 3. Durable Idempotency: insert event id first (ON CONFLICT DO NOTHING)
-  if (eventId) {
-    const inserted = await db
-      .insert(paymentEvents)
-      .values({
-        eventId,
-        eventType: event.event,
-        razorpayPaymentId:
-          event.payload?.payment?.entity?.id ||
-          event.payload?.refund?.entity?.payment_id ||
-          null,
-      })
-      .onConflictDoNothing()
-      .returning({ eventId: paymentEvents.eventId });
-
-    if (inserted.length === 0) {
-      return NextResponse.json({ received: true, idempotent: true });
-    }
-  }
-
   try {
     switch (event.event) {
       case "payment.captured": {
         const paymentEntity = event.payload?.payment?.entity;
         if (!paymentEntity || !paymentEntity.order_id || !paymentEntity.id) {
           console.warn("[Webhook Warning]: payment.captured missing entity/order_id/id");
+          await recordIgnoredEvent(eventId, event.event, paymentEntity?.id);
           return NextResponse.json({ received: true });
         }
 
@@ -93,6 +98,7 @@ export async function POST(request: NextRequest) {
           console.warn(
             `[Webhook Warning]: payment.captured event has non-captured status: ${paymentEntity.status}`
           );
+          await recordIgnoredEvent(eventId, event.event, paymentEntity.id);
           return NextResponse.json({ received: true, ignored: true });
         }
 
@@ -114,6 +120,7 @@ export async function POST(request: NextRequest) {
           console.error(
             `[Webhook Error]: Payment record not found for order ${paymentEntity.order_id}`
           );
+          await recordIgnoredEvent(eventId, event.event, paymentEntity.id);
           return NextResponse.json({ received: true });
         }
 
@@ -128,6 +135,7 @@ export async function POST(request: NextRequest) {
               `amount (${paymentEntity.amount} vs ${storedPayment.amountCents}), ` +
               `currency (${paymentEntity.currency} vs ${storedPayment.currency})`
           );
+          await recordIgnoredEvent(eventId, event.event, paymentEntity.id);
           return NextResponse.json({ received: true });
         }
 
@@ -136,34 +144,45 @@ export async function POST(request: NextRequest) {
           console.warn(
             `[Webhook Warning]: Stored payment for order ${paymentEntity.order_id} is refunded.`
           );
+          await recordIgnoredEvent(eventId, event.event, paymentEntity.id);
           return NextResponse.json({ received: true, ignored: true });
         }
 
-        await markPaymentPaid({
+        const paidResult = await markPaymentPaid({
           razorpayOrderId: paymentEntity.order_id,
           razorpayPaymentId: paymentEntity.id,
           webhookEventId: eventId,
+          eventType: event.event,
         });
+
+        if (paidResult.alreadyProcessed || paidResult.alreadyPaid) {
+          return NextResponse.json({ received: true, idempotent: true });
+        }
         break;
       }
 
       case "payment.authorized": {
         // An authorized payment is not captured yet.
-        // Event was recorded above; return 200 without marking payment paid or moving startup.
+        // Record event id after deciding to ignore; return 200 without marking payment paid.
         console.info(
           `[Webhook Info]: Payment ${event.payload?.payment?.entity?.id} is authorized, awaiting capture.`
         );
+        await recordIgnoredEvent(eventId, event.event, event.payload?.payment?.entity?.id);
         return NextResponse.json({ received: true, awaiting_capture: true });
       }
 
       case "payment.failed": {
         const paymentEntity = event.payload?.payment?.entity;
         if (paymentEntity) {
-          await markPaymentFailed({
+          const failedResult = await markPaymentFailed({
             razorpayOrderId: paymentEntity.order_id,
             razorpayPaymentId: paymentEntity.id,
             webhookEventId: eventId,
+            eventType: event.event,
           });
+          if (failedResult?.alreadyProcessed) {
+            return NextResponse.json({ received: true, idempotent: true });
+          }
         }
         break;
       }
@@ -173,19 +192,28 @@ export async function POST(request: NextRequest) {
         const paymentEntity = event.payload?.payment?.entity;
         const paymentId = refundEntity?.payment_id || paymentEntity?.id;
         if (paymentId) {
-          await processPaymentRefund({
+          const refundResult = await processPaymentRefund({
             razorpayPaymentId: paymentId,
             refundAmountCents: refundEntity?.amount,
             totalRefundedCents: paymentEntity?.amount_refunded,
             webhookEventId: eventId,
+            eventType: event.event,
             reason: "Refund processed via Razorpay Dashboard",
           });
+          if (refundResult?.alreadyProcessed) {
+            return NextResponse.json({ received: true, idempotent: true });
+          }
         }
         break;
       }
 
       default:
-        // Other events acknowledged
+        // Other events acknowledged; record event id after deciding to ignore
+        await recordIgnoredEvent(
+          eventId,
+          event.event,
+          event.payload?.payment?.entity?.id || event.payload?.refund?.entity?.payment_id
+        );
         break;
     }
 

@@ -840,7 +840,7 @@ export async function deleteStartup(
   );
   if (recentPayments.length > 0) {
     throw new Error(
-      "Payment records cannot be deleted unless older than 7 days. Abandoned drafts can be cleared via cleanup."
+      "This draft has a checkout in progress. Please try again in 7 days or contact support."
     );
   }
 

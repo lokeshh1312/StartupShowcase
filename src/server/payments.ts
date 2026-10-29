@@ -174,16 +174,19 @@ export async function getOrCreateStartupOrder(
  * Authoritative, idempotent function to mark a payment as 'paid'.
  * Used by both client confirmPaymentAction and server webhook.
  * In one transaction:
- * 1. Sets payments.status = 'paid', paid_at = now()
- * 2. Moves startup status awaiting_payment -> pending
- * 3. Writes audit_log row
- * 4. Outside transaction: sends the existing "submission received" email.
+ * 1. Inserts webhookEventId into payment_events (on conflict do nothing returning)
+ *    If duplicate event, returns immediately with no side effects.
+ * 2. Sets payments.status = 'paid', paid_at = now()
+ * 3. Moves startup status awaiting_payment -> pending
+ * 4. Writes audit_log row
+ * 5. Outside transaction: sends the existing "submission received" email.
  */
 export interface MarkPaymentPaidResult {
   success: boolean;
   startupId?: string;
   alreadyPaid?: boolean;
   alreadyRefunded?: boolean;
+  alreadyProcessed?: boolean;
   error?: string;
 }
 
@@ -191,8 +194,9 @@ export async function markPaymentPaid(params: {
   razorpayOrderId: string;
   razorpayPaymentId?: string;
   webhookEventId?: string;
+  eventType?: string;
 }): Promise<MarkPaymentPaidResult> {
-  const { razorpayOrderId, razorpayPaymentId, webhookEventId } = params;
+  const { razorpayOrderId, razorpayPaymentId, webhookEventId, eventType } = params;
 
   let targetStartupId: string | null = null;
   let alreadyPaid = false;
@@ -212,10 +216,35 @@ export async function markPaymentPaid(params: {
 
     targetStartupId = payment.startupId;
 
+    // 2. Durable Idempotency via payment_events (in the same transaction)
+    if (webhookEventId) {
+      const inserted = await tx
+        .insert(paymentEvents)
+        .values({
+          eventId: webhookEventId,
+          eventType: eventType || "payment.captured",
+          razorpayPaymentId: razorpayPaymentId || payment.razorpayPaymentId || null,
+        })
+        .onConflictDoNothing()
+        .returning({ eventId: paymentEvents.eventId });
+
+      if (inserted.length === 0) {
+        alreadyPaid = payment.status === "paid";
+        return {
+          success: true,
+          startupId: payment.startupId,
+          alreadyPaid,
+          alreadyProcessed: true,
+          alreadyRefunded:
+            payment.status === "refunded" || payment.status === "partially_refunded",
+        };
+      }
+    }
+
     // Idempotent: if already marked paid, return early
     if (payment.status === "paid") {
       alreadyPaid = true;
-      return { success: true, startupId: payment.startupId, alreadyPaid: true };
+      return { success: true, startupId: payment.startupId, alreadyPaid: true, alreadyProcessed: true };
     }
 
     // Never revive a refunded payment
@@ -237,7 +266,7 @@ export async function markPaymentPaid(params: {
       };
     }
 
-    // 2. Update payment record to paid
+    // 3. Update payment record to paid
     const [updatedPayment] = await tx
       .update(payments)
       .set({
@@ -249,7 +278,7 @@ export async function markPaymentPaid(params: {
       .where(eq(payments.id, payment.id))
       .returning();
 
-    // 3. Move startup from awaiting_payment -> pending
+    // 4. Move startup from awaiting_payment -> pending
     const [updatedStartup] = await tx
       .update(startups)
       .set({
@@ -264,7 +293,7 @@ export async function markPaymentPaid(params: {
       )
       .returning();
 
-    // 4. Write audit_log row
+    // 5. Write audit_log row
     await tx.insert(auditLog).values({
       actorId: payment.userId,
       action: "payment.paid",
@@ -280,7 +309,7 @@ export async function markPaymentPaid(params: {
       },
     });
 
-    // 5. Gather email data
+    // 6. Gather email data
     const startupName = updatedStartup?.name || "your startup";
     const userRows = await tx.execute<{ email: string; display_name: string }>(sql`
       SELECT u.email, coalesce(p.display_name, 'Founder') as display_name
@@ -306,8 +335,8 @@ export async function markPaymentPaid(params: {
     return result;
   }
 
-  // Outside transaction: send the submission received email (only if not already paid previously)
-  if (!alreadyPaid && result.emailData) {
+  // Outside transaction: send the submission received email (only if not already paid previously and not already processed)
+  if (!alreadyPaid && !result.alreadyProcessed && result.emailData) {
     fireAndForgetEmail(
       sendSubmissionReceivedEmail({
         to: result.emailData.to,
@@ -322,22 +351,29 @@ export async function markPaymentPaid(params: {
     startupId: targetStartupId || undefined,
     alreadyPaid,
     alreadyRefunded: result.alreadyRefunded,
+    alreadyProcessed: result.alreadyProcessed,
   };
 }
 
 /**
  * Marks a payment as failed (idempotent, never overwrites paid or refunded).
  */
+export interface MarkPaymentFailedResult {
+  success: boolean;
+  alreadyProcessed?: boolean;
+}
+
 export async function markPaymentFailed(params: {
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   webhookEventId?: string;
-}): Promise<void> {
-  const { razorpayOrderId, razorpayPaymentId, webhookEventId } = params;
+  eventType?: string;
+}): Promise<MarkPaymentFailedResult> {
+  const { razorpayOrderId, razorpayPaymentId, webhookEventId, eventType } = params;
 
-  if (!razorpayOrderId && !razorpayPaymentId) return;
+  if (!razorpayOrderId && !razorpayPaymentId) return { success: false };
 
-  await db.transaction(async (tx) => {
+  return await db.transaction(async (tx) => {
     const condition = razorpayOrderId
       ? eq(payments.razorpayOrderId, razorpayOrderId)
       : eq(payments.razorpayPaymentId, razorpayPaymentId!);
@@ -349,16 +385,33 @@ export async function markPaymentFailed(params: {
       .for("update")
       .limit(1);
 
+    if (webhookEventId) {
+      const inserted = await tx
+        .insert(paymentEvents)
+        .values({
+          eventId: webhookEventId,
+          eventType: eventType || "payment.failed",
+          razorpayPaymentId: razorpayPaymentId || payment?.razorpayPaymentId || null,
+        })
+        .onConflictDoNothing()
+        .returning({ eventId: paymentEvents.eventId });
+
+      if (inserted.length === 0) {
+        return { success: true, alreadyProcessed: true };
+      }
+    }
+
     if (
       !payment ||
       payment.status === "paid" ||
-      payment.status === "refunded"
+      payment.status === "refunded" ||
+      payment.status === "partially_refunded"
     ) {
-      return; // Never overwrite a paid or refunded payment with failed
+      return { success: true }; // Never overwrite a paid or refunded payment with failed
     }
 
     if (payment.status !== "created") {
-      return;
+      return { success: true };
     }
 
     await tx
@@ -380,6 +433,8 @@ export async function markPaymentFailed(params: {
         webhook_event_id: webhookEventId,
       },
     });
+
+    return { success: true };
   });
 }
 
@@ -400,13 +455,14 @@ export interface ProcessRefundResult {
  * - Records the refunded amount in `amount_refunded_cents`
  * - If partial: sets status='partially_refunded' and DOES NOT reject the startup
  * - If full: sets status='refunded' and moves startup to 'rejected' with reason 'Payment refunded'
- * - Records durable webhookEventId in payment_events table
+ * - Records durable webhookEventId in payment_events table within the same transaction
  */
 export async function processPaymentRefund(params: {
   razorpayPaymentId: string;
   refundAmountCents?: number;
   totalRefundedCents?: number;
   webhookEventId?: string;
+  eventType?: string;
   reason?: string;
 }): Promise<ProcessRefundResult> {
   const {
@@ -414,6 +470,7 @@ export async function processPaymentRefund(params: {
     refundAmountCents,
     totalRefundedCents,
     webhookEventId,
+    eventType = "refund.processed",
     reason = "Refunded",
   } = params;
 
@@ -424,14 +481,14 @@ export async function processPaymentRefund(params: {
         .insert(paymentEvents)
         .values({
           eventId: webhookEventId,
-          eventType: "refund.processed",
+          eventType,
           razorpayPaymentId,
         })
         .onConflictDoNothing()
         .returning({ eventId: paymentEvents.eventId });
 
       if (inserted.length === 0) {
-        // Event already processed durably!
+        // Event already processed durably with no changes
         const [existingPayment] = await tx
           .select()
           .from(payments)
