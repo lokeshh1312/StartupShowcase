@@ -1,20 +1,19 @@
+import React from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FileText, ArrowLeft } from "lucide-react";
 import { createMetadata } from "@/lib/seo";
+import { legalName, gstin, address, getContactEmail } from "@/lib/company";
 
 export const metadata: Metadata = createMetadata({
-  title: "Terms of Service",
+  title: "Terms & Conditions | Startup Showcase",
   description:
-    "Plain-language terms of service governing platform access, startup listings, voting, and community guidelines.",
+    "Terms and Conditions governing access to and use of Startup Showcase, operated by WAVERISE CONSULTANCY PRIVATE LIMITED.",
   path: "/terms",
 });
 
 export default function TermsPage() {
-  const companyName =
-    process.env.NEXT_PUBLIC_COMPANY_NAME?.trim() || "Startup Showcase";
-  const contactEmail =
-    process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "contact@startupshowcase.com";
+  const contactEmail = getContactEmail();
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -25,7 +24,7 @@ export default function TermsPage() {
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Discovery</span>
+          <span>Back to Home</span>
         </Link>
       </div>
 
@@ -33,144 +32,231 @@ export default function TermsPage() {
       <div className="space-y-4 mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-medium">
           <FileText className="w-4 h-4" />
-          <span>Platform Terms</span>
+          <span>Legal Agreement</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Terms of Service
+          Terms &amp; Conditions
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Last updated: October 2026 • Effective Date: October 24, 2026
+          Effective Date: 25-10-2026
         </p>
       </div>
 
       {/* Content */}
       <div className="space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xs">
         <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            1. Acceptance of Terms
-          </h2>
           <p>
-            By accessing or using {companyName} (&ldquo;the Platform&rdquo;), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the website or submit content.
+            These Terms &amp; Conditions govern your access to and use of Startup Showcase, operated by {legalName} (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;).
+          </p>
+          <p>
+            By accessing our website, submitting a startup, or purchasing a service, you agree to these Terms &amp; Conditions.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            2. User Accounts & Responsibilities
+            1. About Startup Showcase
           </h2>
           <p>
-            To submit startups, leave comments, upvote, or save favorites, you must create an account. You are responsible for:
+            Startup Showcase is an online platform for discovering startups and displaying eligible startup profiles. It allows founders and authorized representatives to submit startup information for review and potential publication.
           </p>
-          <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
-            <li>Providing accurate, current contact and identity details.</li>
-            <li>Maintaining the confidentiality of your account credentials.</li>
-            <li>All activities that occur under your account.</li>
-            <li>Promptly notifying us if you suspect unauthorized access.</li>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            2. Eligibility
+          </h2>
+          <p>
+            You must provide accurate information and have the legal authority to submit a startup profile and any associated content.
+          </p>
+          <p>
+            If you submit information on behalf of a business, you confirm that you are authorized to do so.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            3. Startup Submissions
+          </h2>
+          <p>
+            The standard startup submission fee is <strong>US$10 per submission</strong>, as displayed on our pricing and checkout pages.
+          </p>
+          <p>
+            Each paid submission covers one startup profile and its review for potential publication.
+          </p>
+          <p>
+            You must provide accurate, complete, and lawful information. We may reject, request corrections to, suspend, or remove a submission if it contains misleading information, infringes third-party rights, violates applicable law, or breaches our policies.
+          </p>
+          <p>
+            Payment does not guarantee approval or publication.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            4. Review and Publication
+          </h2>
+          <p>
+            We review submissions according to our platform requirements. Review times may vary depending on submission volume and whether additional information is needed.
+          </p>
+          <p>
+            We may decline a submission at our discretion where reasonably necessary to protect the integrity, safety, or lawful operation of the platform.
+          </p>
+          <p>
+            An order confirmation or successful payment does not itself confirm publication.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            5. Payments
+          </h2>
+          <p>
+            The applicable price will be shown before checkout. Payments may be processed through Razorpay or other payment providers made available on our website.
+          </p>
+          <p>
+            You are responsible for reviewing the service description, amount, and applicable taxes displayed before completing payment.
+          </p>
+          <p>
+            Payment-provider terms may also apply to your transaction.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            6. Refunds and Cancellations
+          </h2>
+          <p>
+            Refund and cancellation requests are governed by our Refund &amp; Cancellation Policy, subject to applicable law.
+          </p>
+          <p>
+            Please review that policy before purchasing a submission.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            7. User Content and Intellectual Property
+          </h2>
+          <p>
+            You retain ownership of content you submit, subject to the rights of any third parties.
+          </p>
+          <p>
+            By submitting content, you grant us a non-exclusive, worldwide, royalty-free licence to host, reproduce, display, format, and distribute that content as reasonably necessary to review, publish, maintain, and promote your startup profile and operate the platform.
+          </p>
+          <p>
+            You confirm that you have the necessary rights and permissions for all submitted names, descriptions, logos, images, and other materials.
+          </p>
+          <p>
+            Our website design, branding, and original platform materials remain the property of the Company or the applicable rights holders.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            8. Prohibited Use
+          </h2>
+          <p>You must not:</p>
+          <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+            <li>Submit false, fraudulent, or misleading information.</li>
+            <li>Impersonate a person or business.</li>
+            <li>Submit content that unlawfully infringes intellectual property or privacy rights.</li>
+            <li>Use the platform for illegal, fraudulent, or abusive activities.</li>
+            <li>Attempt unauthorized access to our systems.</li>
+            <li>Interfere with website security or functionality.</li>
           </ul>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            3. Founder Submissions & Content Guidelines
+            9. Third-Party Information and Links
           </h2>
           <p>
-            {companyName} exists to celebrate early-stage startups and prototypes worldwide. When submitting a startup:
+            Startup profiles may contain information supplied by third parties and links to external websites.
           </p>
-          <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
-            <li>
-              <strong>Authorization:</strong> You must be a founder, co-founder, or designated representative authorized to list the startup.
-            </li>
-            <li>
-              <strong>Truthfulness:</strong> All descriptions, metrics, categories, countries of origin, and links must be accurate and not misleading.
-            </li>
-            <li>
-              <strong>Prohibited Content:</strong> You may not submit products that facilitate illegal activity, malware, phishing, hate speech, unauthorized cryptocurrency schemes, or explicit material.
-            </li>
-            <li>
-              <strong>Editorial Review:</strong> We review all submissions prior to publication. We reserve the right to approve, reject, categorize, or remove any startup at our discretion to maintain directory quality.
-            </li>
-          </ul>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            4. Voting & Monthly Leaderboard Integrity
-          </h2>
           <p>
-            Our monthly cohort leaderboards reward genuine community engagement and product discovery:
+            We do not guarantee the accuracy, completeness, legitimacy, or current status of third-party information. Visitors should independently verify information before relying on it or entering into a transaction with a listed business.
           </p>
-          <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
-            <li>
-              <strong>One Vote per Startup:</strong> Registered users may cast one vote per startup.
-            </li>
-            <li>
-              <strong>No Manipulation:</strong> Automated scripts, bot farms, paid upvote services, or coordinated fake account rings are strictly prohibited.
-            </li>
-            <li>
-              <strong>Disqualification:</strong> Any startup found engaging in artificial vote manipulation may have votes purged or be disqualified and delisted from the leaderboard.
-            </li>
-          </ul>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            5. Community Conduct & Comments
-          </h2>
           <p>
-            Constructive founder feedback is the foundation of our community. Comments containing harassment, spam, defamatory remarks, affiliate link stuffing, or personal attacks will be removed, and repeat offenders may be banned.
+            External websites are governed by their own terms and policies.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            6. Intellectual Property & License
+            10. No Investment or Business Guarantees
           </h2>
           <p>
-            Founders retain full ownership of their trademarks, logos, and submitted copy. By submitting a startup, you grant {companyName} a non-exclusive, worldwide, royalty-free license to display, promote, index, and feature your product information across the Platform and our monthly newsletters.
+            Startup Showcase provides startup discovery and promotional services. We do not guarantee investment, fundraising, partnerships, sales, leads, website traffic, or commercial success.
+          </p>
+          <p>
+            The platform is not, merely by listing a startup, endorsing that startup or verifying all of its claims.
+          </p>
+          <p>
+            Information on the platform is not investment, legal, tax, or financial advice.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            7. Disclaimers & Limitation of Liability
+            11. Availability and Limitation of Liability
           </h2>
           <p>
-            {companyName} is provided on an &ldquo;as is&rdquo; and &ldquo;as available&rdquo; basis. We do not provide investment, financial, legal, or business advice. We do not endorse any submitted product or guarantee the accuracy of claims made by founders.
+            We aim to maintain a useful and reliable platform but cannot guarantee uninterrupted access or that the website will always be error-free.
           </p>
           <p>
-            To the maximum extent permitted by applicable law, {companyName} shall not be liable for any indirect, incidental, or consequential damages resulting from your use of the platform.
-          </p>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            8. Termination & Changes
-          </h2>
-          <p>
-            We may suspend or terminate your account or access at any time for violations of these Terms. We reserve the right to modify these terms with reasonable notice posted on the platform.
+            To the extent permitted by applicable law, the Company will not be liable for indirect or consequential losses arising from the use of the platform. Nothing in these Terms excludes liability that cannot legally be excluded or restricts mandatory consumer rights.
           </p>
         </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            9. Contact
+            12. Privacy
           </h2>
           <p>
-            Questions regarding these Terms of Service should be directed to our{" "}
-            <Link
-              href="/support"
-              className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
-            >
-              Support Center
-            </Link>{" "}
-            or emailed to{" "}
+            Our collection and use of personal information are explained in our Privacy Policy.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            13. Changes to These Terms
+          </h2>
+          <p>
+            We may update these Terms from time to time. The latest version will be published on this page with its effective date. Changes will apply as permitted by applicable law.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            14. Governing Law
+          </h2>
+          <p>
+            These Terms are governed by the laws of India. Subject to applicable law and mandatory consumer protections, disputes will be subject to the jurisdiction of the competent courts in Bhopal, Madhya Pradesh.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            15. Contact Information
+          </h2>
+          <p>
+            <strong>{legalName}</strong>
+          </p>
+          <p>
+            <strong>GSTIN:</strong> {gstin}
+          </p>
+          <p>
+            <strong>Address:</strong> {address}
+          </p>
+          <p>
+            <strong>Email:</strong>{" "}
             <a
               href={`mailto:${contactEmail}`}
-              className="font-mono text-xs text-blue-600 dark:text-blue-400 hover:underline bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded"
+              className="text-blue-600 dark:text-blue-400 hover:underline"
             >
               {contactEmail}
             </a>
-            .
           </p>
         </section>
       </div>

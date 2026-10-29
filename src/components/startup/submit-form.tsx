@@ -18,22 +18,27 @@ import {
   submitStartupAction,
   updateStartupAction,
   uploadStartupImageAction,
+  confirmPaymentAction,
 } from "@/server/actions";
+import { openRazorpayCheckout } from "@/lib/razorpay-client";
 import { CATEGORIES, STAGES } from "@/lib/validation";
 import { TurnstileWidget } from "@/components/common/turnstile";
 import { isAllowedImageUrl } from "@/lib/images";
+import { CreditCard } from "lucide-react";
 import type { Startup } from "@/db/schema";
 
 interface SubmitFormProps {
   countries: Array<{ code: string; name: string }>;
   userDisplayName?: string;
   initialStartup?: Partial<Startup>;
+  formattedPrice?: string;
 }
 
 export function SubmitStartupForm({
   countries,
   userDisplayName,
   initialStartup,
+  formattedPrice = "$10.00 USD",
 }: SubmitFormProps) {
   const isEditing = Boolean(initialStartup?.id);
 
@@ -107,6 +112,12 @@ export function SubmitStartupForm({
     name: string;
     slug: string;
   } | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<{
+    startup: { id: string; name: string; slug: string };
+    order: { orderId: string; amount: number; currency: string; keyId: string };
+  } | null>(null);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const handleFileUpload = async (
@@ -159,6 +170,47 @@ export function SubmitStartupForm({
       // Reset input value so same file can be re-selected if desired
       e.target.value = "";
     }
+  };
+
+  const triggerCheckout = (data: {
+    startup: { id: string; name: string; slug: string };
+    order: { orderId: string; amount: number; currency: string; keyId: string };
+  }) => {
+    setPaymentError("");
+    openRazorpayCheckout({
+      keyId: data.order.keyId,
+      orderId: data.order.orderId,
+      amount: data.order.amount,
+      currency: data.order.currency,
+      startupName: data.startup.name,
+      userName: founderName || userDisplayName,
+      onSuccess: async (rzpRes) => {
+        setVerifyingPayment(true);
+        const confirmRes = await confirmPaymentAction({
+          startupId: data.startup.id,
+          razorpayOrderId: rzpRes.razorpay_order_id,
+          razorpayPaymentId: rzpRes.razorpay_payment_id,
+          razorpaySignature: rzpRes.razorpay_signature,
+        });
+        setVerifyingPayment(false);
+        if (confirmRes?.success) {
+          setPendingPayment(null);
+          setSubmittedStartup({
+            id: data.startup.id,
+            name: data.startup.name,
+            slug: data.startup.slug,
+          });
+        } else {
+          setPaymentError(
+            confirmRes?.error ||
+              "Payment verification timed out. If payment was deducted, our webhook will verify your submission automatically."
+          );
+        }
+      },
+      onDismiss: () => {
+        // Keeps user on pending payment screen
+      },
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -222,15 +274,76 @@ export function SubmitStartupForm({
           setCaptchaToken("");
           setCaptchaResetSignal((prev) => prev + 1);
         } else if (res?.startup) {
-          setSubmittedStartup({
-            id: res.startup.id,
-            name: res.startup.name,
-            slug: res.startup.slug,
-          });
+          if (res.paymentRequired && res.order) {
+            const orderData = {
+              startup: { id: res.startup.id, name: res.startup.name, slug: res.startup.slug },
+              order: res.order,
+            };
+            setPendingPayment(orderData);
+            triggerCheckout(orderData);
+          } else {
+            setSubmittedStartup({
+              id: res.startup.id,
+              name: res.startup.name,
+              slug: res.startup.slug,
+            });
+          }
         }
       }
     });
   };
+
+  if (pendingPayment) {
+    return (
+      <div className="p-8 sm:p-12 rounded-3xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/50 text-center space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center">
+          {verifyingPayment ? (
+            <Sparkles className="w-8 h-8 animate-spin text-blue-600" />
+          ) : (
+            <CreditCard className="w-8 h-8" />
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+            {verifyingPayment
+              ? "Verifying Payment..."
+              : `Payment Pending for "${pendingPayment.startup.name}"`}
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+            {verifyingPayment
+              ? "Please wait while our server authoritatively verifies your payment signature with Razorpay."
+              : `Your startup submission details are securely saved as awaiting payment. To enter the review queue, complete the one-time ${formattedPrice} listing fee.`}
+          </p>
+        </div>
+
+        {paymentError && (
+          <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-400 font-medium max-w-md mx-auto">
+            {paymentError}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          {!verifyingPayment && (
+            <button
+              type="button"
+              onClick={() => triggerCheckout(pendingPayment)}
+              className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>Pay Listing Fee ({formattedPrice})</span>
+            </button>
+          )}
+          <Link
+            href="/me/submissions"
+            className="px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors"
+          >
+            Go to My Submissions
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (submittedStartup) {
     return (
@@ -241,12 +354,12 @@ export function SubmitStartupForm({
 
         <div className="space-y-2">
           <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">
-            {isEditing ? "Startup Updated Successfully!" : "Startup Submitted Successfully!"}
+            {isEditing ? "Startup Updated Successfully!" : "Payment Verified & Submitted for Review!"}
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
             {isEditing
               ? `Your changes for "${submittedStartup.name}" have been saved and remain in the review queue.`
-              : `Your project "${submittedStartup.name}" has been placed in our review queue. We have sent a confirmation email to your account.`}
+              : `Your payment was confirmed and "${submittedStartup.name}" has officially entered our admin review queue! We have sent a confirmation receipt to your email.`}
           </p>
         </div>
 
@@ -710,6 +823,28 @@ export function SubmitStartupForm({
         resetSignal={captchaResetSignal}
       />
 
+      {/* Price line for new submissions */}
+      {!isEditing && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Review &amp; Listing Fee
+              </p>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Listing fee: <span className="font-extrabold text-blue-600 dark:text-blue-400">{formattedPrice}</span>, one time, secure payment by Razorpay
+              </p>
+            </div>
+          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            USD only &bull; Instant checkout
+          </div>
+        </div>
+      )}
+
       {/* Submit / Save Button */}
       <div className="flex items-center justify-end gap-4">
         <button
@@ -718,10 +853,10 @@ export function SubmitStartupForm({
           className="px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer"
         >
           {isPending ? (
-            <span>{isEditing ? "Saving Changes..." : "Submitting to Queue..."}</span>
+            <span>{isEditing ? "Saving Changes..." : "Processing Order..."}</span>
           ) : (
             <>
-              <span>{isEditing ? "Save Changes" : "Submit Startup"}</span>
+              <span>{isEditing ? "Save Changes" : "Submit and pay"}</span>
               <ArrowRight className="w-4 h-4" />
             </>
           )}

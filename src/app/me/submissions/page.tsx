@@ -18,9 +18,13 @@ export const metadata: Metadata = {
 };
 
 const statusConfig = {
-  pending: {
-    label: "Pending Review",
+  awaiting_payment: {
+    label: "Awaiting Payment",
     classes: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  },
+  pending: {
+    label: "Under Review (Paid)",
+    classes: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
   },
   approved: {
     label: "Approved & Live",
@@ -54,7 +58,7 @@ export default async function MySubmissionsPage() {
               My Submissions
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Review history and moderation status for all startups you created.
+              Review history, payment status, and moderation progress for all startups you created.
             </p>
           </div>
         </div>
@@ -116,7 +120,7 @@ export default async function MySubmissionsPage() {
                     {startup.tagline}
                   </p>
 
-                  <div className="flex items-center gap-4 text-xs text-slate-400">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
                     <span>
                       Submitted on{" "}
                       {new Date(startup.createdAt).toLocaleDateString("en-US", {
@@ -127,6 +131,31 @@ export default async function MySubmissionsPage() {
                     </span>
                     <span>•</span>
                     <span>Cohort: {startup.monthLabel}</span>
+                    <span>•</span>
+                    <span>
+                      Payment:{" "}
+                      {startup.paymentStatus === "paid" ? (
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          Paid ($10.00 USD)
+                          {startup.razorpayPaymentId ? ` • ID: ${startup.razorpayPaymentId}` : ""}
+                        </span>
+                      ) : startup.paymentStatus === "refunded" ? (
+                        <span className="font-semibold text-slate-500">Refunded</span>
+                      ) : startup.paymentStatus === "partially_refunded" ? (
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">
+                          Partially Refunded
+                          {typeof startup.paymentAmountRefundedCents === "number" && startup.paymentAmountRefundedCents > 0
+                            ? ` ($${(startup.paymentAmountRefundedCents / 100).toFixed(2)} USD refunded)`
+                            : ""}
+                        </span>
+                      ) : startup.status === "awaiting_payment" ? (
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">
+                          Unpaid ($10.00 USD required)
+                        </span>
+                      ) : (
+                        <span className="font-medium text-slate-400">Standard</span>
+                      )}
+                    </span>
                   </div>
 
                   {startup.status === "rejected" && (
@@ -140,9 +169,10 @@ export default async function MySubmissionsPage() {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {startup.status === "pending" && (
+                  {(startup.status === "pending" || startup.status === "awaiting_payment") && (
                     <SubmissionActions
                       startupId={startup.id}
+                      startupName={startup.name}
                       slug={startup.slug}
                       status={startup.status}
                     />

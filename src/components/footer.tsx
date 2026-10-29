@@ -10,9 +10,13 @@ const platformLinks = [
 
 const resourceLinks = [
   { href: "/about", label: "About" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/contact", label: "Contact" },
   { href: "/faq", label: "FAQ" },
   { href: "/support", label: "Support" },
   { href: "/newsletter", label: "Newsletter" },
+  { href: "/refunds", label: "Refund Policy" },
+  { href: "/delivery", label: "Delivery Policy" },
   { href: "/privacy", label: "Privacy Policy" },
   { href: "/terms", label: "Terms of Service" },
   { href: "/cookies", label: "Cookie Policy" },
@@ -78,11 +82,23 @@ export function Footer() {
             <Link href="/about" className="hover:underline">
               About
             </Link>
+            <Link href="/pricing" className="hover:underline">
+              Pricing
+            </Link>
+            <Link href="/contact" className="hover:underline">
+              Contact
+            </Link>
             <Link href="/faq" className="hover:underline">
               FAQ
             </Link>
             <Link href="/support" className="hover:underline">
               Support
+            </Link>
+            <Link href="/refunds" className="hover:underline">
+              Refunds
+            </Link>
+            <Link href="/delivery" className="hover:underline">
+              Delivery
             </Link>
             <Link href="/privacy" className="hover:underline">
               Privacy

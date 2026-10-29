@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, X, ShieldCheck, ExternalLink } from "lucide-react";
+import { Check, X, ShieldCheck, ExternalLink, Info } from "lucide-react";
 import { moderateStartupAction } from "@/server/actions";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { getCountryName } from "@/lib/validation";
@@ -21,10 +21,14 @@ interface AdminStartupItem {
   remoteFirst?: boolean | null;
   websiteUrl?: string | null;
   createdAt: Date;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "awaiting_payment";
   rejectionReason?: string | null;
   monthLabel: string;
   founder?: unknown;
+  paymentAmountCents?: number | null;
+  paymentCurrency?: string | null;
+  razorpayPaymentId?: string | null;
+  paidAt?: Date | null;
   duplicateWarning?: {
     id: string;
     name: string;
@@ -165,6 +169,14 @@ export function AdminPanel({
         </div>
       )}
 
+      {/* Policy Notice for Admins */}
+      <div className="flex items-start gap-3 p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+        <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+        <div>
+          <span className="font-semibold">Review &amp; Moderation Policy:</span> Paid startups can be rejected but not deleted. Abandoned unpaid drafts are cleared automatically after 7 days.
+        </div>
+      </div>
+
       {/* Tab: Pending */}
       {activeTab === "pending" && (
         <div className="space-y-4">
@@ -203,6 +215,11 @@ export function AdminPanel({
                       <span>Origin: {getCountryName(startup.countryCode)} ({startup.countryCode})</span>
                       <span>•</span>
                       <span>Cohort: {startup.monthLabel}</span>
+                      <span>•</span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                        Paid: ${((startup.paymentAmountCents ?? 1000) / 100).toFixed(2)} {startup.paymentCurrency || "USD"}
+                        {startup.razorpayPaymentId ? ` (ID: ${startup.razorpayPaymentId})` : ""}
+                      </span>
                       {startup.websiteUrl && (
                         <>
                           <span>•</span>

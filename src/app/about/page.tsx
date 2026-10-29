@@ -1,147 +1,135 @@
 import React from "react";
 import Link from "next/link";
-import {
-  Trophy,
-  Target,
-  Users,
-  ArrowRight,
-  Globe,
-} from "lucide-react";
+import { ArrowLeft, Globe } from "lucide-react";
 import type { Metadata } from "next";
 import { createMetadata } from "@/lib/seo";
+import { legalName, gstin, address, getContactEmail } from "@/lib/company";
 
 export const metadata: Metadata = createMetadata({
-  title: "About Startup Showcase | Global Startup Discovery",
+  title: "About Us | Startup Showcase",
   description:
-    "Learn about Startup Showcase, our monthly leaderboard ranking system, and our mission to celebrate early-stage ventures worldwide.",
+    "Startup Showcase is a digital platform designed to help people discover startups, explore emerging businesses, and learn about innovative products from around the world.",
   path: "/about",
 });
 
 export default function AboutPage() {
-  const pillars = [
-    {
-      icon: <Trophy className="w-6 h-6 text-amber-500" />,
-      title: "Transparent Monthly Cohorts",
-      desc: "Explore approved early-stage ideas and products. Community votes and visits highlight the most promising projects across the globe.",
-    },
-    {
-      icon: <Target className="w-6 h-6 text-blue-600" />,
-      title: "Global & Grassroots Impact",
-      desc: "Spotlighting innovations tackling genuine challenges across agriculture, healthcare, clean tech, education, and frontier engineering.",
-    },
-    {
-      icon: <Users className="w-6 h-6 text-emerald-600" />,
-      title: "Early Adopter & Investor Feedback",
-      desc: "Founders share their work directly with angels, mentors, and community testers who provide constructive discussions.",
-    },
-  ];
-
-  const stages = [
-    {
-      name: "Idea Stage",
-      badgeClass: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
-      description:
-        "Conceptual blueprint, market problem research, and architectural feasibility models seeking initial feedback and co-founders.",
-    },
-    {
-      name: "Prototype",
-      badgeClass: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
-      description:
-        "Working lab models, hardware breadboards, or alpha software builds validated with initial test subjects in controlled settings.",
-    },
-    {
-      name: "MVP (Minimum Viable Product)",
-      badgeClass: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-      description:
-        "Functional release deployed to early pilot users, demonstrating measurable retention, traction, or field efficacy.",
-    },
-  ];
+  const contactEmail = getContactEmail();
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
-      {/* Hero */}
-      <div className="text-center max-w-3xl mx-auto space-y-4">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-semibold">
-          <Globe className="w-3.5 h-3.5" />
-          <span>Our Mission</span>
-        </div>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Back button */}
+      <div className="mb-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Home</span>
+        </Link>
+      </div>
 
-        <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          Democratizing Early-Stage Discovery
+      {/* Header */}
+      <div className="space-y-4 mb-8">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-medium">
+          <Globe className="w-4 h-4" />
+          <span>Platform Overview</span>
+        </div>
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          About Us
         </h1>
-
-        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
-          Startup Showcase is a worldwide discovery and monthly-leaderboard platform built to spotlight early-stage ventures from any country, regardless of capital access.
-        </p>
       </div>
 
-      {/* Pillars */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {pillars.map((p) => (
-          <div
-            key={p.title}
-            className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
-              {p.icon}
-            </div>
-            <h3 className="font-bold text-base text-slate-900 dark:text-white">
-              {p.title}
-            </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              {p.desc}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Stages Explanation */}
-      <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-8">
-        <div className="max-w-2xl space-y-2">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Standardized Maturity Stages
-          </h2>
-          <p className="text-xs text-slate-500">
-            Every submission is categorized by maturity so visitors and investors can evaluate progress transparently.
+      {/* Content */}
+      <div className="space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xs">
+        <section className="space-y-3">
+          <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            Discover Startups. Explore Innovation.
           </p>
-        </div>
+          <p>
+            Startup Showcase is a digital platform designed to help people discover startups, explore emerging businesses, and learn about innovative products, services, and technologies from around the world.
+          </p>
+          <p>
+            The platform is operated by <strong>{legalName}</strong>, a company incorporated in India.
+          </p>
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {stages.map((stg) => (
-            <div
-              key={stg.name}
-              className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 space-y-3"
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            Our Mission
+          </h2>
+          <p>
+            Our mission is to make startup discovery easier by bringing startup information together in one accessible platform, helping visitors explore businesses across countries, industries, and innovation categories.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            What We Offer
+          </h2>
+          <p>Startup Showcase allows visitors to:</p>
+          <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+            <li>Discover startups from different countries and industries.</li>
+            <li>Explore trending and recently submitted startups.</li>
+            <li>Browse businesses by sector and geographical location.</li>
+            <li>Discover startups working on innovative technologies and intellectual property.</li>
+            <li>Explore startup profiles and visit their official websites.</li>
+            <li>Submit a startup profile for review and potential publication.</li>
+          </ul>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            Startup Submission
+          </h2>
+          <p>
+            Founders, entrepreneurs, and authorized representatives can submit their startups through our website for a fee of <strong>US$10 per submission</strong>.
+          </p>
+          <p>
+            Each submission is subject to our review process. Payment does not automatically guarantee approval or publication.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            Our Business Model
+          </h2>
+          <p>
+            We generate revenue through paid startup submissions and other services only where expressly offered on our website.
+          </p>
+          <p>
+            Startup Showcase is a discovery and promotional platform. We do not guarantee funding, investment, customers, traffic, sales, or commercial success.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            Legal Entity Details
+          </h2>
+          <p>
+            <strong>Company Name:</strong> {legalName}
+          </p>
+          <p>
+            <strong>Trade Name:</strong> {legalName}
+          </p>
+          <p>
+            <strong>GSTIN:</strong> {gstin}
+          </p>
+          <p>
+            <strong>Principal Place of Business:</strong> {address}
+          </p>
+          <p>
+            <strong>Contact:</strong>{" "}
+            <a
+              href={`mailto:${contactEmail}`}
+              className="text-blue-600 dark:text-blue-400 hover:underline"
             >
-              <span
-                className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold border ${stg.badgeClass}`}
-              >
-                {stg.name}
-              </span>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                {stg.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* CTA */}
-      <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center space-y-5">
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-          Ready to showcase your company?
-        </h2>
-        <p className="text-xs sm:text-sm text-blue-100 max-w-lg mx-auto">
-          Join thousands of founders launching their product into our global monthly cohorts.
-        </p>
-        <div>
-          <Link
-            href="/submit"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-blue-600 font-extrabold text-xs hover:bg-blue-50 transition-colors shadow-md"
-          >
-            <span>Submit a Startup</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+              {contactEmail}
+            </a>
+          </p>
+          <p className="pt-2">
+            Startup Showcase aims to provide a transparent and accessible platform for discovering emerging businesses and entrepreneurial ideas.
+          </p>
+        </section>
       </div>
     </div>
   );

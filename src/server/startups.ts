@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, and, sql, desc, SQL } from "drizzle-orm";
+import { eq, and, sql, desc, SQL, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   startups,
@@ -8,6 +8,7 @@ import {
   startupComments,
   profiles,
   auditLog,
+  payments,
   type Startup,
 } from "@/db/schema";
 import {
@@ -32,7 +33,6 @@ import { checkStartupDuplicate, type DuplicateWarning } from "@/server/duplicate
 import { validateCommentSpam, isDuplicateComment } from "@/server/comments";
 import { deleteStartupImage, validateStartupImageUrl } from "@/server/storage";
 import {
-  sendSubmissionReceivedEmail,
   sendSubmissionApprovedEmail,
   sendSubmissionRejectedEmail,
   fireAndForgetEmail,
@@ -58,6 +58,12 @@ export type FormattedStartup = Startup & {
   isLiked?: boolean;
   isSaved?: boolean;
   rank?: number;
+  paymentStatus?: "created" | "paid" | "failed" | "refunded" | "partially_refunded" | null;
+  paymentAmountCents?: number | null;
+  paymentAmountRefundedCents?: number | null;
+  paymentCurrency?: string | null;
+  razorpayPaymentId?: string | null;
+  razorpayOrderId?: string | null;
 };
 
 export type PaginatedResult<T> = {
@@ -77,7 +83,7 @@ export function formatStartupRow(row: Record<string, unknown>): FormattedStartup
     id: String(row.id),
     slug: String(row.slug),
     ownerId: (row.ownerId ?? row.owner_id ?? null) as string | null,
-    status: (row.status ?? "approved") as "pending" | "approved" | "rejected",
+    status: (row.status ?? "approved") as "awaiting_payment" | "pending" | "approved" | "rejected",
     isSample: Boolean(row.isSample ?? row.is_sample),
     name: String(row.name || ""),
     ideaTitle: String(row.ideaTitle ?? row.idea_title ?? ""),
@@ -114,6 +120,12 @@ export function formatStartupRow(row: Record<string, unknown>): FormattedStartup
     isLiked: Boolean(row.isLiked ?? row.is_liked),
     isSaved: Boolean(row.isSaved ?? row.is_saved),
     rank: row.rank !== undefined ? Number(row.rank) : undefined,
+    paymentStatus: (row.paymentStatus ?? row.payment_status ?? null) as FormattedStartup["paymentStatus"],
+    paymentAmountCents: row.paymentAmountCents !== undefined ? Number(row.paymentAmountCents) : (row.payment_amount_cents !== undefined && row.payment_amount_cents !== null ? Number(row.payment_amount_cents) : null),
+    paymentAmountRefundedCents: row.paymentAmountRefundedCents !== undefined ? Number(row.paymentAmountRefundedCents) : (row.payment_amount_refunded_cents !== undefined && row.payment_amount_refunded_cents !== null ? Number(row.payment_amount_refunded_cents) : null),
+    paymentCurrency: (row.paymentCurrency ?? row.payment_currency ?? null) as string | null,
+    razorpayPaymentId: (row.razorpayPaymentId ?? row.razorpay_payment_id ?? null) as string | null,
+    razorpayOrderId: (row.razorpayOrderId ?? row.razorpay_order_id ?? null) as string | null,
   };
 }
 
@@ -518,7 +530,7 @@ export async function listCategories(): Promise<
 }
 
 /**
- * Create a new startup submission (validated with zod, status 'pending')
+ * Create a new startup submission (validated with zod, status 'awaiting_payment')
  */
 export async function createStartup(
   input: CreateStartupInput,
@@ -546,7 +558,23 @@ export async function createStartup(
     throw new Error("Please verify your email first.");
   }
 
-  // 2. Enforce at most 5 pending submissions per user
+  // 2. Enforce at most 3 awaiting_payment submissions per user at a time
+  const awaitingCount = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(startups)
+    .where(
+      and(
+        eq(startups.ownerId, userId),
+        eq(startups.status, "awaiting_payment")
+      )
+    );
+  if ((awaitingCount[0]?.count ?? 0) >= 3) {
+    throw new Error(
+      "You have reached the limit of 3 unpaid submissions. Please complete or delete existing unpaid submissions before creating a new one."
+    );
+  }
+
+  // 3. Enforce at most 5 pending submissions per user
   const pendingCount = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(startups)
@@ -584,7 +612,7 @@ export async function createStartup(
         .values({
           slug,
           ownerId: userId,
-          status: "pending",
+          status: "awaiting_payment",
           isSample: false,
           name: validated.name,
           ideaTitle: validated.ideaTitle,
@@ -614,28 +642,6 @@ export async function createStartup(
           viewsCount: 0,
         })
         .returning();
-
-      if (created) {
-        // Asynchronously notify the founder
-        db.execute<{ email: string; display_name: string }>(sql`
-          SELECT u.email, p.display_name
-          FROM auth.users u
-          JOIN public.profiles p ON p.id = u.id
-          WHERE u.id = ${userId}::uuid
-        `).then((rows) => {
-          if (rows[0]?.email) {
-            fireAndForgetEmail(
-              sendSubmissionReceivedEmail({
-                to: rows[0].email,
-                founderName: rows[0].display_name || created.name,
-                startupName: created.name,
-              })
-            );
-          }
-        }).catch((err) => {
-          console.error("[Email Dispatch Error]:", err);
-        });
-      }
 
       return created;
     } catch (err: unknown) {
@@ -774,7 +780,8 @@ export async function moderateStartup(
 }
 
 /**
- * Delete a pending startup and clean up any associated storage objects.
+ * Delete a startup and clean up any associated storage objects.
+ * Owner can only delete awaiting_payment startups. Paid startups cannot be deleted by owner (contact support).
  */
 export async function deleteStartup(
   startupId: string,
@@ -800,9 +807,54 @@ export async function deleteStartup(
     throw new Error("Forbidden: You cannot delete this startup.");
   }
 
-  // Non-admins can only delete pending startups
-  if (!isAdmin && existing.status !== "pending") {
-    throw new Error("Only pending submissions can be deleted.");
+  // Block deleting a startup (any caller, incl. admin and server) that has a payments row with status paid or refunded
+  const startupPayments = await db
+    .select({
+      id: payments.id,
+      status: payments.status,
+      createdAt: payments.createdAt,
+    })
+    .from(payments)
+    .where(eq(payments.startupId, startupId));
+
+  const hasPaidOrRefunded = startupPayments.some(
+    (p) => p.status === "paid" || p.status === "refunded"
+  );
+  if (hasPaidOrRefunded) {
+    throw new Error(
+      "Startups with paid or refunded payments cannot be deleted. Paid startups can be rejected but not deleted."
+    );
+  }
+
+  // Non-admins can only delete awaiting_payment startups
+  if (!isAdmin && existing.status !== "awaiting_payment") {
+    throw new Error(
+      "Only unpaid draft submissions awaiting payment can be deleted."
+    );
+  }
+
+  // If payment records exist for this draft, verify they satisfy the cleanup rule (status created/failed and > 7 days old)
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recentPayments = startupPayments.filter(
+    (p) => p.createdAt > sevenDaysAgo
+  );
+  if (recentPayments.length > 0) {
+    throw new Error(
+      "This draft has a checkout in progress. Please try again in 7 days or contact support."
+    );
+  }
+
+  // Delete eligible draft payments (> 7 days old created/failed) via the cleanup rule
+  if (startupPayments.length > 0) {
+    await db
+      .delete(payments)
+      .where(
+        and(
+          eq(payments.startupId, startupId),
+          inArray(payments.status, ["created", "failed"]),
+          sql`${payments.createdAt} < (now() - interval '7 days')`
+        )
+      );
   }
 
   const targetOwnerId = existing.ownerId || userId;
@@ -830,7 +882,8 @@ export async function deleteStartup(
 }
 
 /**
- * Update an existing pending startup and clean up replaced storage images.
+ * Update an existing startup and clean up replaced storage images.
+ * Allowed for owner when pending or awaiting_payment. Edits after payment stay free.
  */
 export async function updateStartup(
   startupId: string,
@@ -852,8 +905,8 @@ export async function updateStartup(
     throw new Error("Forbidden: You cannot edit this startup.");
   }
 
-  if (!isAdmin && existing.status !== "pending") {
-    throw new Error("Only pending submissions can be edited.");
+  if (!isAdmin && existing.status !== "pending" && existing.status !== "awaiting_payment") {
+    throw new Error("Only pending or awaiting payment submissions can be edited.");
   }
 
   // Validate input
@@ -1216,7 +1269,7 @@ export async function getSaved(
 }
 
 /**
- * Get paginated list of startups submitted by a founder
+ * Get paginated list of startups submitted by a founder, with payment status
  */
 export async function getMySubmissions(
   userId: string,
@@ -1236,17 +1289,38 @@ export async function getMySubmissions(
   }
 
   const rows = await db.execute<
-    Startup & { vote_count: string | number }
+    Startup & {
+      vote_count: string | number;
+      payment_status: string | null;
+      payment_amount_cents: number | null;
+      payment_amount_refunded_cents: number | null;
+      payment_currency: string | null;
+      razorpay_order_id: string | null;
+      razorpay_payment_id: string | null;
+    }
   >(sql`
     SELECT
       startups.*,
-      COALESCE(vote_agg.count, 0)::int AS vote_count
+      COALESCE(vote_agg.count, 0)::int AS vote_count,
+      p.status AS payment_status,
+      p.amount_cents AS payment_amount_cents,
+      p.amount_refunded_cents AS payment_amount_refunded_cents,
+      p.currency AS payment_currency,
+      p.razorpay_order_id,
+      p.razorpay_payment_id
     FROM public.startups
     LEFT JOIN (
       SELECT startup_id, count(*)::int AS count
       FROM public.startup_votes
       GROUP BY startup_id
     ) vote_agg ON vote_agg.startup_id = startups.id
+    LEFT JOIN LATERAL (
+      SELECT status, amount_cents, amount_refunded_cents, currency, razorpay_order_id, razorpay_payment_id
+      FROM public.payments
+      WHERE public.payments.startup_id = startups.id
+      ORDER BY created_at DESC
+      LIMIT 1
+    ) p ON true
     WHERE startups.owner_id = ${userId}::uuid
     ORDER BY startups.created_at DESC
     LIMIT ${pageSize} OFFSET ${offset}
@@ -1291,15 +1365,25 @@ export async function listCountries(): Promise<
   }));
 }
 
+export type AdminStartupItem = Startup & {
+  duplicateWarning?: DuplicateWarning | null;
+  paymentAmountCents?: number | null;
+  paymentCurrency?: string | null;
+  razorpayPaymentId?: string | null;
+  paidAt?: Date | null;
+};
+
 /**
  * List startups for admin review queue by status ('pending' | 'approved' | 'rejected')
+ * Shows paid amount and Razorpay payment id for each queued submission.
+ * Awaiting payment startups are never included in the review queue.
  */
 export async function listAdminStartups(
   status: "pending" | "approved" | "rejected",
   adminUserId: string,
   page = 1,
   pageSize = 20
-): Promise<PaginatedResult<Startup>> {
+): Promise<PaginatedResult<AdminStartupItem>> {
   // Check admin role
   const reviewerProfile = await db
     .select({ role: profiles.role })
@@ -1323,28 +1407,42 @@ export async function listAdminStartups(
     return { items: [], total: 0, page, pageSize, totalPages: 0 };
   }
 
-  const items = await db
-    .select()
+  const rows = await db
+    .select({
+      startup: startups,
+      payment: {
+        amountCents: payments.amountCents,
+        currency: payments.currency,
+        razorpayPaymentId: payments.razorpayPaymentId,
+        paidAt: payments.paidAt,
+      },
+    })
     .from(startups)
+    .leftJoin(
+      payments,
+      and(eq(payments.startupId, startups.id), eq(payments.status, "paid"))
+    )
     .where(eq(startups.status, status))
     .orderBy(desc(startups.createdAt))
     .limit(pageSize)
     .offset(offset);
 
-  // Attach duplicate warning on pending review items
-  type AdminItem = Startup & { duplicateWarning?: DuplicateWarning | null };
-  let itemsToReturn: AdminItem[] = items;
-  if (status === "pending") {
-    itemsToReturn = await Promise.all(
-      items.map(async (item) => {
-        const warning = await checkStartupDuplicate(item.name, item.websiteUrl, item.id);
-        return {
-          ...item,
-          duplicateWarning: warning,
-        };
-      })
-    );
-  }
+  const itemsToReturn: AdminStartupItem[] = await Promise.all(
+    rows.map(async ({ startup, payment }) => {
+      const warning =
+        status === "pending"
+          ? await checkStartupDuplicate(startup.name, startup.websiteUrl, startup.id)
+          : null;
+      return {
+        ...startup,
+        duplicateWarning: warning,
+        paymentAmountCents: payment?.amountCents ?? null,
+        paymentCurrency: payment?.currency ?? null,
+        razorpayPaymentId: payment?.razorpayPaymentId ?? null,
+        paidAt: payment?.paidAt ? new Date(payment.paidAt) : null,
+      };
+    })
+  );
 
   return {
     items: itemsToReturn,

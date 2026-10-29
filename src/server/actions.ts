@@ -34,8 +34,10 @@ import {
   RATE_LIMIT_MESSAGE,
 } from "@/server/rate-limit";
 import { db } from "@/db";
-import { profiles, auditLog } from "@/db/schema";
+import { profiles, auditLog, payments } from "@/db/schema";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getOrCreateStartupOrder, markPaymentPaid } from "@/server/payments";
+import { verifyPaymentSignature, fetchRazorpayPayment } from "@/server/razorpay";
 
 /**
  * Vote on a startup (authenticated & verified only)
@@ -234,8 +236,170 @@ export async function submitStartupAction(rawData: unknown) {
 
     const validated = createStartupSchema.parse(rawData);
     const created = await createStartup(validated, user.id);
+
+    // Create or retrieve Razorpay order for this submission
+    const orderInfo = await getOrCreateStartupOrder(created.id, user.id);
+
+    // If payment is not required (development only when Razorpay keys are unset)
+    if (!orderInfo.paymentRequired) {
+      await markPaymentPaid({
+        razorpayOrderId: orderInfo.orderId,
+        razorpayPaymentId: `mock_pay_${created.id.slice(0, 8)}`,
+      });
+      revalidatePath("/me/submissions");
+      return {
+        success: true,
+        startup: created,
+        paymentRequired: false,
+      };
+    }
+
     revalidatePath("/me/submissions");
-    return { success: true, startup: created };
+    return {
+      success: true,
+      startup: created,
+      paymentRequired: true,
+      order: {
+        orderId: orderInfo.orderId,
+        amount: orderInfo.amount,
+        currency: orderInfo.currency,
+        keyId: orderInfo.keyId,
+      },
+    };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
+  }
+}
+
+/**
+ * Get or resume Razorpay order for an awaiting_payment startup
+ */
+export async function getStartupPaymentOrderAction(startupId: string) {
+  const authData = await getCurrentUserProfile();
+  if (!authData) {
+    return { error: "unauthenticated" };
+  }
+
+  try {
+    const orderInfo = await getOrCreateStartupOrder(startupId, authData.user.id);
+    return { success: true, ...orderInfo };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
+  }
+}
+
+/**
+ * Authoritative client payment confirmation
+ * 1. Verifies HMAC-SHA256 signature with RAZORPAY_KEY_SECRET using timingSafeEqual
+ * 2. Confirms order belongs to startup owned by current user
+ * 3. Fetches payment from Razorpay and checks status captured/authorized, amount and currency equal what we stored
+ * 4. Calls markPaymentPaid
+ */
+export async function confirmPaymentAction(params: {
+  startupId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}) {
+  const authData = await getCurrentUserProfile();
+  if (!authData) {
+    return { error: "unauthenticated" };
+  }
+
+  const { startupId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = params;
+
+  if (!startupId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+    return { error: "Missing required payment parameters." };
+  }
+
+  try {
+    // 1. Verify HMAC-SHA256 signature
+    const isValidSignature = verifyPaymentSignature({
+      orderId: razorpayOrderId,
+      paymentId: razorpayPaymentId,
+      signature: razorpaySignature,
+    });
+
+    if (!isValidSignature) {
+      return { error: "Invalid payment signature verification failed." };
+    }
+
+    // 2. Confirm order belongs to a startup owned by current user
+    const [paymentRecord] = await db
+      .select({
+        id: payments.id,
+        startupId: payments.startupId,
+        userId: payments.userId,
+        amountCents: payments.amountCents,
+        currency: payments.currency,
+        status: payments.status,
+      })
+      .from(payments)
+      .where(eq(payments.razorpayOrderId, razorpayOrderId))
+      .limit(1);
+
+    if (!paymentRecord) {
+      return { error: "Payment order record not found." };
+    }
+
+    if (paymentRecord.startupId !== startupId) {
+      return { error: "Payment does not match this startup." };
+    }
+
+    if (paymentRecord.userId !== authData.user.id) {
+      return { error: "Forbidden: You do not own this submission." };
+    }
+
+    // Check if already paid or refunded
+    if (paymentRecord.status === "paid") {
+      return { success: true };
+    }
+
+    if (paymentRecord.status === "refunded") {
+      return {
+        error: "Payment was refunded.",
+      };
+    }
+
+    // 3. To be safe, fetch payment from Razorpay API and check status, order_id, amount, and currency
+    const paymentFromRzp = await fetchRazorpayPayment(razorpayPaymentId);
+    if (!paymentFromRzp) {
+      return { error: "Failed to verify payment with Razorpay." };
+    }
+
+    // Only mark paid after Razorpay confirms payment is captured (an authorized payment is not captured yet)
+    if (paymentFromRzp.status !== "captured") {
+      return {
+        error: `Payment is not captured (status: ${paymentFromRzp.status}). An authorized payment is not captured yet.`,
+      };
+    }
+
+    // Verify fetched Razorpay payment's order_id matches the order being confirmed
+    if (paymentFromRzp.order_id !== razorpayOrderId) {
+      return { error: "Payment order ID mismatch." };
+    }
+
+    if (paymentFromRzp.amount !== paymentRecord.amountCents) {
+      return { error: "Payment amount mismatch." };
+    }
+
+    if (paymentFromRzp.currency !== paymentRecord.currency) {
+      return { error: "Payment currency mismatch." };
+    }
+
+    // 4. Mark paid (single idempotent function)
+    const result = await markPaymentPaid({
+      razorpayOrderId,
+      razorpayPaymentId,
+    });
+
+    if (!result.success) {
+      return { error: result.error || "Failed to mark payment as paid." };
+    }
+
+    revalidatePath("/me/submissions");
+    revalidatePath("/admin");
+    return { success: true };
   } catch (err: unknown) {
     return { error: formatActionError(err) };
   }

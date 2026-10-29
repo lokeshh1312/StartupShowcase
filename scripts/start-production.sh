@@ -35,6 +35,11 @@ check_var "NEXT_PUBLIC_TURNSTILE_SITE_KEY"
 check_var "TURNSTILE_SECRET_KEY"
 check_var "NEXT_PUBLIC_GOOGLE_AUTH_ENABLED"
 check_var "NEXT_PUBLIC_CONTACT_EMAIL"
+check_var "RAZORPAY_KEY_ID"
+check_var "RAZORPAY_KEY_SECRET"
+check_var "RAZORPAY_WEBHOOK_SECRET"
+check_var "NEXT_PUBLIC_RAZORPAY_KEY_ID"
+check_var "SUBMISSION_PRICE_USD_CENTS"
 
 if [ -z "$TRUSTED_PROXY_COUNT" ]; then
   MISSING_VARS="$MISSING_VARS TRUSTED_PROXY_COUNT"
@@ -47,6 +52,15 @@ if [ -n "$MISSING_VARS" ]; then
   done
   echo "Please consult docs/DEPLOY.md and ensure all variables are defined before starting production."
   exit 1
+fi
+
+# Razorpay Test Key Production Guard
+if echo "$RAZORPAY_KEY_ID" | grep -q "^rzp_test_"; then
+  if [ "$ALLOW_RAZORPAY_TEST_IN_PRODUCTION" != "true" ]; then
+    echo "CRITICAL SECURITY ERROR: RAZORPAY_KEY_ID starts with 'rzp_test_' in production."
+    echo "Launching with test keys in production is forbidden unless ALLOW_RAZORPAY_TEST_IN_PRODUCTION=true."
+    exit 1
+  fi
 fi
 
 # 2. Trusted Proxy Count Warning & Verification
