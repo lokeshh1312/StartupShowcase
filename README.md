@@ -50,7 +50,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | `npm run typecheck` | Run TypeScript type checking |
 | `npm test` | Run Vitest unit tests |
 | `npm run test:e2e` | Run Playwright end-to-end tests |
-| `npm run seed` | Seed global sample startups (requires non-production environment) |
+| `npm run seed:local` | Seed global sample startups (requires non-production local database) |
 | `npm run check:samples` | Guard script ensuring zero sample test data exists in production |
 
 ## Database Setup & Migrations
@@ -70,9 +70,11 @@ npx supabase db push
 ### Seeding Sample Data
 Once migrations have been applied:
 ```bash
-npm run seed
+ALLOW_SEED=true npm run seed:local
 ```
 This loads 27 global sample startups across 12 countries into Postgres with `is_sample = true`. Safe to re-run.
+
+> **Note**: Never run seed, tests or scripts against the production DATABASE_URL. Do not run npm run seed:local unless a local database is configured.
 
 ## Environment Variables
 
