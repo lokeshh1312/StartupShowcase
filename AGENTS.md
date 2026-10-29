@@ -21,7 +21,7 @@
 - Never print, copy or commit values from `.env.local`.
 
 ## RULES
-1. **Branching & Commits**: Work on branch `next-migration`. Make one commit per completed phase with a clear message.
+1. **Branching & Commits**: For every task, create a NEW branch from the latest main (never commit directly to main and never reuse next-migration). Use a short descriptive branch name. Make small commits with clear messages, push the branch, and report the commit hash. I open the pull request and merge it myself.
 2. **Secrets & Security**: Never commit secrets. Only `.env.example` with placeholder values is committed. The Supabase service-role key is server-only and must never be imported in client components.
 3. **Row Level Security**: Every table has Row Level Security (RLS) enabled with explicit policies. Public reads only return approved startups.
 4. **Input Validation & Query Safety**: Validate every input on the server with `zod`. Never trust client data. Never build SQL by string concatenation.
