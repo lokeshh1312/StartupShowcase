@@ -151,3 +151,11 @@ npx tsx scripts/cleanup-unpaid.ts
 ```
 
 Recommended cron schedule: Run daily via server cron or GitHub Actions.
+
+---
+
+## 8. Database Migrations
+
+- `0009_payments.sql`: Creates `public.payments` table, adds `awaiting_payment` startup status, and enforces transition triggers and RLS policies.
+- `0010_payments_hardening.sql`: Adds `public.payment_events` table for webhook deduplication, hardens `user_id` FK to `RESTRICT`, and restricts payment record deletions.
+- `0011_payments_refund_columns.sql`: Adds `amount_refunded_cents` column, expands status check to include `partially_refunded`, and adds refunded range check constraint.
