@@ -89,30 +89,35 @@ export async function openRazorpayCheckout(options: {
     return false;
   }
 
-  const rzp = new window.Razorpay({
-    key: options.keyId,
-    order_id: options.orderId,
-    amount: options.amount,
-    currency: options.currency,
-    name: "Startup Showcase",
-    description: `Listing fee for ${options.startupName}`,
-    prefill: {
-      name: options.userName,
-      email: options.userEmail,
-    },
-    theme: {
-      color: "#2563EB",
-    },
-    modal: {
-      ondismiss: () => {
-        options.onDismiss?.();
+  try {
+    const rzp = new window.Razorpay({
+      key: options.keyId,
+      order_id: options.orderId,
+      amount: options.amount,
+      currency: options.currency,
+      name: "Startup Showcase",
+      description: `Listing fee for ${options.startupName}`,
+      prefill: {
+        name: options.userName,
+        email: options.userEmail,
       },
-    },
-    handler: (response) => {
-      options.onSuccess(response);
-    },
-  });
+      theme: {
+        color: "#2563EB",
+      },
+      modal: {
+        ondismiss: () => {
+          options.onDismiss?.();
+        },
+      },
+      handler: (response) => {
+        options.onSuccess(response);
+      },
+    });
 
-  rzp.open();
-  return true;
+    rzp.open();
+    return true;
+  } catch (error) {
+    console.error("Failed to initialize or open Razorpay checkout:", error);
+    return false;
+  }
 }
