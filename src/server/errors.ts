@@ -51,7 +51,9 @@ function isUserFacingError(message: string): boolean {
     lower.includes("user already registered") ||
     lower.includes("already in use") ||
     lower.includes("email not confirmed") ||
-    lower.includes("rate limit")
+    lower.includes("rate limit") ||
+    lower.includes("unreachable") ||
+    lower.includes("payment gateway")
   ) {
     return true;
   }

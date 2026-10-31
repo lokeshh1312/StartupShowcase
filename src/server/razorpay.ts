@@ -152,6 +152,9 @@ export interface RazorpayOrderResult {
   receipt?: string;
   status: string;
   notes?: Record<string, string>;
+  amount_paid?: number;
+  amount_due?: number;
+  attempts?: number;
 }
 
 /**
@@ -222,5 +225,45 @@ export async function fetchRazorpayPayment(paymentId: string): Promise<RazorpayP
   }
 
   const data = (await response.json()) as RazorpayPaymentResult;
+  return data;
+}
+
+
+/**
+ * Fetches an order from Razorpay by ID using the CURRENT credentials.
+ * - Returns order details if found.
+ * - Returns null if Razorpay says the order does not exist or belongs to another mode (HTTP 400 / 404).
+ * - Throws a friendly error if Razorpay is unreachable (network error or HTTP 5xx).
+ */
+export async function fetchRazorpayOrder(orderId: string): Promise<RazorpayOrderResult | null> {
+  const { keyId, keySecret } = getRazorpayCredentials();
+  const basicAuth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+
+  let response: Response;
+  try {
+    response = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(orderId)}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Basic ${basicAuth}`,
+      },
+    });
+  } catch {
+    throw new Error("Payment gateway is currently unreachable. Please try again shortly.");
+  }
+
+  if (response.status >= 500) {
+    throw new Error("Payment gateway is currently unreachable. Please try again shortly.");
+  }
+
+  if (response.status === 400 || response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => "");
+    throw new Error(`Razorpay fetch order failed: ${response.status} ${errorBody}`);
+  }
+
+  const data = (await response.json()) as RazorpayOrderResult;
   return data;
 }
