@@ -58,6 +58,8 @@ DECLARE
   _vc_veteran bigint;
   _voter_uid uuid;
   _voter_blocked boolean;
+  _view_blocked boolean;
+  _func_blocked boolean;
   _got_count boolean;
   _audit_count integer;
   _pay_count integer;
@@ -599,21 +601,30 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- 20: anon CAN read the approved startup and monthly_leaderboard()
-  _check_name := '20 (POS): anon can read approved startup and monthly_leaderboard()';
+  -- 20: anon can read approved startup, but cannot execute monthly_leaderboard() (42501)
+  _check_name := '20 (SEC): anon can read approved startup but cannot execute monthly_leaderboard() (42501)';
   _passed := false;
   _details := '';
   PERFORM set_config('role', 'anon', true);
   PERFORM set_config('request.jwt.claims', '{}', true);
   BEGIN
     SELECT count(*) INTO _count FROM public.startups WHERE id = _startup_approved_id;
-    SELECT count(*) INTO _lb_count FROM public.monthly_leaderboard('2026-10-01'::date) WHERE id = _startup_approved_id;
-    IF _count = 1 AND _lb_count = 1 THEN
+    BEGIN
+      SELECT count(*) INTO _lb_count FROM public.monthly_leaderboard('2026-10-01'::date) WHERE id = _startup_approved_id;
+      _func_blocked := false;
+    EXCEPTION
+      WHEN SQLSTATE '42501' THEN
+        _func_blocked := true;
+      WHEN OTHERS THEN
+        _func_blocked := false;
+    END;
+
+    IF _count = 1 AND _func_blocked THEN
       _passed := true;
-      _details := 'Anon successfully read approved startup and monthly_leaderboard() entry';
+      _details := 'Anon successfully read approved startup (1); monthly_leaderboard() blocked with 42501 as expected';
     ELSE
       _passed := false;
-      _details := format('FAIL: Approved startup count = %s (expected 1), Leaderboard count = %s (expected 1)', _count, _lb_count);
+      _details := format('FAIL: Approved startup count = %s (expected 1), monthly_leaderboard blocked = %s (expected true)', _count, _func_blocked);
     END IF;
   EXCEPTION
     WHEN OTHERS THEN
@@ -624,14 +635,14 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 
-  -- 21: anon CANNOT see the vote user_ids but leaderboard shows a votes_count
-  _check_name := '21 (POS): anon cannot see vote user_ids but leaderboard shows votes_count';
+  -- 21: anon cannot read startup_votes or monthly_leaderboard_view (42501)
+  _check_name := '21 (SEC): anon cannot read startup_votes or monthly_leaderboard_view (42501)';
   _passed := false;
   _details := '';
   PERFORM set_config('role', 'anon', true);
   PERFORM set_config('request.jwt.claims', '{}', true);
   BEGIN
-    -- Part A: anon cannot read user_id from startup_votes
+    -- Part A: anon cannot read user_id from startup_votes (42501)
     BEGIN
       SELECT user_id INTO _voter_uid FROM public.startup_votes WHERE startup_id = _startup_approved_id LIMIT 1;
       _voter_blocked := false;
@@ -649,7 +660,20 @@ BEGIN
     PERFORM set_config('role', 'anon', true);
     PERFORM set_config('request.jwt.claims', '{}', true);
 
-    -- Part B: anon can read aggregated votes_count from leaderboard view
+    -- Part B: anon cannot read monthly_leaderboard_view (42501)
+    BEGIN
+      SELECT votes_count INTO _vc FROM public.monthly_leaderboard_view WHERE id = _startup_approved_id;
+      _view_blocked := false;
+    EXCEPTION
+      WHEN SQLSTATE '42501' THEN
+        _view_blocked := true;
+      WHEN OTHERS THEN
+        _view_blocked := false;
+    END;
+
+    -- As postgres, view can be read and aggregated count is valid
+    PERFORM set_config('role', 'postgres', true);
+    PERFORM set_config('request.jwt.claims', '', true);
     BEGIN
       SELECT votes_count INTO _vc FROM public.monthly_leaderboard_view WHERE id = _startup_approved_id;
       _got_count := (_vc >= 1);
@@ -658,12 +682,12 @@ BEGIN
         _got_count := false;
     END;
 
-    IF _voter_blocked AND _got_count THEN
+    IF _voter_blocked AND _view_blocked AND _got_count THEN
       _passed := true;
-      _details := format('Blocked from startup_votes (42501); leaderboard shows votes_count = %s', _vc);
+      _details := format('Anon blocked from startup_votes (42501) and monthly_leaderboard_view (42501); postgres sees votes_count = %s', _vc);
     ELSE
       _passed := false;
-      _details := format('FAIL: Blocked from startup_votes: %s, Leaderboard votes_count >= 1: %s (votes_count = %s)', _voter_blocked, _got_count, _vc);
+      _details := format('FAIL: startup_votes blocked: %s, leaderboard_view blocked: %s, postgres votes_count >= 1: %s (votes_count = %s)', _voter_blocked, _view_blocked, _got_count, _vc);
     END IF;
   EXCEPTION
     WHEN OTHERS THEN
@@ -1792,6 +1816,84 @@ BEGIN
         _passed := false;
         _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
     END;
+  END;
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 61: authenticated user cannot SELECT monthly_leaderboard_view or EXECUTE monthly_leaderboard() (42501)
+  _check_name := '61 (SEC): authenticated user cannot read monthly_leaderboard_view or run monthly_leaderboard() (42501)';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _uid_b::text, 'role', 'authenticated')::text, true);
+  BEGIN
+    -- Part A: authenticated cannot read monthly_leaderboard_view
+    BEGIN
+      SELECT count(*) INTO _count FROM public.monthly_leaderboard_view;
+      _view_blocked := false;
+    EXCEPTION
+      WHEN SQLSTATE '42501' THEN
+        _view_blocked := true;
+      WHEN OTHERS THEN
+        _view_blocked := false;
+    END;
+
+    -- Part B: authenticated cannot execute monthly_leaderboard()
+    BEGIN
+      SELECT count(*) INTO _lb_count FROM public.monthly_leaderboard('2026-10-01'::date);
+      _func_blocked := false;
+    EXCEPTION
+      WHEN SQLSTATE '42501' THEN
+        _func_blocked := true;
+      WHEN OTHERS THEN
+        _func_blocked := false;
+    END;
+
+    IF _view_blocked AND _func_blocked THEN
+      _passed := true;
+      _details := 'Authenticated blocked from monthly_leaderboard_view (42501) and monthly_leaderboard() (42501)';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: leaderboard_view blocked: %s, monthly_leaderboard blocked: %s', _view_blocked, _func_blocked);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
+  END;
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
+
+  -- 62: monthly_leaderboard_view has security_invoker enabled
+  _check_name := '62 (SEC): monthly_leaderboard_view has security_invoker enabled';
+  _passed := false;
+  _details := '';
+  PERFORM set_config('role', 'postgres', true);
+  PERFORM set_config('request.jwt.claims', '', true);
+  BEGIN
+    SELECT count(*) INTO _count
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'monthly_leaderboard_view'
+      AND c.relkind = 'v'
+      AND (
+        'security_invoker=true' = ANY(c.reloptions)
+        OR 'security_invoker=on' = ANY(c.reloptions)
+        OR array_to_string(c.reloptions, ',') ILIKE '%security_invoker=true%'
+      );
+
+    IF _count = 1 THEN
+      _passed := true;
+      _details := 'monthly_leaderboard_view has security_invoker enabled in pg_class.reloptions';
+    ELSE
+      _passed := false;
+      _details := format('FAIL: Expected 1 view with security_invoker=true, got count %s', _count);
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      _passed := false;
+      _details := 'FAIL (unexpected error [' || SQLSTATE || ']): ' || SQLERRM;
   END;
   INSERT INTO _rls_results (check_name, status, details) VALUES (_check_name, CASE WHEN _passed THEN 'PASS' ELSE 'FAIL' END, _details);
 

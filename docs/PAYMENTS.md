@@ -159,3 +159,4 @@ Recommended cron schedule: Run daily via server cron or GitHub Actions.
 - `0009_payments.sql`: Creates `public.payments` table, adds `awaiting_payment` startup status, and enforces transition triggers and RLS policies.
 - `0010_payments_hardening.sql`: Adds `public.payment_events` table for webhook deduplication, hardens `user_id` FK to `RESTRICT`, and restricts payment record deletions.
 - `0011_payments_refund_columns.sql`: Adds `amount_refunded_cents` column, expands status check to include `partially_refunded`, and adds refunded range check constraint.
+- `0012_leaderboard_view_security.sql`: Sets `security_invoker = true` on `public.monthly_leaderboard_view` and revokes `SELECT` on the view and `EXECUTE` on `public.monthly_leaderboard(date)` from `anon` and `authenticated` (app queries via direct Postgres connection).
