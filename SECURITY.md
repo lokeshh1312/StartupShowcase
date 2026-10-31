@@ -33,8 +33,8 @@ For detailed implementation mapping between server actions and database constrai
 | `public.startup_votes` | None | `SELECT`, `INSERT`, `DELETE` | `ALL` |
 | `public.saved_startups` | None | `SELECT`, `INSERT`, `DELETE` | `ALL` |
 | `public.startup_comments` | `SELECT` | `SELECT`, `INSERT`, `DELETE`, `UPDATE` | `ALL` |
-| `public.monthly_leaderboard_view` | `SELECT` | `SELECT` | `ALL` |
-| `public.monthly_leaderboard(date)` | `EXECUTE` | `EXECUTE` | `EXECUTE` |
+| `public.monthly_leaderboard_view` | None | None | `ALL` |
+| `public.monthly_leaderboard(date)` | None | None | `EXECUTE` |
 | `public.is_admin()` | `EXECUTE` | `EXECUTE` | `EXECUTE` |
 | `public.startup_views` | None | None | `ALL` |
 | `public.rate_limits` | None | None | `ALL` |
