@@ -65,6 +65,22 @@ describe("formatActionError Helper", () => {
     );
   });
 
+  it("returns draft and payment deletion protection errors as user-facing friendly messages", () => {
+    const messages = [
+      "Only unpaid draft submissions awaiting payment can be deleted",
+      "This draft has a checkout in progress",
+      "Startups with paid or refunded payments cannot be deleted",
+      "Payment records cannot be deleted unless older than 7 days",
+      "This draft has a checkout in progress. It can be deleted after 7 days, or you can edit it or resume payment.",
+      "Startups with paid or refunded payments cannot be deleted. Paid startups can be rejected but not deleted.",
+    ];
+
+    for (const msg of messages) {
+      expect(formatActionError(new Error(msg))).toBe(msg);
+      expect(formatActionError(msg)).toBe(msg);
+    }
+  });
+
   it("masks unexpected database or system errors and logs to console.error", () => {
     const consoleErrorSpy = vi
       .spyOn(console, "error")
