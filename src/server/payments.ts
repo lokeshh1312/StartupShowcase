@@ -11,6 +11,7 @@ import {
   getSubmissionPriceCents,
   createRazorpayOrder,
   fetchRazorpayOrder,
+  fetchRazorpayOrderPayments,
   isPaymentRequired,
   getRazorpayCredentials,
 } from "@/server/razorpay";
@@ -114,15 +115,28 @@ export async function getOrCreateStartupOrder(
     try {
       const fetchedOrder = await fetchRazorpayOrder(existingOrder.razorpayOrderId);
       if (!fetchedOrder) {
-        // Razorpay says the order does not exist or belongs to another mode
+        // Razorpay says the order does not exist or belongs to another mode (400/404)
         isInvalidOrStale = true;
       } else if (
         fetchedOrder.status === "paid" ||
-        (fetchedOrder.amount_paid ?? 0) > 0 ||
+        (fetchedOrder.amount_paid ?? 0) > 0
+      ) {
+        // Money already received: do NOT mark failed, do NOT create new order.
+        // Fetch captured payment, call markPaymentPaid (idempotent), and inform user.
+        const orderPayments = await fetchRazorpayOrderPayments(existingOrder.razorpayOrderId);
+        const capturedPayment = orderPayments.find((p) => p.status === "captured") || orderPayments[0];
+        await markPaymentPaid({
+          razorpayOrderId: existingOrder.razorpayOrderId,
+          razorpayPaymentId: capturedPayment?.id,
+        });
+        throw new Error(
+          "We've received your payment. Your submission is moving to review. Refresh in a moment."
+        );
+      } else if (
         fetchedOrder.status === "expired" ||
         fetchedOrder.status === "cancelled"
       ) {
-        // Razorpay says order is already paid or expired/cancelled
+        // Order is expired/cancelled
         isInvalidOrStale = true;
       } else {
         orderToReuse = fetchedOrder;

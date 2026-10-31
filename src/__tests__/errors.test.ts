@@ -73,6 +73,7 @@ describe("formatActionError Helper", () => {
       "Payment records cannot be deleted unless older than 7 days",
       "This draft has a checkout in progress. It can be deleted after 7 days, or you can edit it or resume payment.",
       "Startups with paid or refunded payments cannot be deleted. Paid startups can be rejected but not deleted.",
+      "We've received your payment. Your submission is moving to review. Refresh in a moment.",
     ];
 
     for (const msg of messages) {

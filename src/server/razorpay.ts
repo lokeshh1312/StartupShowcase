@@ -267,3 +267,36 @@ export async function fetchRazorpayOrder(orderId: string): Promise<RazorpayOrder
   const data = (await response.json()) as RazorpayOrderResult;
   return data;
 }
+
+
+/**
+ * Fetches payments associated with a Razorpay order from the REST API.
+ */
+export async function fetchRazorpayOrderPayments(orderId: string): Promise<RazorpayPaymentResult[]> {
+  const { keyId, keySecret } = getRazorpayCredentials();
+  const basicAuth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+
+  let response: Response;
+  try {
+    response = await fetch(`https://api.razorpay.com/v1/orders/${encodeURIComponent(orderId)}/payments`, {
+      method: "GET",
+      headers: {
+        Authorization: `Basic ${basicAuth}`,
+      },
+    });
+  } catch {
+    throw new Error("Payment gateway is currently unreachable. Please try again shortly.");
+  }
+
+  if (response.status >= 500) {
+    throw new Error("Payment gateway is currently unreachable. Please try again shortly.");
+  }
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => "");
+    throw new Error(`Razorpay fetch order payments failed: ${response.status} ${errorBody}`);
+  }
+
+  const data = (await response.json()) as { items?: RazorpayPaymentResult[] };
+  return data.items || [];
+}

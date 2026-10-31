@@ -33,7 +33,9 @@ function isUserFacingError(message: string): boolean {
     lower.includes("only unpaid draft submissions awaiting payment can be deleted") ||
     lower.includes("this draft has a checkout in progress") ||
     lower.includes("startups with paid or refunded payments cannot be deleted") ||
-    lower.includes("payment records cannot be deleted unless older than 7 days")
+    lower.includes("payment records cannot be deleted unless older than 7 days") ||
+    lower.includes("we've received your payment") ||
+    lower.includes("your submission is moving to review")
   ) {
     return true;
   }

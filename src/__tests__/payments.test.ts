@@ -1252,6 +1252,49 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
       keySecret: "secret_current",
     });
 
+    // Mock db.transaction
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle transaction mock
+    vi.spyOn(db, "transaction").mockImplementation(async (callback: any) => {
+      const mockTx = {
+        select: () => ({
+          from: (table: unknown) => ({
+            where: () => {
+              const q = {
+                for: () => q,
+                limit: () => (table === payments ? [mockPaymentRows[0]] : [mockStartup]),
+              };
+              return q;
+            },
+          }),
+        }),
+        update: (table: unknown) => ({
+          set: (vals: Record<string, unknown>) => ({
+            where: () => {
+              if (table === payments || vals.status === "paid") {
+                if (mockPaymentRows[0]) {
+                  Object.assign(mockPaymentRows[0], vals);
+                }
+                return { returning: () => (mockPaymentRows[0] ? [mockPaymentRows[0]] : []) };
+              } else {
+                Object.assign(mockStartup, vals);
+                return { returning: () => [mockStartup] };
+              }
+            },
+          }),
+        }),
+        insert: () => ({
+          values: () => ({
+            onConflictDoNothing: () => ({
+              returning: () => [{ eventId: "evt_test" }],
+            }),
+            returning: () => [],
+          }),
+        }),
+        execute: async () => [{ email: "founder@example.com", display_name: "Founder" }],
+      };
+      return await callback(mockTx);
+    });
+
     // Mock db.select
     vi.spyOn(db, "select").mockImplementation((() => ({
       from: (table: unknown) => ({
@@ -1396,7 +1439,7 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
     expect(result.orderId).toBe("order_new_789");
   });
 
-  it("replaces already-paid order in Razorpay: marks old payment failed and creates brand new order", async () => {
+  it("when fetchRazorpayOrder returns status 'paid', calls markPaymentPaid, does not create new order, and throws friendly message", async () => {
     vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
       id: "order_existing_123",
       amount: 1000,
@@ -1405,17 +1448,60 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
       amount_paid: 1000,
     });
 
-    vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
-      id: "order_new_paid_case",
+    const fetchPaymentsSpy = vi.spyOn(razorpayServer, "fetchRazorpayOrderPayments").mockResolvedValue([
+      {
+        id: "pay_captured_123",
+        order_id: "order_existing_123",
+        amount: 1000,
+        currency: "USD",
+        status: "captured",
+      },
+    ]);
+
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder");
+
+    await expect(getOrCreateStartupOrder("startup_test_1", "user_test_1")).rejects.toThrow(
+      "We've received your payment. Your submission is moving to review. Refresh in a moment."
+    );
+
+    // Captured payments fetched
+    expect(fetchPaymentsSpy).toHaveBeenCalledWith("order_existing_123");
+
+    // No new order created
+    expect(createSpy).not.toHaveBeenCalled();
+
+    // Old payment row must NOT be marked failed (it was transitioned to paid)
+    expect(mockPaymentRows[0]?.status).toBe("paid");
+    expect(mockStartup.status).toBe("pending");
+  });
+
+  it("when fetchRazorpayOrder returns amount_paid > 0 with status 'created', calls markPaymentPaid and does not create new order", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
+      id: "order_existing_123",
       amount: 1000,
       currency: "USD",
       status: "created",
+      amount_paid: 1000,
     });
 
-    const result = await getOrCreateStartupOrder("startup_test_1", "user_test_1");
+    vi.spyOn(razorpayServer, "fetchRazorpayOrderPayments").mockResolvedValue([
+      {
+        id: "pay_captured_partial_or_full",
+        order_id: "order_existing_123",
+        amount: 1000,
+        currency: "USD",
+        status: "captured",
+      },
+    ]);
 
-    expect(mockPaymentRows[0]?.status).toBe("failed");
-    expect(result.orderId).toBe("order_new_paid_case");
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder");
+
+    await expect(getOrCreateStartupOrder("startup_test_1", "user_test_1")).rejects.toThrow(
+      "We've received your payment. Your submission is moving to review. Refresh in a moment."
+    );
+
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(mockPaymentRows[0]?.status).toBe("paid");
   });
 
   it("does not create a duplicate order and returns friendly error if Razorpay is unreachable", async () => {
