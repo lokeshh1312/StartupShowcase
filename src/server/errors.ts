@@ -28,6 +28,16 @@ function isUserFacingError(message: string): boolean {
     return true;
   }
 
+  // Submission & payment deletion / drafts
+  if (
+    lower.includes("only unpaid draft submissions awaiting payment can be deleted") ||
+    lower.includes("this draft has a checkout in progress") ||
+    lower.includes("startups with paid or refunded payments cannot be deleted") ||
+    lower.includes("payment records cannot be deleted unless older than 7 days")
+  ) {
+    return true;
+  }
+
   // Unauthenticated / Auth
   if (
     lower === "unauthenticated" ||

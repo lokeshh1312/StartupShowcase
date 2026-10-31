@@ -110,6 +110,7 @@ export function AdminPanel({
           rejectionReason,
         };
         setPendingItems((prev) => prev.filter((i) => i.id !== rejectingStartup.id));
+        setApprovedItems((prev) => prev.filter((i) => i.id !== rejectingStartup.id));
         setRejectedItems((prev) => [updated, ...prev]);
         setRejectingStartup(null);
         setRejectionReason("");
@@ -306,13 +307,23 @@ export function AdminPanel({
                     {startup.tagline}
                   </p>
                 </div>
-                <Link
-                  href={`/startup/${startup.slug}`}
-                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1"
-                >
-                  <span>View</span>
-                  <ExternalLink className="w-3 h-3" />
-                </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Link
+                    href={`/startup/${startup.slug}`}
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1"
+                  >
+                    <span>View</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
+                  <button
+                    onClick={() => setRejectingStartup(startup)}
+                    disabled={busyId === startup.id || isPending}
+                    className="px-3.5 py-1.5 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Reject / Unpublish</span>
+                  </button>
+                </div>
               </div>
             ))
           )}

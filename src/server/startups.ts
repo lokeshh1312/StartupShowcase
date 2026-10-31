@@ -840,7 +840,7 @@ export async function deleteStartup(
   );
   if (recentPayments.length > 0) {
     throw new Error(
-      "This draft has a checkout in progress. Please try again in 7 days or contact support."
+      "This draft has a checkout in progress. It can be deleted after 7 days, or you can edit it or resume payment."
     );
   }
 

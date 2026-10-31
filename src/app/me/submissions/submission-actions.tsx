@@ -38,7 +38,7 @@ export function SubmissionActions({ startupId, startupName, slug, status }: Subm
         return;
       }
 
-      await openRazorpayCheckout({
+      const opened = await openRazorpayCheckout({
         keyId: res.keyId,
         orderId: res.orderId,
         amount: res.amount,
@@ -62,8 +62,21 @@ export function SubmissionActions({ startupId, startupName, slug, status }: Subm
           setPaying(false);
         },
       });
+
+      if (!opened) {
+        setError("Failed to open checkout.");
+        setPaying(false);
+      }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to open checkout.");
+      const friendlyMessage =
+        err instanceof Error && err.message
+          ? err.message
+          : typeof err === "string" && err
+          ? err
+          : typeof err === "object" && err && "message" in err && typeof (err as { message: unknown }).message === "string" && (err as { message: string }).message
+          ? (err as { message: string }).message
+          : "";
+      setError(friendlyMessage || "Failed to initiate payment.");
       setPaying(false);
     }
   };
