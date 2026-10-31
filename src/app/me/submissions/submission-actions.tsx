@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Edit2, Trash2, CreditCard, Sparkles } from "lucide-react";
 import { deleteStartupAction, getStartupPaymentOrderAction, confirmPaymentAction } from "@/server/actions";
 import { openRazorpayCheckout } from "@/lib/razorpay-client";
+import { Modal } from "@/components/ui/modal";
 
 interface SubmissionActionsProps {
   startupId: string;
@@ -19,15 +20,18 @@ export function SubmissionActions({ startupId, startupName, slug, status }: Subm
   const [isPending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [error, setError] = useState("");
+  const [errorModal, setErrorModal] = useState<{ title: string; message: string } | null>(null);
 
   const handleResumePayment = async () => {
-    setError("");
+    setErrorModal(null);
     setPaying(true);
     try {
       const res = await getStartupPaymentOrderAction(startupId);
       if (!res || "error" in res) {
-        setError(res?.error || "Failed to initiate payment.");
+        setErrorModal({
+          title: "Payment couldn't start",
+          message: res?.error || "Failed to initiate payment.",
+        });
         setPaying(false);
         return;
       }
@@ -55,7 +59,10 @@ export function SubmissionActions({ startupId, startupName, slug, status }: Subm
           if (confirmRes?.success) {
             router.refresh();
           } else {
-            setError(confirmRes?.error || "Payment verification failed.");
+            setErrorModal({
+              title: "Payment couldn't start",
+              message: confirmRes?.error || "Payment verification failed.",
+            });
           }
         },
         onDismiss: () => {
@@ -64,7 +71,10 @@ export function SubmissionActions({ startupId, startupName, slug, status }: Subm
       });
 
       if (!opened) {
-        setError("Failed to open checkout.");
+        setErrorModal({
+          title: "Payment couldn't start",
+          message: "Failed to open checkout.",
+        });
         setPaying(false);
       }
     } catch (err: unknown) {
@@ -76,7 +86,10 @@ export function SubmissionActions({ startupId, startupName, slug, status }: Subm
           : typeof err === "object" && err && "message" in err && typeof (err as { message: unknown }).message === "string" && (err as { message: string }).message
           ? (err as { message: string }).message
           : "";
-      setError(friendlyMessage || "Failed to initiate payment.");
+      setErrorModal({
+        title: "Payment couldn't start",
+        message: friendlyMessage || "Failed to initiate payment.",
+      });
       setPaying(false);
     }
   };
@@ -90,7 +103,10 @@ export function SubmissionActions({ startupId, startupName, slug, status }: Subm
     startTransition(async () => {
       const res = await deleteStartupAction(startupId);
       if (res?.error) {
-        setError(res.error);
+        setErrorModal({
+          title: "Can't delete this draft",
+          message: res.error,
+        });
         setConfirming(false);
       } else {
         router.refresh();
@@ -99,58 +115,68 @@ export function SubmissionActions({ startupId, startupName, slug, status }: Subm
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {error && <span className="text-xs text-red-500 font-medium">{error}</span>}
-
-      {status === "awaiting_payment" && (
-        <button
-          type="button"
-          onClick={handleResumePayment}
-          disabled={paying}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
-        >
-          {paying ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
-          <span>{paying ? "Opening Checkout..." : "Resume Payment ($10)"}</span>
-        </button>
-      )}
-
-      {(status === "pending" || status === "awaiting_payment") && (
-        <Link
-          href={`/submit?edit=${slug}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors shadow-xs"
-        >
-          <Edit2 className="w-3.5 h-3.5" />
-          <span>Edit</span>
-        </Link>
-      )}
-
-      {status === "awaiting_payment" && (
-        <>
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        {status === "awaiting_payment" && (
           <button
             type="button"
-            onClick={handleDelete}
-            disabled={isPending}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shadow-xs cursor-pointer ${
-              confirming
-                ? "bg-red-600 hover:bg-red-700 text-white"
-                : "border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100"
-            }`}
+            onClick={handleResumePayment}
+            disabled={paying}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>{isPending ? "Deleting..." : confirming ? "Confirm Delete?" : "Delete"}</span>
+            {paying ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
+            <span>{paying ? "Opening Checkout..." : "Resume Payment ($10)"}</span>
           </button>
+        )}
 
-          {confirming && !isPending && (
+        {(status === "pending" || status === "awaiting_payment") && (
+          <Link
+            href={`/submit?edit=${slug}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors shadow-xs"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+            <span>Edit</span>
+          </Link>
+        )}
+
+        {status === "awaiting_payment" && (
+          <>
             <button
               type="button"
-              onClick={() => setConfirming(false)}
-              className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+              onClick={handleDelete}
+              disabled={isPending}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shadow-xs cursor-pointer ${
+                confirming
+                  ? "bg-red-600 hover:bg-red-700 text-white"
+                  : "border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100"
+              }`}
             >
-              Cancel
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{isPending ? "Deleting..." : confirming ? "Confirm Delete?" : "Delete"}</span>
             </button>
-          )}
-        </>
+
+            {confirming && !isPending && (
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+              >
+                Cancel
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      {errorModal && (
+        <Modal
+          isOpen={Boolean(errorModal)}
+          onClose={() => setErrorModal(null)}
+          title={errorModal.title}
+        >
+          <p>{errorModal.message}</p>
+        </Modal>
       )}
-    </div>
+    </>
   );
 }

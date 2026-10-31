@@ -5,7 +5,7 @@ import {
   verifyPaymentSignature,
   verifyWebhookSignature,
 } from "@/server/razorpay";
-import { markPaymentPaid, processPaymentRefund } from "@/server/payments";
+import { markPaymentPaid, processPaymentRefund, getOrCreateStartupOrder } from "@/server/payments";
 import { POST as webhookPost } from "@/app/api/webhooks/razorpay/route";
 import { db } from "@/db";
 import { payments, paymentEvents, startups } from "@/db/schema";
@@ -1205,3 +1205,414 @@ describe("Payments - Immutability: payments can never be deleted for paid/refund
     );
   });
 });
+
+describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () => {
+  let mockStartup: { id: string; name: string; ownerId: string; status: string };
+  let mockPaymentRows: Array<{
+    id: string;
+    startupId: string;
+    userId: string;
+    amountCents: number;
+    amountRefundedCents: number;
+    currency: string;
+    status: string;
+    razorpayOrderId: string;
+    razorpayPaymentId: string | null;
+    createdAt: Date;
+  }>;
+
+  beforeEach(() => {
+    mockStartup = {
+      id: "startup_test_1",
+      name: "Startup Test One",
+      ownerId: "user_test_1",
+      status: "awaiting_payment",
+    };
+
+    mockPaymentRows = [
+      {
+        id: "pay_row_1",
+        startupId: "startup_test_1",
+        userId: "user_test_1",
+        amountCents: 1000,
+        amountRefundedCents: 0,
+        currency: "USD",
+        status: "created",
+        razorpayOrderId: "order_existing_123",
+        razorpayPaymentId: null,
+        createdAt: new Date(),
+      },
+    ];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle execute mock
+    vi.spyOn(db, "execute").mockResolvedValue([{ count: 1 }] as any);
+    vi.spyOn(razorpayServer, "isPaymentRequired").mockReturnValue(true);
+    vi.spyOn(razorpayServer, "getRazorpayCredentials").mockReturnValue({
+      keyId: "rzp_test_current",
+      keySecret: "secret_current",
+    });
+
+    // Mock db.transaction
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle transaction mock
+    vi.spyOn(db, "transaction").mockImplementation(async (callback: any) => {
+      const mockTx = {
+        select: () => ({
+          from: (table: unknown) => ({
+            where: () => {
+              const q = {
+                for: () => q,
+                limit: () => (table === payments ? [mockPaymentRows[0]] : [mockStartup]),
+              };
+              return q;
+            },
+          }),
+        }),
+        update: (table: unknown) => ({
+          set: (vals: Record<string, unknown>) => ({
+            where: () => {
+              if (table === payments || vals.status === "paid") {
+                if (mockPaymentRows[0]) {
+                  Object.assign(mockPaymentRows[0], vals);
+                }
+                return { returning: () => (mockPaymentRows[0] ? [mockPaymentRows[0]] : []) };
+              } else {
+                Object.assign(mockStartup, vals);
+                return { returning: () => [mockStartup] };
+              }
+            },
+          }),
+        }),
+        insert: () => ({
+          values: () => ({
+            onConflictDoNothing: () => ({
+              returning: () => [{ eventId: "evt_test" }],
+            }),
+            returning: () => [],
+          }),
+        }),
+        execute: async () => [{ email: "founder@example.com", display_name: "Founder" }],
+      };
+      return await callback(mockTx);
+    });
+
+    // Mock db.select
+    vi.spyOn(db, "select").mockImplementation((() => ({
+      from: (table: unknown) => ({
+        where: () => {
+          const queryObj = {
+            limit: () => {
+              if (table === startups) {
+                return [mockStartup];
+              }
+              const createdOrder = mockPaymentRows.find((p) => p.status === "created");
+              return createdOrder ? [createdOrder] : [];
+            },
+            then: (resolve: (v: unknown) => unknown) => {
+              if (table === startups) {
+                return resolve([{ count: 1 }]);
+              }
+              const createdOrder = mockPaymentRows.find((p) => p.status === "created");
+              return resolve(createdOrder ? [createdOrder] : []);
+            },
+          };
+          return queryObj;
+        },
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+
+    // Mock db.update
+    vi.spyOn(db, "update").mockImplementation((() => ({
+      set: (vals: Record<string, unknown>) => ({
+        where: () => {
+          // Only update row if it is created
+          const row = mockPaymentRows.find((p) => p.status === "created");
+          if (row) {
+            Object.assign(row, vals);
+          }
+          return {
+            returning: () => (row ? [row] : []),
+          };
+        },
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+
+    // Mock db.insert
+    vi.spyOn(db, "insert").mockImplementation((() => ({
+      values: (vals: Record<string, unknown>) => {
+        const newRow = {
+          id: `pay_${Date.now()}`,
+          startupId: vals.startupId as string,
+          userId: vals.userId as string,
+          amountCents: vals.amountCents as number,
+          amountRefundedCents: 0,
+          currency: (vals.currency as string) || "USD",
+          status: (vals.status as string) || "created",
+          razorpayOrderId: vals.razorpayOrderId as string,
+          razorpayPaymentId: null,
+          createdAt: new Date(),
+        };
+        mockPaymentRows.push(newRow);
+        return {
+          returning: () => [newRow],
+        };
+      },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("reuses existing unpaid order if fetchRazorpayOrder returns valid open order", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
+      id: "order_existing_123",
+      amount: 1000,
+      currency: "USD",
+      status: "created",
+      amount_paid: 0,
+    });
+
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder");
+
+    const result = await getOrCreateStartupOrder("startup_test_1", "user_test_1");
+
+    expect(result.orderId).toBe("order_existing_123");
+    expect(result.amount).toBe(1000);
+    expect(result.currency).toBe("USD");
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(mockPaymentRows[0]?.status).toBe("created");
+  });
+
+  it("replaces missing/other-mode order (fetch returns null): marks old payment failed and creates new order", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue(null);
+
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
+      id: "order_new_456",
+      amount: 1000,
+      currency: "USD",
+      status: "created",
+    });
+
+    const result = await getOrCreateStartupOrder("startup_test_1", "user_test_1");
+
+    // Old payment row must be marked failed
+    expect(mockPaymentRows[0]?.status).toBe("failed");
+
+    // New order created via Razorpay with USD and server-set amount
+    expect(createSpy).toHaveBeenCalledWith({
+      amountCents: 1000,
+      currency: "USD",
+      receipt: "startup_test_1",
+      notes: {
+        startup_id: "startup_test_1",
+        user_id: "user_test_1",
+      },
+    });
+
+    // New payment row returned
+    expect(result.orderId).toBe("order_new_456");
+    expect(mockPaymentRows.some((p) => p.razorpayOrderId === "order_new_456" && p.status === "created")).toBe(true);
+  });
+
+  it("replaces expired or cancelled order: marks old payment failed and creates brand new order", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
+      id: "order_existing_123",
+      amount: 1000,
+      currency: "USD",
+      status: "expired",
+      amount_paid: 0,
+    });
+
+    vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
+      id: "order_new_789",
+      amount: 1000,
+      currency: "USD",
+      status: "created",
+    });
+
+    const result = await getOrCreateStartupOrder("startup_test_1", "user_test_1");
+
+    expect(mockPaymentRows[0]?.status).toBe("failed");
+    expect(result.orderId).toBe("order_new_789");
+  });
+
+  it("when fetchRazorpayOrder returns status 'paid', calls markPaymentPaid, does not create new order, and throws friendly message", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
+      id: "order_existing_123",
+      amount: 1000,
+      currency: "USD",
+      status: "paid",
+      amount_paid: 1000,
+    });
+
+    const fetchPaymentsSpy = vi.spyOn(razorpayServer, "fetchRazorpayOrderPayments").mockResolvedValue([
+      {
+        id: "pay_captured_123",
+        order_id: "order_existing_123",
+        amount: 1000,
+        currency: "USD",
+        status: "captured",
+      },
+    ]);
+
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder");
+
+    await expect(getOrCreateStartupOrder("startup_test_1", "user_test_1")).rejects.toThrow(
+      "We've received your payment. Your submission is moving to review. Refresh in a moment."
+    );
+
+    // Captured payments fetched
+    expect(fetchPaymentsSpy).toHaveBeenCalledWith("order_existing_123");
+
+    // No new order created
+    expect(createSpy).not.toHaveBeenCalled();
+
+    // Old payment row must NOT be marked failed (it was transitioned to paid)
+    expect(mockPaymentRows[0]?.status).toBe("paid");
+    expect(mockStartup.status).toBe("pending");
+  });
+
+  it("when fetchRazorpayOrder returns amount_paid > 0 with status 'created', calls markPaymentPaid and does not create new order", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
+      id: "order_existing_123",
+      amount: 1000,
+      currency: "USD",
+      status: "created",
+      amount_paid: 1000,
+    });
+
+    vi.spyOn(razorpayServer, "fetchRazorpayOrderPayments").mockResolvedValue([
+      {
+        id: "pay_captured_partial_or_full",
+        order_id: "order_existing_123",
+        amount: 1000,
+        currency: "USD",
+        status: "captured",
+      },
+    ]);
+
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder");
+
+    await expect(getOrCreateStartupOrder("startup_test_1", "user_test_1")).rejects.toThrow(
+      "We've received your payment. Your submission is moving to review. Refresh in a moment."
+    );
+
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(mockPaymentRows[0]?.status).toBe("paid");
+  });
+
+  it("does not create a duplicate order and returns friendly error if Razorpay is unreachable", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockRejectedValue(
+      new Error("Payment gateway is currently unreachable. Please try again shortly.")
+    );
+
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder");
+
+    await expect(getOrCreateStartupOrder("startup_test_1", "user_test_1")).rejects.toThrow(
+      "Payment gateway is currently unreachable. Please try again shortly."
+    );
+
+    expect(createSpy).not.toHaveBeenCalled();
+    // Old payment row must NOT be modified
+    expect(mockPaymentRows[0]?.status).toBe("created");
+  });
+
+  it("never touches paid, refunded, or partially_refunded rows", async () => {
+    // If payment row is already paid, getOrCreateStartupOrder must not mark it failed
+    mockPaymentRows = [
+      {
+        id: "pay_row_paid",
+        startupId: "startup_test_1",
+        userId: "user_test_1",
+        amountCents: 1000,
+        amountRefundedCents: 0,
+        currency: "USD",
+        status: "paid",
+        razorpayOrderId: "order_paid_123",
+        razorpayPaymentId: "pay_123",
+        createdAt: new Date(),
+      },
+    ];
+
+    // If startup is not awaiting_payment, throws immediately without touching payments
+    mockStartup.status = "approved";
+    await expect(getOrCreateStartupOrder("startup_test_1", "user_test_1")).rejects.toThrow(
+      "Startup is not awaiting payment."
+    );
+    expect(mockPaymentRows[0]?.status).toBe("paid");
+  });
+
+  it("allows late capture of previously failed order via markPaymentPaid", async () => {
+    const failedPayment = {
+      id: "pay_failed_1",
+      startupId: "startup_test_1",
+      userId: "user_test_1",
+      amountCents: 1000,
+      amountRefundedCents: 0,
+      currency: "USD",
+      status: "failed",
+      razorpayOrderId: "order_failed_old",
+      razorpayPaymentId: null,
+      webhookEventId: null,
+    };
+
+    const targetStartup = {
+      id: "startup_test_1",
+      status: "awaiting_payment",
+      name: "Startup Test One",
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle transaction mock
+    vi.spyOn(db, "transaction").mockImplementation(async (callback: any) => {
+      const mockTx = {
+        select: () => ({
+          from: (table: unknown) => ({
+            where: () => {
+              const q = {
+                for: () => q,
+                limit: () => (table === payments ? [failedPayment] : [targetStartup]),
+              };
+              return q;
+            },
+          }),
+        }),
+        update: (table: unknown) => ({
+          set: (vals: Record<string, unknown>) => ({
+            where: () => {
+              if (table === payments || vals.status === "paid") {
+                Object.assign(failedPayment, vals);
+                return { returning: () => [failedPayment] };
+              } else {
+                Object.assign(targetStartup, vals);
+                return { returning: () => [targetStartup] };
+              }
+            },
+          }),
+        }),
+        insert: () => ({
+          values: () => ({
+            onConflictDoNothing: () => ({
+              returning: () => [{ eventId: "evt_1" }],
+            }),
+            returning: () => [],
+          }),
+        }),
+        execute: async () => [{ email: "founder@example.com", display_name: "Founder" }],
+      };
+      return await callback(mockTx);
+    });
+
+    const res = await markPaymentPaid({
+      razorpayOrderId: "order_failed_old",
+      razorpayPaymentId: "pay_captured_late",
+    });
+
+    expect(res.success).toBe(true);
+    expect(failedPayment.status).toBe("paid");
+    expect(targetStartup.status).toBe("pending");
+  });
+});
+

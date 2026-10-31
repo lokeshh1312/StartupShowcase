@@ -10,6 +10,8 @@ import {
 import {
   getSubmissionPriceCents,
   createRazorpayOrder,
+  fetchRazorpayOrder,
+  fetchRazorpayOrderPayments,
   isPaymentRequired,
   getRazorpayCredentials,
 } from "@/server/razorpay";
@@ -107,13 +109,63 @@ export async function getOrCreateStartupOrder(
   const { keyId } = getRazorpayCredentials();
 
   if (existingOrder) {
-    return {
-      orderId: existingOrder.razorpayOrderId,
-      amount: existingOrder.amountCents,
-      currency: existingOrder.currency,
-      keyId,
-      paymentRequired: true,
-    };
+    let orderToReuse: Awaited<ReturnType<typeof fetchRazorpayOrder>> = null;
+    let isInvalidOrStale = false;
+
+    try {
+      const fetchedOrder = await fetchRazorpayOrder(existingOrder.razorpayOrderId);
+      if (!fetchedOrder) {
+        // Razorpay says the order does not exist or belongs to another mode (400/404)
+        isInvalidOrStale = true;
+      } else if (
+        fetchedOrder.status === "paid" ||
+        (fetchedOrder.amount_paid ?? 0) > 0
+      ) {
+        // Money already received: do NOT mark failed, do NOT create new order.
+        // Fetch captured payment, call markPaymentPaid (idempotent), and inform user.
+        const orderPayments = await fetchRazorpayOrderPayments(existingOrder.razorpayOrderId);
+        const capturedPayment = orderPayments.find((p) => p.status === "captured") || orderPayments[0];
+        await markPaymentPaid({
+          razorpayOrderId: existingOrder.razorpayOrderId,
+          razorpayPaymentId: capturedPayment?.id,
+        });
+        throw new Error(
+          "We've received your payment. Your submission is moving to review. Refresh in a moment."
+        );
+      } else if (
+        fetchedOrder.status === "expired" ||
+        fetchedOrder.status === "cancelled"
+      ) {
+        // Order is expired/cancelled
+        isInvalidOrStale = true;
+      } else {
+        orderToReuse = fetchedOrder;
+      }
+    } catch (err: unknown) {
+      // If Razorpay is unreachable, return a friendly error and do not create a duplicate order.
+      throw err;
+    }
+
+    if (!isInvalidOrStale && orderToReuse) {
+      return {
+        orderId: existingOrder.razorpayOrderId,
+        amount: existingOrder.amountCents,
+        currency: existingOrder.currency,
+        keyId,
+        paymentRequired: true,
+      };
+    }
+
+    // Mark old payments row status 'failed' (never touch rows that are paid, refunded, or partially_refunded)
+    await db
+      .update(payments)
+      .set({ status: "failed" })
+      .where(
+        and(
+          eq(payments.id, existingOrder.id),
+          eq(payments.status, "created")
+        )
+      );
   }
 
   // 2. Enforce limit of max 3 startups in awaiting_payment per user
