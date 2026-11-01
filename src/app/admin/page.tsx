@@ -4,6 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { listAdminStartups, getAdminAuditLog } from "@/server/startups";
 import { AdminPanel } from "@/components/admin/admin-panel";
+import { CloudBackground } from "@/components/ui/cloud-background";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -33,28 +34,35 @@ export default async function AdminPage() {
     ]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-          <ShieldCheck className="w-6 h-6" />
-        </div>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
-            Admin Moderation Console
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Review submission queue, verify authentic startups, and inspect audit activity.
-          </p>
-        </div>
-      </div>
+    <div className="relative isolate min-h-screen">
+      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
-      <AdminPanel
-        initialPending={pendingResult.items}
-        initialApproved={approvedResult.items}
-        initialRejected={rejectedResult.items}
-        auditLogs={auditLogsResult.items}
-      />
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+        {/* Header */}
+        <div className="flex items-center gap-3 pt-2">
+          <div className="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-950/40 border border-brand-200/80 dark:border-brand-800/60 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 shadow-2xs dark:shadow-none">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Admin Moderation{" "}
+              <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
+                Console
+              </em>
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Review submission queue, verify authentic startups, and inspect audit activity.
+            </p>
+          </div>
+        </div>
+
+        <AdminPanel
+          initialPending={pendingResult.items}
+          initialApproved={approvedResult.items}
+          initialRejected={rejectedResult.items}
+          auditLogs={auditLogsResult.items}
+        />
+      </div>
     </div>
   );
 }
