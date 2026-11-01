@@ -1,15 +1,23 @@
 import React from "react";
 
+interface CloudBackgroundProps {
+  className?: string;
+  height?: string;
+}
+
 /**
  * CloudBackground: Decorative cloud layer for the top of the page.
  * Pure inline SVGs with feGaussianBlur and slow CSS drift animation.
  * Adheres strictly to the light/dark theme specifications and zero-JS motion requirements.
  */
-export function CloudBackground() {
+export function CloudBackground({
+  className = "",
+  height = "h-[760px]",
+}: CloudBackgroundProps = {}) {
   return (
     <div
       aria-hidden="true"
-      className="absolute top-0 inset-x-0 h-[760px] overflow-hidden pointer-events-none -z-10 select-none"
+      className={`absolute top-0 inset-x-0 ${height} overflow-hidden pointer-events-none -z-10 select-none ${className}`}
     >
       {/* Light Theme: Sky-blue vertical gradient fading to transparent by ~68% */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#8ec9ff]/40 via-[#c6e5ff]/30 via-[#eaf5ff]/20 to-transparent dark:hidden" />
@@ -78,4 +86,3 @@ export function CloudBackground() {
     </div>
   );
 }
-

@@ -72,7 +72,7 @@ export function FilterBar({
 
   return (
     <div className="w-full space-y-3 mb-6">
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white/90 dark:bg-slate-950/70 p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-xs dark:shadow-none backdrop-blur-md">
         {/* Search input */}
         {showSearch && (
           <div className="relative flex-1 min-w-[200px]">
@@ -91,7 +91,7 @@ export function FilterBar({
                   updateParam("q", e.target.value.trim());
                 }
               }}
-              className="w-full pl-10 pr-8 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+              className="w-full pl-10 pr-8 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-colors"
             />
             {currentSearch && (
               <button
@@ -113,7 +113,7 @@ export function FilterBar({
             <select
               value={currentCategory}
               onChange={(e) => updateParam("category", e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 focus:outline-none cursor-pointer"
+              className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:border-slate-300 dark:hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 cursor-pointer transition-colors"
             >
               <option value="All">All Categories</option>
               {categories.map((c) => (
@@ -131,7 +131,7 @@ export function FilterBar({
               <select
                 value={currentCountry}
                 onChange={(e) => updateParam("country", e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 focus:outline-none cursor-pointer"
+                className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:border-slate-300 dark:hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 cursor-pointer transition-colors"
               >
                 <option value="ALL">All Countries</option>
                 {countries.map((c) => (
@@ -149,7 +149,7 @@ export function FilterBar({
             <select
               value={currentStage}
               onChange={(e) => updateParam("stage", e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 focus:outline-none cursor-pointer"
+              className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:border-slate-300 dark:hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 cursor-pointer transition-colors"
             >
               <option value="All">All Stages</option>
               {STAGES.map((s) => (
@@ -166,7 +166,7 @@ export function FilterBar({
             <select
               value={currentSort}
               onChange={(e) => updateParam("sort", e.target.value)}
-              className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 focus:outline-none cursor-pointer"
+              className="appearance-none pl-3 pr-8 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:border-slate-300 dark:hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 cursor-pointer transition-colors"
             >
               <option value="votes">Most Votes</option>
               <option value="views">Most Views</option>
@@ -178,12 +178,12 @@ export function FilterBar({
           </div>
 
           {/* Remote First checkbox */}
-          <label className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl cursor-pointer select-none hover:border-slate-300 dark:hover:border-white/20 transition-colors">
             <input
               type="checkbox"
               checked={currentRemoteFirst}
               onChange={(e) => updateParam("remoteFirst", e.target.checked)}
-              className="rounded text-blue-600 focus:ring-blue-500"
+              className="rounded accent-brand-600 text-brand-600 focus:ring-brand-500"
             />
             <span>Remote-First</span>
           </label>
@@ -193,7 +193,7 @@ export function FilterBar({
             <button
               type="button"
               onClick={resetAll}
-              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl hover:bg-rose-100 transition-colors"
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>
@@ -208,7 +208,7 @@ export function FilterBar({
             Showing <strong className="text-slate-800 dark:text-slate-200">{totalResults}</strong>{" "}
             {totalResults === 1 ? "startup" : "startups"}
           </span>
-          {isPending && <span className="text-blue-600 dark:text-blue-400">Updating…</span>}
+          {isPending && <span className="text-brand-600 dark:text-brand-400 font-semibold">Updating…</span>}
         </div>
       )}
     </div>
