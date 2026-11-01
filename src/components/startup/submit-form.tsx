@@ -19,6 +19,7 @@ import {
   updateStartupAction,
   uploadStartupImageAction,
   confirmPaymentAction,
+  getStartupPaymentOrderAction,
 } from "@/server/actions";
 import { openRazorpayCheckout } from "@/lib/razorpay-client";
 import { CATEGORIES, STAGES } from "@/lib/validation";
@@ -32,6 +33,8 @@ interface SubmitFormProps {
   userDisplayName?: string;
   initialStartup?: Partial<Startup>;
   formattedPrice?: string;
+  priceInr?: string;
+  priceUsd?: string;
 }
 
 export function SubmitStartupForm({
@@ -39,6 +42,8 @@ export function SubmitStartupForm({
   userDisplayName,
   initialStartup,
   formattedPrice = "$10.00 USD",
+  priceInr = "Rs 999",
+  priceUsd = "$10",
 }: SubmitFormProps) {
   const isEditing = Boolean(initialStartup?.id);
 
@@ -118,6 +123,7 @@ export function SubmitStartupForm({
   } | null>(null);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [selectedCurrency, setSelectedCurrency] = useState<"INR" | "USD">("USD");
   const [isPending, startTransition] = useTransition();
 
   const handleFileUpload = async (
@@ -275,7 +281,7 @@ export function SubmitStartupForm({
             });
           }
         } else {
-          const res = await submitStartupAction(payload);
+          const res = await submitStartupAction(payload, selectedCurrency);
           if (res?.error) {
             setError(res.error);
             setCaptchaToken("");
@@ -307,6 +313,41 @@ export function SubmitStartupForm({
     });
   };
 
+  const handlePayPending = async (currency: "INR" | "USD") => {
+    if (!pendingPayment) return;
+    setPaymentError("");
+    setVerifyingPayment(true);
+    try {
+      const res = await getStartupPaymentOrderAction(pendingPayment.startup.id, currency);
+      setVerifyingPayment(false);
+      if (!res || "error" in res) {
+        setPaymentError(res?.error || "Failed to initiate payment.");
+        return;
+      }
+      if (!res.paymentRequired) {
+        setPendingPayment(null);
+        setSubmittedStartup({
+          id: pendingPayment.startup.id,
+          name: pendingPayment.startup.name,
+          slug: pendingPayment.startup.slug,
+        });
+        return;
+      }
+      triggerCheckout({
+        startup: pendingPayment.startup,
+        order: {
+          orderId: res.orderId,
+          amount: res.amount,
+          currency: res.currency,
+          keyId: res.keyId,
+        },
+      });
+    } catch {
+      setVerifyingPayment(false);
+      setPaymentError("Failed to initiate payment. Please try again.");
+    }
+  };
+
   if (pendingPayment) {
     return (
       <div className="p-8 sm:p-12 rounded-3xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/50 text-center space-y-6">
@@ -327,7 +368,7 @@ export function SubmitStartupForm({
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
             {verifyingPayment
               ? "Please wait while our server authoritatively verifies your payment signature with Razorpay."
-              : `Your startup submission details are securely saved as awaiting payment. To enter the review queue, complete the one-time ${formattedPrice} listing fee.`}
+              : `Your startup submission details are securely saved as awaiting payment. To enter the review queue, complete the one-time listing fee.`}
           </p>
         </div>
 
@@ -339,14 +380,24 @@ export function SubmitStartupForm({
 
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           {!verifyingPayment && (
-            <button
-              type="button"
-              onClick={() => triggerCheckout(pendingPayment)}
-              className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
-            >
-              <CreditCard className="w-4 h-4" />
-              <span>Pay Listing Fee ({formattedPrice})</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => handlePayPending("INR")}
+                className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>Pay {priceInr} (UPI / QR / cards)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePayPending("USD")}
+                className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>Pay {priceUsd} (international card)</span>
+              </button>
+            </>
           )}
           <Link
             href="/me/submissions"
@@ -854,27 +905,62 @@ export function SubmitStartupForm({
             </div>
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            USD only &bull; Instant checkout
+            Choose UPI/QR/cards (INR) or international card (USD). One-time fee.
           </div>
         </div>
       )}
 
       {/* Submit / Save Button */}
-      <div className="flex items-center justify-end gap-4">
-        <button
-          type="submit"
-          disabled={isPending || logoUploading || coverUploading}
-          className="px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer"
-        >
-          {isPending ? (
-            <span>{isEditing ? "Saving Changes..." : "Processing Order..."}</span>
-          ) : (
-            <>
-              <span>{isEditing ? "Save Changes" : "Submit and pay"}</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
+      <div className="flex flex-wrap items-center justify-end gap-4">
+        {isEditing ? (
+          <button
+            type="submit"
+            disabled={isPending || logoUploading || coverUploading}
+            className="px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+          >
+            {isPending ? (
+              <span>Saving Changes...</span>
+            ) : (
+              <>
+                <span>Save Changes</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              onClick={() => setSelectedCurrency("INR")}
+              disabled={isPending || logoUploading || coverUploading}
+              className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+            >
+              {isPending && selectedCurrency === "INR" ? (
+                <span>Processing Order...</span>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4" />
+                  <span>Pay {priceInr} (UPI / QR / cards)</span>
+                </>
+              )}
+            </button>
+            <button
+              type="submit"
+              onClick={() => setSelectedCurrency("USD")}
+              disabled={isPending || logoUploading || coverUploading}
+              className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+            >
+              {isPending && selectedCurrency === "USD" ? (
+                <span>Processing Order...</span>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4" />
+                  <span>Pay {priceUsd} (international card)</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </form>
   );

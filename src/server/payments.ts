@@ -8,7 +8,7 @@ import {
   auditLog,
 } from "@/db/schema";
 import {
-  getSubmissionPriceCents,
+  getSubmissionPrice,
   createRazorpayOrder,
   fetchRazorpayOrder,
   fetchRazorpayOrderPayments,
@@ -35,13 +35,18 @@ export interface StartupOrderResult {
  * - Startup must be in 'awaiting_payment'
  * - Startup must belong to the user
  * - Max 3 awaiting_payment startups per user
- * - Reuses existing unpaid order for the same startup
+ * - Reuses existing unpaid order for the same startup ONLY if stored currency and amount match current price
+ * - Otherwise marks existing unpaid order failed and creates a new one in the requested currency
  * - Rate limit: max 10 order creations per hour per user
  */
 export async function getOrCreateStartupOrder(
   startupId: string,
-  userId: string
+  userId: string,
+  currency: "INR" | "USD" = "USD"
 ): Promise<StartupOrderResult> {
+  const targetCurrency: "INR" | "USD" = currency === "INR" ? "INR" : "USD";
+  const { amountMinor: targetPrice } = getSubmissionPrice(targetCurrency);
+
   const [startup] = await db
     .select({
       id: startups.id,
@@ -67,28 +72,48 @@ export async function getOrCreateStartupOrder(
 
   // If in dev and Razorpay credentials are not configured, payment can be skipped
   if (!isPaymentRequired()) {
-    const mockOrderId = `mock_order_${startup.id.slice(0, 8)}`;
+    const mockOrderId = `mock_order_${startup.id.slice(0, 8)}_${targetCurrency.toLowerCase()}`;
     const [existing] = await db
       .select()
       .from(payments)
-      .where(eq(payments.razorpayOrderId, mockOrderId))
+      .where(
+        and(
+          eq(payments.startupId, startup.id),
+          eq(payments.status, "created")
+        )
+      )
       .limit(1);
 
-    if (!existing) {
-      await db.insert(payments).values({
-        startupId: startup.id,
-        userId,
-        razorpayOrderId: mockOrderId,
-        amountCents: getSubmissionPriceCents(),
-        currency: "USD",
-        status: "created",
-      });
+    if (existing && existing.currency === targetCurrency && existing.amountCents === targetPrice) {
+      return {
+        orderId: existing.razorpayOrderId,
+        amount: existing.amountCents,
+        currency: existing.currency,
+        keyId: "mock_key_id",
+        paymentRequired: false,
+      };
     }
+
+    if (existing) {
+      await db
+        .update(payments)
+        .set({ status: "failed" })
+        .where(eq(payments.id, existing.id));
+    }
+
+    await db.insert(payments).values({
+      startupId: startup.id,
+      userId,
+      razorpayOrderId: mockOrderId,
+      amountCents: targetPrice,
+      currency: targetCurrency,
+      status: "created",
+    });
 
     return {
       orderId: mockOrderId,
-      amount: getSubmissionPriceCents(),
-      currency: "USD",
+      amount: targetPrice,
+      currency: targetCurrency,
       keyId: "mock_key_id",
       paymentRequired: false,
     };
@@ -111,6 +136,11 @@ export async function getOrCreateStartupOrder(
   if (existingOrder) {
     let orderToReuse: Awaited<ReturnType<typeof fetchRazorpayOrder>> = null;
     let isInvalidOrStale = false;
+
+    // Reuse existing unpaid order ONLY if its stored currency and amount match current price
+    if (existingOrder.currency !== targetCurrency || existingOrder.amountCents !== targetPrice) {
+      isInvalidOrStale = true;
+    }
 
     try {
       const fetchedOrder = await fetchRazorpayOrder(existingOrder.razorpayOrderId);
@@ -138,7 +168,7 @@ export async function getOrCreateStartupOrder(
       ) {
         // Order is expired/cancelled
         isInvalidOrStale = true;
-      } else {
+      } else if (!isInvalidOrStale) {
         orderToReuse = fetchedOrder;
       }
     } catch (err: unknown) {
@@ -192,10 +222,9 @@ export async function getOrCreateStartupOrder(
   }
 
   // 4. Create order via Razorpay Orders API
-  const amountCents = getSubmissionPriceCents();
   const order = await createRazorpayOrder({
-    amountCents,
-    currency: "USD",
+    amountCents: targetPrice,
+    currency: targetCurrency,
     receipt: startup.id,
     notes: {
       startup_id: startup.id,
@@ -208,15 +237,15 @@ export async function getOrCreateStartupOrder(
     startupId: startup.id,
     userId,
     razorpayOrderId: order.id,
-    amountCents,
-    currency: "USD",
+    amountCents: targetPrice,
+    currency: targetCurrency,
     status: "created",
   });
 
   return {
     orderId: order.id,
-    amount: amountCents,
-    currency: "USD",
+    amount: targetPrice,
+    currency: targetCurrency,
     keyId,
     paymentRequired: true,
   };
@@ -504,7 +533,7 @@ export interface ProcessRefundResult {
 
 /**
  * Handles refund processing (partial or full):
- * - Records the refunded amount in `amount_refunded_cents`
+ * - Records the refunded amount in `amount_refunded_cents` (stores minor units: paise for INR, cents for USD)
  * - If partial: sets status='partially_refunded' and DOES NOT reject the startup
  * - If full: sets status='refunded' and moves startup to 'rejected' with reason 'Payment refunded'
  * - Records durable webhookEventId in payment_events table within the same transaction
@@ -646,6 +675,7 @@ export async function processPaymentRefund(params: {
         refund_amount_cents: thisRefundCents,
         total_refunded_cents: newTotalRefundedCents,
         amount_cents: payment.amountCents,
+        currency: payment.currency,
         is_partial: !isFullRefund,
         status: nextStatus,
         reason,

@@ -13,20 +13,29 @@ interface SubmissionActionsProps {
   startupName: string;
   slug: string;
   status: string;
+  priceInr?: string;
+  priceUsd?: string;
 }
 
-export function SubmissionActions({ startupId, startupName, slug, status }: SubmissionActionsProps) {
+export function SubmissionActions({
+  startupId,
+  startupName,
+  slug,
+  status,
+  priceInr = "Rs 999",
+  priceUsd = "$10",
+}: SubmissionActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [paying, setPaying] = useState(false);
   const [errorModal, setErrorModal] = useState<{ title: string; message: string } | null>(null);
 
-  const handleResumePayment = async () => {
+  const handleResumePayment = async (currency: "INR" | "USD" = "USD") => {
     setErrorModal(null);
     setPaying(true);
     try {
-      const res = await getStartupPaymentOrderAction(startupId);
+      const res = await getStartupPaymentOrderAction(startupId, currency);
       if (!res || "error" in res) {
         setErrorModal({
           title: "Payment couldn't start",
@@ -118,15 +127,26 @@ export function SubmissionActions({ startupId, startupName, slug, status }: Subm
     <>
       <div className="flex flex-wrap items-center gap-2">
         {status === "awaiting_payment" && (
-          <button
-            type="button"
-            onClick={handleResumePayment}
-            disabled={paying}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
-          >
-            {paying ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
-            <span>{paying ? "Opening Checkout..." : "Resume Payment ($10)"}</span>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => handleResumePayment("INR")}
+              disabled={paying}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+            >
+              {paying ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
+              <span>{paying ? "Opening Checkout..." : `Pay ${priceInr} (UPI / QR / cards)`}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleResumePayment("USD")}
+              disabled={paying}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+            >
+              {paying ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
+              <span>{paying ? "Opening Checkout..." : `Pay ${priceUsd} (international card)`}</span>
+            </button>
+          </>
         )}
 
         {(status === "pending" || status === "awaiting_payment") && (

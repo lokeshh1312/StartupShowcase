@@ -168,7 +168,7 @@ describe("SubmitStartupForm feedback & error handling", () => {
 
     fillForm();
 
-    const submitBtn = screen.getByRole("button", { name: /Submit and pay/i });
+    const submitBtn = screen.getByRole("button", { name: /Pay \$10|Submit and pay/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
@@ -187,7 +187,7 @@ describe("SubmitStartupForm feedback & error handling", () => {
 
     fillForm();
 
-    const submitBtn = screen.getByRole("button", { name: /Submit and pay/i });
+    const submitBtn = screen.getByRole("button", { name: /Pay \$10|Submit and pay/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
@@ -218,7 +218,7 @@ describe("SubmitStartupForm feedback & error handling", () => {
 
     fillForm();
 
-    const submitBtn = screen.getByRole("button", { name: /Submit and pay/i });
+    const submitBtn = screen.getByRole("button", { name: /Pay \$10|Submit and pay/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {

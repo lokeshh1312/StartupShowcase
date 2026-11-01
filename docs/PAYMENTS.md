@@ -1,6 +1,6 @@
 # Startup Showcase - Payments & Submissions Architecture
 
-Startup Showcase enforces a mandatory, one-time payment of **$10.00 USD** before any submitted startup enters the administrative review queue.
+Startup Showcase enforces a mandatory, one-time payment of **Rs 999 INR** (via UPI, QR, PhonePe, netbanking, Indian cards) or **$10.00 USD** (international cards) before any submitted startup enters the administrative review queue.
 
 ---
 
@@ -56,8 +56,9 @@ Startup Showcase enforces a mandatory, one-time payment of **$10.00 USD** before
 ## 2. Server-Side and Database Invariants
 
 1. **Pricing Invariance**:
-   - The fee is **fixed at $10.00 USD** (1000 cents) defined by `SUBMISSION_PRICE_USD_CENTS=1000`.
-   - The client **never** specifies the price or currency.
+   - USD fee is defined by `SUBMISSION_PRICE_USD_CENTS=1000` (default $10.00 USD).
+   - INR fee is defined by `SUBMISSION_PRICE_INR_PAISE=99900` (default Rs 999.00).
+   - The client **never** specifies an amount; the client may only select currency enum `INR` | `USD`. Amounts are strictly computed server-side.
 2. **Database Triggers (`enforce_startup_payment_transition`)**:
    - Any database transition from `awaiting_payment` to `pending` or `approved` requires an existing `paid` record in `public.payments`.
    - Direct database attacks attempting to bypass payment fail with Postgres error `23514` (`check_violation`).
@@ -81,6 +82,7 @@ When running in development or staging:
    RAZORPAY_WEBHOOK_SECRET="..."
    NEXT_PUBLIC_RAZORPAY_KEY_ID="rzp_test_..."
    SUBMISSION_PRICE_USD_CENTS=1000
+   SUBMISSION_PRICE_INR_PAISE=99900
    ```
 2. When submitting a startup, the checkout popup will appear in Test Mode.
 3. Use Razorpay's test card credentials:
@@ -129,7 +131,7 @@ Webhooks act as an essential safety net for cases where a user closes their brow
 - [ ] Obtain live API keys from Razorpay Dashboard (**Settings** -> **API Keys**).
 - [ ] Confirm key prefix: Live keys **must** begin with `rzp_live_`.
 - [ ] Remove `ALLOW_RAZORPAY_TEST_IN_PRODUCTION` from production environment variables (the server refuses to start if test keys are used in production without this explicit flag).
-- [ ] Set `SUBMISSION_PRICE_USD_CENTS=1000` in production environment.
+- [ ] Set `SUBMISSION_PRICE_USD_CENTS=1000` and `SUBMISSION_PRICE_INR_PAISE=99900` in production environment.
 - [ ] Configure the live webhook URL and copy the secret to `RAZORPAY_WEBHOOK_SECRET`.
 - [ ] Verify that international USD card payments are enabled on your Razorpay Merchant Account.
 - [ ] Ensure database migration `supabase/migrations/0009_payments.sql` is applied to your production Supabase database.

@@ -82,7 +82,7 @@ export default function AboutPage() {
             Startup Submission
           </h2>
           <p>
-            Founders, entrepreneurs, and authorized representatives can submit their startups through our website for a fee of <strong>US$10 per submission</strong>.
+            Founders, entrepreneurs, and authorized representatives can submit their startups through our website for a <strong>one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards)</strong>.
           </p>
           <p>
             Each submission is subject to our review process. Payment does not automatically guarantee approval or publication.

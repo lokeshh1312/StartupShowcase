@@ -46,7 +46,7 @@ const FAQ_SECTIONS = [
       },
       {
         q: "Is submitting a startup free?",
-        a: "Yes. Basic submissions and discovery listings are 100% free for all early-stage teams.",
+        a: "Submissions require a one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards) covering review and cohort placement. If a submission is not approved, refunds are returned to the original payment method in the same currency.",
       },
       {
         q: "What happens after I submit?",

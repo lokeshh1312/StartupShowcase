@@ -55,7 +55,7 @@ export default function DeliveryPage() {
             1. What We Deliver
           </h2>
           <p>
-            For a fee of US$10 per startup submission, the service includes:
+            For a one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards), the service includes:
           </p>
           <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
             <li>Receipt of one startup submission.</li>

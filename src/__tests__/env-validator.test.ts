@@ -76,6 +76,38 @@ describe("Production Environment Validator", () => {
     );
   });
 
+  it("validates optional SUBMISSION_PRICE_INR_PAISE", () => {
+    // Valid positive integer
+    const validInrEnv = {
+      ...completeEnv,
+      SUBMISSION_PRICE_INR_PAISE: "99900",
+    };
+    const validResult = validateProductionEnv(validInrEnv);
+    expect(validResult.valid).toBe(true);
+
+    // Invalid string
+    const invalidInrEnv = {
+      ...completeEnv,
+      SUBMISSION_PRICE_INR_PAISE: "abc",
+    };
+    const invalidResult = validateProductionEnv(invalidInrEnv);
+    expect(invalidResult.valid).toBe(false);
+    expect(invalidResult.errors).toContain(
+      "SUBMISSION_PRICE_INR_PAISE must be a positive integer (e.g. 99900 for ₹999.00)"
+    );
+
+    // Non-positive
+    const negativeInrEnv = {
+      ...completeEnv,
+      SUBMISSION_PRICE_INR_PAISE: "0",
+    };
+    const negResult = validateProductionEnv(negativeInrEnv);
+    expect(negResult.valid).toBe(false);
+    expect(negResult.errors).toContain(
+      "SUBMISSION_PRICE_INR_PAISE must be a positive integer (e.g. 99900 for ₹999.00)"
+    );
+  });
+
   it("refuses test keys in production mode unless ALLOW_RAZORPAY_TEST_IN_PRODUCTION is true", () => {
     const prodWithTestKey = {
       ...completeEnv,

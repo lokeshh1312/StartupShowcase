@@ -50,7 +50,7 @@ export default function PricingPage() {
             Startup Submission
           </h2>
           <p className="font-semibold text-slate-900 dark:text-white">
-            Price: US$10 per startup submission
+            Price: one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards) per startup submission
           </p>
           <p>
             The fee covers the submission and review of one startup profile for potential publication on Startup Showcase.
@@ -77,7 +77,7 @@ export default function PricingPage() {
           <ol className="list-decimal pl-5 space-y-2 text-slate-700 dark:text-slate-300">
             <li>Complete the startup submission form.</li>
             <li>Provide accurate startup and contact information.</li>
-            <li>Pay the US$10 submission fee.</li>
+            <li>Pay the one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards).</li>
             <li>Our team reviews your submission.</li>
             <li>If approved, your startup profile is published on the platform.</li>
           </ol>
@@ -89,10 +89,10 @@ export default function PricingPage() {
           </h2>
           <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
             <li>
-              <strong>Price:</strong> US$10 per submission.
+              <strong>Price:</strong> one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards) per submission.
             </li>
             <li>
-              <strong>Currency:</strong> US dollars (USD), as displayed on the checkout page.
+              <strong>Currency:</strong> Indian Rupees (INR) or US dollars (USD), as selected on the checkout page.
             </li>
             <li>
               <strong>Service type:</strong> Digital startup submission and review.
@@ -127,7 +127,7 @@ export default function PricingPage() {
             >
               Refund &amp; Cancellation Policy
             </Link>{" "}
-            and applicable law.
+            (refunds are returned to the original payment method in the same currency) and applicable law.
           </p>
         </section>
 

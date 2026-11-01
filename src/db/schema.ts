@@ -260,6 +260,7 @@ export const payments = pgTable(
       .references(() => profiles.id, { onDelete: "restrict" }),
     razorpayOrderId: text("razorpay_order_id").notNull().unique(),
     razorpayPaymentId: text("razorpay_payment_id").unique(),
+    // Note: amountCents and amountRefundedCents hold the minor unit of the payment's currency (cents for USD, paise for INR).
     amountCents: integer("amount_cents").notNull(),
     amountRefundedCents: integer("amount_refunded_cents").notNull().default(0),
     currency: text("currency").notNull(),

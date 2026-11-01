@@ -6,6 +6,7 @@ import { Check, X, ShieldCheck, ExternalLink, Info } from "lucide-react";
 import { moderateStartupAction } from "@/server/actions";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { getCountryName } from "@/lib/validation";
+import { formatMoney } from "@/lib/money";
 
 interface AdminStartupItem {
   id: string;
@@ -218,7 +219,7 @@ export function AdminPanel({
                       <span>Cohort: {startup.monthLabel}</span>
                       <span>•</span>
                       <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                        Paid: ${((startup.paymentAmountCents ?? 1000) / 100).toFixed(2)} {startup.paymentCurrency || "USD"}
+                        Paid: {formatMoney(startup.paymentAmountCents ?? 1000, startup.paymentCurrency || "USD")}
                         {startup.razorpayPaymentId ? ` (ID: ${startup.razorpayPaymentId})` : ""}
                       </span>
                       {startup.websiteUrl && (

@@ -5,6 +5,8 @@ import { ClipboardList, Plus, ExternalLink, AlertCircle } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { getMySubmissions } from "@/server/startups";
 import { Badge, StageBadge } from "@/components/common/badge";
+import { getSubmissionPriceCents, getSubmissionPriceInrPaise } from "@/server/razorpay";
+import { formatMoney, formatPriceButton } from "@/lib/money";
 import { SubmissionActions } from "./submission-actions";
 import type { Metadata } from "next";
 
@@ -44,6 +46,8 @@ export default async function MySubmissionsPage() {
   }
 
   const submissionsResult = await getMySubmissions(user.id, 1, 50);
+  const priceInr = formatPriceButton(getSubmissionPriceInrPaise(), "INR");
+  const priceUsd = formatPriceButton(getSubmissionPriceCents(), "USD");
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -136,7 +140,7 @@ export default async function MySubmissionsPage() {
                       Payment:{" "}
                       {startup.paymentStatus === "paid" ? (
                         <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                          Paid ($10.00 USD)
+                          Paid ({formatMoney(startup.paymentAmountCents ?? 1000, startup.paymentCurrency || "USD")})
                           {startup.razorpayPaymentId ? ` • ID: ${startup.razorpayPaymentId}` : ""}
                         </span>
                       ) : startup.paymentStatus === "refunded" ? (
@@ -145,12 +149,12 @@ export default async function MySubmissionsPage() {
                         <span className="font-semibold text-amber-600 dark:text-amber-400">
                           Partially Refunded
                           {typeof startup.paymentAmountRefundedCents === "number" && startup.paymentAmountRefundedCents > 0
-                            ? ` ($${(startup.paymentAmountRefundedCents / 100).toFixed(2)} USD refunded)`
+                            ? ` (${formatMoney(startup.paymentAmountRefundedCents, startup.paymentCurrency || "USD")} refunded)`
                             : ""}
                         </span>
                       ) : startup.status === "awaiting_payment" ? (
                         <span className="font-semibold text-amber-600 dark:text-amber-400">
-                          Unpaid ($10.00 USD required)
+                          Unpaid (payment required)
                         </span>
                       ) : (
                         <span className="font-medium text-slate-400">Standard</span>
@@ -175,6 +179,8 @@ export default async function MySubmissionsPage() {
                       startupName={startup.name}
                       slug={startup.slug}
                       status={startup.status}
+                      priceInr={priceInr}
+                      priceUsd={priceUsd}
                     />
                   )}
                   {startup.status === "approved" && (
