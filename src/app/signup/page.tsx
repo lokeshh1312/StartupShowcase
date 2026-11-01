@@ -79,11 +79,12 @@ export default function SignUpPage() {
         {process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true" && (
           <div className="space-y-4">
             <GoogleSignInButton redirectPath={redirectTo} />
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
-              <span className="bg-white dark:bg-slate-900 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider relative">
+            <div className="flex items-center justify-center">
+              <div className="flex-1 border-t border-slate-200 dark:border-slate-800" />
+              <span className="px-3 whitespace-nowrap text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                 Or register with email
               </span>
+              <div className="flex-1 border-t border-slate-200 dark:border-slate-800" />
             </div>
           </div>
         )}
