@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight, MapPin, Eye } from "lucide-react";
 import { StartupLogo } from "@/components/common/startup-logo";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { VoteButton } from "@/components/startup/vote-button";
@@ -17,9 +17,9 @@ export function StartupCard({ startup }: StartupCardProps) {
   const countryName = getCountryName(startup.countryCode);
 
   return (
-    <article className="group relative flex flex-col justify-between rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500/50 dark:hover:border-blue-500/50 shadow-xs hover:shadow-md transition-all duration-300 p-5 overflow-hidden">
+    <article className="group relative flex flex-col justify-between rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 hover:border-brand-500/50 dark:hover:border-white/20 shadow-xs dark:shadow-none hover:shadow-md transition-all duration-300 p-5 overflow-hidden">
       {/* Top subtle highlight */}
-      <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/0 to-transparent group-hover:via-blue-500 transition-all duration-500" />
+      <div className="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-brand-500/0 to-transparent group-hover:via-brand-500 transition-all duration-500" />
 
       {/* Main Content */}
       <div className="space-y-3.5">
@@ -38,7 +38,7 @@ export function StartupCard({ startup }: StartupCardProps) {
               size="md"
             />
             <div className="min-w-0">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover/link:text-blue-600 dark:group-hover/link:text-blue-400 transition-colors truncate">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover/link:text-brand-600 dark:group-hover/link:text-brand-400 transition-colors truncate">
                 {startup.name}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
@@ -67,7 +67,7 @@ export function StartupCard({ startup }: StartupCardProps) {
 
         {/* Tagline & Description */}
         <Link href={`/startup/${startup.slug}`} className="block group/desc">
-          <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-1 mb-1 group-hover/desc:text-blue-600 dark:group-hover/desc:text-blue-400 transition-colors">
+          <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-1 mb-1 group-hover/desc:text-brand-600 dark:group-hover/desc:text-brand-400 transition-colors">
             {startup.tagline || startup.ideaTitle}
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
@@ -77,9 +77,9 @@ export function StartupCard({ startup }: StartupCardProps) {
       </div>
 
       {/* Footer Badges & Metadata */}
-      <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 text-xs">
+      <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <Badge variant="default" size="sm">
+          <Badge variant="brand" size="sm">
             {startup.category}
           </Badge>
           <StageBadge stage={startup.stage} />
@@ -87,14 +87,21 @@ export function StartupCard({ startup }: StartupCardProps) {
             className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400"
             title={`Based in ${countryName}`}
           >
-            <MapPin className="w-3 h-3" />
+            <MapPin className="w-3 h-3 text-slate-400" />
             <span>{startup.countryCode}</span>
+          </span>
+          <span
+            className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-mono"
+            title="Total Views"
+          >
+            <Eye className="w-3 h-3 text-slate-400" />
+            <span>{startup.views}</span>
           </span>
         </div>
 
         <Link
           href={`/startup/${startup.slug}`}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors shrink-0"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 transition-colors shrink-0"
         >
           <span>Explore</span>
           <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
