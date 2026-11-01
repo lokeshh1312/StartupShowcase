@@ -21,15 +21,15 @@ export function Logo({ size = "default", className = "" }: LogoProps) {
   return (
     <Link
       href="/"
-      className={`group flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg py-1 transition-transform duration-200 active:scale-95 ${className}`}
+      className={`group flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg py-1 transition-transform duration-200 active:scale-95 ${className}`}
       aria-label="Startup Showcase Home"
     >
       {/* Lightbulb icon */}
       <div
-        className={`relative flex items-center justify-center rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 group-hover:bg-blue-100/80 dark:group-hover:bg-blue-900/60 transition-colors ${s.box}`}
+        className={`relative flex items-center justify-center rounded-xl bg-brand-50/80 dark:bg-brand-950/40 border border-brand-100 dark:border-brand-900/60 group-hover:bg-brand-100/80 dark:group-hover:bg-brand-900/40 transition-colors ${s.box}`}
       >
         <Lightbulb
-          className={`text-blue-600 dark:text-blue-400 transition-transform duration-300 group-hover:rotate-6 ${s.icon}`}
+          className={`text-brand-600 dark:text-brand-400 transition-transform duration-300 group-hover:rotate-6 ${s.icon}`}
         />
       </div>
 
@@ -41,7 +41,7 @@ export function Logo({ size = "default", className = "" }: LogoProps) {
           Startup
         </span>
         <span
-          className={`text-blue-600 dark:text-blue-400 ml-1.5 ${s.text}`}
+          className={`text-brand-600 dark:text-brand-400 ml-1.5 ${s.text}`}
         >
           Showcase
         </span>

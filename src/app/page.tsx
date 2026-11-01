@@ -1,22 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  ArrowRight,
-  TrendingUp,
-  Zap,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import {
   getLeaderboard,
   listMonths,
   listCategories,
-  listStartups,
 } from "@/server/startups";
-import { getCurrentUser } from "@/lib/supabase/server";
 import { MonthSelector } from "@/components/discovery/month-selector";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
-import { StartupCard } from "@/components/startup/startup-card";
-import { CategoryCard } from "@/components/discovery/category-card";
+import { CloudBackground } from "@/components/ui/cloud-background";
 import {
   createMetadata,
   buildOrganizationJsonLd,
@@ -55,25 +47,17 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     redirect(resolvedParams.month ? `/?month=${resolvedParams.month}` : "/");
   }
 
-  const user = await getCurrentUser();
-
   const months = await listMonths();
   const activeMonth = resolvedParams.month || months[0]?.id || "2026-10-01";
 
   // Fetch leaderboard for active month
   const leaderboardData = await getLeaderboard(activeMonth, 1, 10);
 
-  // Fetch top featured/trending startups
-  const featuredData = await listStartups(
-    { sort: "views", pageSize: 4 },
-    user?.id
-  );
-
   // Fetch categories with counts
   const categories = await listCategories();
   const topCategories = categories
     .filter((c) => c.count > 0)
-    .slice(0, 6);
+    .slice(0, 8);
 
   // JSON-LD Structured Data
   const orgJsonLd = buildOrganizationJsonLd();
@@ -85,164 +69,102 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   );
 
   return (
-    <div className="space-y-16 pb-20">
-      {/* Structured Data: Organization, WebSite with SearchAction, and Monthly Leaderboard ItemList */}
+    <div className="relative isolate min-h-screen">
+      {/* Decorative Cloud Background Layer */}
+      <CloudBackground />
+
+      {/* Structured Data */}
       <JsonLd data={orgJsonLd} />
       <JsonLd data={siteJsonLd} />
       <JsonLd data={leaderboardJsonLd} />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-blue-50/70 via-white to-transparent dark:from-blue-950/20 dark:via-slate-950 dark:to-transparent pt-20 pb-12 border-b border-slate-200/60 dark:border-slate-800/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 px-4 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300">
-            <Zap className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            Global Early-Stage Discovery Platform
-          </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 pb-24 space-y-10 sm:space-y-12">
+        {/* Section Header */}
+        <section className="space-y-4 pt-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="space-y-3 max-w-2xl">
+              {/* Eyebrow Label */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold tracking-widest uppercase border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 text-slate-700 dark:text-slate-300 shadow-2xs dark:shadow-none">
+                Browse by category
+              </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white max-w-4xl mx-auto leading-tight">
-            Discover & Support The Next{" "}
-            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Breakthrough Startups
-            </span>
-          </h1>
+              {/* Major Headline with italic serif accent word */}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15]">
+                Find your corner of the{" "}
+                <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
+                  ecosystem
+                </em>
+              </h1>
+            </div>
 
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-            Spotlight high-impact prototypes, MVPs, and early-stage innovations
-            from makers worldwide. Vote, bookmark, and engage with founders.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-3.5 pt-2">
+            {/* View all categories link */}
             <Link
-              href="/browse"
-              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-2xl shadow-lg shadow-blue-600/20 transition-all duration-200 active:scale-95"
+              href="/categories"
+              className="text-xs sm:text-sm font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 hover:underline inline-flex items-center gap-1 shrink-0 pb-1"
             >
-              <span>Explore Directory</span>
+              <span>View all categories</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
+          </div>
+
+          {/* Category Chips Row */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
             <Link
-              href="/submit"
-              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 active:scale-95"
+              href="/categories"
+              className="bg-brand-600 text-white rounded-full px-4 py-2 text-xs font-semibold shadow-xs whitespace-nowrap shrink-0 hover:bg-brand-700 transition-colors"
             >
-              Submit Your Startup
+              All
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Leaderboard Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                Monthly Leaderboard
-              </h2>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Top early-stage startups launched in {leaderboardData.monthLabel},
-              ranked by community votes.
-            </p>
-          </div>
-
-          <Link
-            href={`/months/${activeMonth}`}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            <span>View Full Month</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {/* Month Selector Carousel / Tabs */}
-        <MonthSelector months={months} activeMonth={activeMonth} />
-
-        {/* Leaderboard Table */}
-        <LeaderboardTable
-          startups={leaderboardData.items}
-          emptyMessage={`No approved startups found for ${leaderboardData.monthLabel}.`}
-        />
-      </section>
-
-      {/* Trending / Featured Startups Grid */}
-      {featuredData.items.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-500" />
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                Trending Innovations
-              </h2>
-            </div>
-            <Link
-              href="/browse?sort=trending"
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
-            >
-              <span>Browse All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {featuredData.items.map((startup) => (
-              <StartupCard key={startup.id} startup={startup} />
-            ))}
+            {topCategories.map((cat) => {
+              const slug = encodeURIComponent(
+                cat.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+              );
+              return (
+                <Link
+                  key={cat.id}
+                  href={`/categories/${slug}`}
+                  className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-brand-500/50 hover:bg-slate-50 dark:hover:bg-white/10 rounded-full px-4 py-2 text-xs font-medium transition-all shadow-2xs dark:shadow-none whitespace-nowrap shrink-0"
+                >
+                  {cat.name}
+                </Link>
+              );
+            })}
           </div>
         </section>
-      )}
 
-      {/* Categories Section */}
-      {topCategories.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                Explore by Category
+        {/* Month Selector Carousel / Tabs */}
+        <section aria-label="Month selection">
+          <MonthSelector months={months} activeMonth={activeMonth} />
+        </section>
+
+        {/* Ranked Leaderboard List */}
+        <section aria-label="Monthly ranked startups">
+          <LeaderboardTable
+            startups={leaderboardData.items}
+            emptyMessage={`No approved startups found for ${leaderboardData.monthLabel}.`}
+          />
+        </section>
+
+        {/* Closing Call-to-Action Band */}
+        <section aria-label="Call to action" className="pt-4">
+          <div className="relative rounded-3xl bg-brand-600 dark:bg-gradient-to-r dark:from-brand-900 dark:via-indigo-950 dark:to-slate-950 border border-brand-500/20 dark:border-white/10 p-8 sm:p-12 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
+            <div className="space-y-3 max-w-2xl">
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                Building something? Put it in front of the community.
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Browse innovative products grouped by industry domain.
+              <p className="text-xs sm:text-sm text-brand-100 dark:text-slate-300 leading-relaxed">
+                One-time listing fee, reviewed by our team, published for everyone to discover and vote on.
               </p>
             </div>
             <Link
-              href="/categories"
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+              href="/submit"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white text-slate-950 hover:bg-slate-100 font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95 shrink-0"
             >
-              <span>All Categories</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Submit your startup</span>
             </Link>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {topCategories.map((category) => (
-              <CategoryCard key={category.id} category={category} />
-            ))}
-          </div>
         </section>
-      )}
-
-      {/* Community Callout */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-8 sm:p-12 text-white overflow-hidden shadow-xl">
-          <div className="relative z-10 max-w-2xl space-y-4">
-            <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Are you building an early-stage startup?
-            </h3>
-            <p className="text-sm text-blue-100 leading-relaxed">
-              Showcase your project to early adopters, investors, and fellow
-              founders worldwide. 100% free discovery listings.
-            </p>
-            <div className="pt-2">
-              <Link
-                href="/submit"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs transition-colors shadow-md"
-              >
-                <span>Submit Your Startup Now</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }
