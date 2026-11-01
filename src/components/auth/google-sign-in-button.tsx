@@ -69,13 +69,15 @@ export function GoogleSignInButton({
   return (
     <div className="w-full space-y-2">
       {error && (
-        <p className="text-xs text-red-500 text-center font-medium">{error}</p>
+        <p className="text-xs text-rose-600 dark:text-rose-400 text-center font-medium bg-rose-50/70 dark:bg-rose-950/40 p-2.5 rounded-xl border border-rose-200/80 dark:border-rose-900/60">
+          {error}
+        </p>
       )}
       <button
         type="button"
         onClick={handleGoogleSignIn}
         disabled={loading}
-        className={`w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 transition-colors shadow-xs disabled:opacity-60 cursor-pointer ${className}`}
+        className={`w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200/90 dark:border-white/10 bg-white dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] text-xs font-bold text-slate-800 dark:text-slate-200 transition-colors shadow-2xs disabled:opacity-60 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${className}`}
       >
         <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
           <path

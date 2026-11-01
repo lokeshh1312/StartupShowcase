@@ -8,6 +8,7 @@ import { signUpAction } from "@/server/actions";
 import { safeRedirectPath } from "@/lib/redirect";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { TurnstileWidget } from "@/components/common/turnstile";
+import { CloudBackground } from "@/components/ui/cloud-background";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -59,19 +60,29 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-[75vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md space-y-6 p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div className="relative isolate min-h-[85vh] flex items-center justify-center px-4 py-12">
+      <CloudBackground height="h-[340px] sm:h-[400px]" />
+
+      <div className="relative w-full max-w-md space-y-6 p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 shadow-xs backdrop-blur-md">
         <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
-            Create an Account
+          <div className="flex justify-center">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold tracking-widest uppercase border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 text-slate-700 dark:text-slate-300 shadow-2xs dark:shadow-none">
+              <span>Join the Showcase</span>
+            </div>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Create an{" "}
+            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
+              Account
+            </em>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
             Join the global showcase to launch, vote, and explore early-stage innovations.
           </p>
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-400 font-medium">
+          <div className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-xs text-rose-600 dark:text-rose-400 font-medium">
             {error}
           </div>
         )}
@@ -80,17 +91,17 @@ export default function SignUpPage() {
           <div className="space-y-4">
             <GoogleSignInButton redirectPath={redirectTo} />
             <div className="flex items-center justify-center">
-              <div className="flex-1 border-t border-slate-200 dark:border-slate-800" />
-              <span className="px-3 whitespace-nowrap text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="flex-1 border-t border-slate-200/90 dark:border-white/10" />
+              <span className="px-3 whitespace-nowrap text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider font-mono">
                 Or register with email
               </span>
-              <div className="flex-1 border-t border-slate-200 dark:border-slate-800" />
+              <div className="flex-1 border-t border-slate-200/90 dark:border-white/10" />
             </div>
           </div>
         )}
 
         {successNotice ? (
-          <div className="p-6 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-center space-y-3">
+          <div className="p-6 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-center space-y-3">
             <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-6 h-6" />
             </div>
@@ -98,7 +109,9 @@ export default function SignUpPage() {
               Check your inbox
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              We sent a confirmation link to <span className="font-semibold text-slate-900 dark:text-white">{successNotice}</span>. Please verify your email to activate your account and start submitting.
+              We sent a confirmation link to{" "}
+              <span className="font-semibold text-slate-900 dark:text-white">{successNotice}</span>.
+              Please verify your email to activate your account and start submitting.
             </p>
             <div className="pt-2">
               <Link
@@ -107,7 +120,7 @@ export default function SignUpPage() {
                     ? `/login?redirect=${encodeURIComponent(redirectTo)}`
                     : "/login"
                 }
-                className="inline-block px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 transition-colors"
+                className="inline-block px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 transition-colors shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
                 Go to Sign In
               </Link>
@@ -120,7 +133,7 @@ export default function SignUpPage() {
                 Full Name
               </label>
               <div className="relative flex items-center">
-                <User className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                <User className="absolute left-3.5 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
                 <input
                   type="text"
                   required
@@ -128,7 +141,7 @@ export default function SignUpPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ada Lovelace"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-colors"
                 />
               </div>
             </div>
@@ -138,7 +151,7 @@ export default function SignUpPage() {
                 Email Address
               </label>
               <div className="relative flex items-center">
-                <Mail className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                <Mail className="absolute left-3.5 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
                 <input
                   type="email"
                   required
@@ -146,7 +159,7 @@ export default function SignUpPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="founder@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-colors"
                 />
               </div>
             </div>
@@ -156,7 +169,7 @@ export default function SignUpPage() {
                 Password
               </label>
               <div className="relative flex items-center">
-                <Lock className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                <Lock className="absolute left-3.5 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
                 <input
                   type="password"
                   required
@@ -165,7 +178,7 @@ export default function SignUpPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 10 characters"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-colors"
                 />
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -180,7 +193,7 @@ export default function SignUpPage() {
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-colors"
               >
                 <option value="founder">Founder / Builder (Submit startups)</option>
                 <option value="investor">Investor / Angel / Mentor</option>
@@ -199,7 +212,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors shadow-xs disabled:opacity-60 flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition-colors shadow-xs disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               {isPending ? (
                 <span>Creating Account...</span>
@@ -213,7 +226,7 @@ export default function SignUpPage() {
           </form>
         )}
 
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center space-y-3">
+        <div className="pt-4 border-t border-slate-100 dark:border-white/5 text-center space-y-3">
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Already have an account?{" "}
             <Link
@@ -222,7 +235,7 @@ export default function SignUpPage() {
                   ? `/login?redirect=${encodeURIComponent(redirectTo)}`
                   : "/login"
               }
-              className="font-bold text-blue-600 dark:text-blue-400 hover:underline"
+              className="font-bold text-brand-600 dark:text-brand-400 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
             >
               Sign in
             </Link>
@@ -230,7 +243,7 @@ export default function SignUpPage() {
 
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Showcase</span>
