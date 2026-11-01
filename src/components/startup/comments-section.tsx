@@ -79,10 +79,10 @@ export function CommentsSection({
   };
 
   return (
-    <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6 shadow-xs">
+    <section className="bg-white/90 dark:bg-white/[0.03] backdrop-blur-md rounded-3xl border border-slate-200/90 dark:border-white/10 p-6 sm:p-8 space-y-6 shadow-xs">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <MessageSquare className="w-5 h-5 text-brand-600 dark:text-brand-400" />
           <h3 className="font-bold text-lg text-slate-900 dark:text-white">
             Community Feedback ({comments.length})
           </h3>
@@ -95,7 +95,7 @@ export function CommentsSection({
           {error && (
             <p
               role="alert"
-              className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-3 rounded-xl border border-rose-200 dark:border-rose-800"
+              className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/40 p-3 rounded-xl border border-rose-200 dark:border-rose-900/50"
             >
               {error}
             </p>
@@ -107,7 +107,7 @@ export function CommentsSection({
             placeholder="Share constructive feedback, ask questions, or cheer on the founding team..."
             rows={3}
             maxLength={1000}
-            className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+            className="w-full px-4 py-3 rounded-2xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all resize-none"
           />
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-slate-400">
@@ -116,7 +116,7 @@ export function CommentsSection({
             <button
               type="submit"
               disabled={isPending || !content.trim()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold transition-all cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-xs font-semibold transition-all cursor-pointer shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{isPending ? "Posting…" : "Post Comment"}</span>
@@ -124,13 +124,13 @@ export function CommentsSection({
           </div>
         </form>
       ) : (
-        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 text-center space-y-2">
+        <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-center space-y-2">
           <p className="text-xs text-slate-600 dark:text-slate-400">
             Sign in to share feedback, ask questions, and support this startup.
           </p>
           <Link
             href={`/login?redirect=/startup/${startupSlug}`}
-            className="inline-block px-4 py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+            className="inline-block px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-500 text-white transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Sign in to comment
           </Link>
@@ -138,7 +138,7 @@ export function CommentsSection({
       )}
 
       {/* Comments List */}
-      <div className="divide-y divide-slate-100 dark:divide-slate-800 pt-2">
+      <div className="divide-y divide-slate-100 dark:divide-white/5 pt-2">
         {comments.length === 0 ? (
           <p className="text-xs text-slate-400 text-center py-6">
             No comments yet. Be the first to share your thoughts!
@@ -148,7 +148,7 @@ export function CommentsSection({
             <div key={comment.id} className="py-4 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-[10px]">
+                  <div className="w-7 h-7 rounded-full bg-brand-50 dark:bg-brand-950/40 border border-brand-200/60 dark:border-brand-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-[10px]">
                     {comment.author.charAt(0).toUpperCase()}
                   </div>
                   <span className="font-semibold text-slate-900 dark:text-white">
@@ -175,7 +175,7 @@ export function CommentsSection({
                   )}
                 </div>
               </div>
-              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pl-8">
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed pl-9">
                 {comment.content}
               </p>
             </div>

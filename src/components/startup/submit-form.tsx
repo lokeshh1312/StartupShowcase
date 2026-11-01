@@ -350,10 +350,10 @@ export function SubmitStartupForm({
 
   if (pendingPayment) {
     return (
-      <div className="p-8 sm:p-12 rounded-3xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/50 text-center space-y-6">
-        <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center">
+      <div className="p-8 sm:p-12 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-amber-200/80 dark:border-amber-900/50 text-center space-y-6 shadow-xs backdrop-blur-md">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center shadow-xs">
           {verifyingPayment ? (
-            <Sparkles className="w-8 h-8 animate-spin text-blue-600" />
+            <Sparkles className="w-8 h-8 animate-spin text-brand-600 dark:text-brand-400" />
           ) : (
             <CreditCard className="w-8 h-8" />
           )}
@@ -384,7 +384,7 @@ export function SubmitStartupForm({
               <button
                 type="button"
                 onClick={() => handlePayPending("INR")}
-                className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+                className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
                 <CreditCard className="w-4 h-4" />
                 <span>Pay {priceInr} (UPI / QR / cards)</span>
@@ -392,7 +392,7 @@ export function SubmitStartupForm({
               <button
                 type="button"
                 onClick={() => handlePayPending("USD")}
-                className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer"
+                className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <CreditCard className="w-4 h-4" />
                 <span>Pay {priceUsd} (international card)</span>
@@ -401,7 +401,7 @@ export function SubmitStartupForm({
           )}
           <Link
             href="/me/submissions"
-            className="px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors"
+            className="px-5 py-3 rounded-xl border border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Go to My Submissions
           </Link>
@@ -412,8 +412,8 @@ export function SubmitStartupForm({
 
   if (submittedStartup) {
     return (
-      <div className="p-8 sm:p-12 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-6">
-        <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center">
+      <div className="p-8 sm:p-12 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 text-center space-y-6 shadow-xs backdrop-blur-md">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center shadow-xs">
           <CheckCircle2 className="w-8 h-8" />
         </div>
 
@@ -431,13 +431,13 @@ export function SubmitStartupForm({
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <Link
             href="/me/submissions"
-            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors shadow-xs"
+            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Go to My Submissions
           </Link>
           <Link
             href="/"
-            className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors"
+            className="px-5 py-2.5 rounded-xl border border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Explore Directory
           </Link>
@@ -455,10 +455,10 @@ export function SubmitStartupForm({
       )}
 
       {/* 1. Basic Info */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <Rocket className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+      <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
+        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
+          <Rocket className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Startup Essentials
           </h2>
         </div>
@@ -475,7 +475,7 @@ export function SubmitStartupForm({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Acme AI, TerraVolt"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -491,7 +491,7 @@ export function SubmitStartupForm({
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
               placeholder="e.g. Autonomous irrigation networks powered by edge intelligence"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -507,7 +507,7 @@ export function SubmitStartupForm({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what you are building, how it works, and why it matters..."
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -518,7 +518,7 @@ export function SubmitStartupForm({
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
@@ -535,7 +535,7 @@ export function SubmitStartupForm({
             <select
               value={stage}
               onChange={(e) => setStage(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             >
               {STAGES.map((stg) => (
                 <option key={stg} value={stg}>
@@ -548,10 +548,10 @@ export function SubmitStartupForm({
       </div>
 
       {/* 2. Visuals & File Uploads (Supabase Storage) */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <ImageIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+      <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
+        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
+          <ImageIcon className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Branding & Visuals (Uploads)
           </h2>
         </div>
@@ -564,7 +564,7 @@ export function SubmitStartupForm({
             </label>
 
             {logoUrl && isAllowedImageUrl(logoUrl) ? (
-              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 group">
+              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-white/5 group shadow-xs">
                 <Image
                   src={logoUrl}
                   alt="Uploaded Logo"
@@ -574,7 +574,7 @@ export function SubmitStartupForm({
                 <button
                   type="button"
                   onClick={() => setLogoUrl("")}
-                  className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
                   title="Remove Logo"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -593,7 +593,7 @@ export function SubmitStartupForm({
                   type="button"
                   disabled={logoUploading}
                   onClick={() => logoFileInputRef.current?.click()}
-                  className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl bg-slate-50/50 dark:bg-slate-800/50 transition-colors text-slate-600 dark:text-slate-300 cursor-pointer disabled:opacity-60"
+                  className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-400 rounded-2xl bg-slate-50/50 dark:bg-white/[0.02] transition-colors text-slate-600 dark:text-slate-300 cursor-pointer disabled:opacity-60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                   <Upload className="w-6 h-6 mb-2 text-slate-400" />
                   <span className="text-xs font-bold">
@@ -617,7 +617,7 @@ export function SubmitStartupForm({
             </label>
 
             {coverUrl && isAllowedImageUrl(coverUrl) ? (
-              <div className="relative w-full h-24 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 group">
+              <div className="relative w-full h-24 rounded-2xl overflow-hidden border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-white/5 group shadow-xs">
                 <Image
                   src={coverUrl}
                   alt="Uploaded Cover"
@@ -627,7 +627,7 @@ export function SubmitStartupForm({
                 <button
                   type="button"
                   onClick={() => setCoverUrl("")}
-                  className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition-opacity"
+                  className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
                   title="Remove Cover Image"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -646,7 +646,7 @@ export function SubmitStartupForm({
                   type="button"
                   disabled={coverUploading}
                   onClick={() => coverFileInputRef.current?.click()}
-                  className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl bg-slate-50/50 dark:bg-slate-800/50 transition-colors text-slate-600 dark:text-slate-300 cursor-pointer disabled:opacity-60"
+                  className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-400 rounded-2xl bg-slate-50/50 dark:bg-white/[0.02] transition-colors text-slate-600 dark:text-slate-300 cursor-pointer disabled:opacity-60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                   <Upload className="w-6 h-6 mb-2 text-slate-400" />
                   <span className="text-xs font-bold">
@@ -666,10 +666,10 @@ export function SubmitStartupForm({
       </div>
 
       {/* 3. Location & Geography */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+      <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
+        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
+          <Globe className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Geography & Origin
           </h2>
         </div>
@@ -682,7 +682,7 @@ export function SubmitStartupForm({
             <select
               value={countryCode}
               onChange={(e) => setCountryCode(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             >
               {countries.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -701,7 +701,7 @@ export function SubmitStartupForm({
               value={city}
               onChange={(e) => setCity(e.target.value)}
               placeholder="e.g. Berlin, Austin, Tokyo"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -714,7 +714,7 @@ export function SubmitStartupForm({
               value={region}
               onChange={(e) => setRegion(e.target.value)}
               placeholder="e.g. Bavaria, California, Kanto"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -724,7 +724,7 @@ export function SubmitStartupForm({
               id="remoteFirst"
               checked={remoteFirst}
               onChange={(e) => setRemoteFirst(e.target.checked)}
-              className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500"
+              className="w-4 h-4 rounded-md border-slate-300 dark:border-white/20 text-brand-600 focus:ring-brand-500 cursor-pointer"
             />
             <label
               htmlFor="remoteFirst"
@@ -737,10 +737,10 @@ export function SubmitStartupForm({
       </div>
 
       {/* 4. Links & Product Details */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+      <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
+        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
+          <Sparkles className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Links & Product Details
           </h2>
         </div>
@@ -755,7 +755,7 @@ export function SubmitStartupForm({
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://example.com"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -769,7 +769,7 @@ export function SubmitStartupForm({
               value={problemStatement}
               onChange={(e) => setProblemStatement(e.target.value)}
               placeholder="What specific friction or challenge are your users dealing with?"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -783,7 +783,7 @@ export function SubmitStartupForm({
               value={solutionDescription}
               onChange={(e) => setSolutionDescription(e.target.value)}
               placeholder="How does your technology solve this uniquely?"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -796,7 +796,7 @@ export function SubmitStartupForm({
               value={techStackInput}
               onChange={(e) => setTechStackInput(e.target.value)}
               placeholder="e.g. Next.js, PyTorch, Supabase, Rust"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -809,7 +809,7 @@ export function SubmitStartupForm({
               value={keyFeaturesInput}
               onChange={(e) => setKeyFeaturesInput(e.target.value)}
               placeholder="e.g. Real-time telemetry, AI forecasting, Multi-tenant"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -823,17 +823,17 @@ export function SubmitStartupForm({
               value={traction}
               onChange={(e) => setTraction(e.target.value)}
               placeholder="e.g. 500 active beta testers, $12k ARR, closed $100k pre-seed"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
         </div>
       </div>
 
       {/* 5. Founder Profile */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
-        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+      <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
+        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
+          <User className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Founder Details
           </h2>
         </div>
@@ -848,7 +848,7 @@ export function SubmitStartupForm({
               value={founderName}
               onChange={(e) => setFounderName(e.target.value)}
               placeholder="e.g. Sarah Connor"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -861,7 +861,7 @@ export function SubmitStartupForm({
               value={founderRole}
               onChange={(e) => setFounderRole(e.target.value)}
               placeholder="e.g. Co-Founder & CTO"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
 
@@ -875,7 +875,7 @@ export function SubmitStartupForm({
               value={founderQuote}
               onChange={(e) => setFounderQuote(e.target.value)}
               placeholder="e.g. We are building the operating system for zero-emission transit."
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
             />
           </div>
         </div>
@@ -890,17 +890,17 @@ export function SubmitStartupForm({
 
       {/* Price line for new submissions */}
       {!isEditing && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-brand-50/70 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-900/60 shadow-2xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-brand-600/10 dark:bg-brand-400/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
                 Review &amp; Listing Fee
               </p>
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Listing fee: <span className="font-extrabold text-blue-600 dark:text-blue-400">{formattedPrice}</span>, one time, secure payment by Razorpay
+                Listing fee: <span className="font-extrabold text-brand-600 dark:text-brand-400">{formattedPrice}</span>, one time, secure payment by Razorpay
               </p>
             </div>
           </div>
@@ -916,7 +916,7 @@ export function SubmitStartupForm({
           <button
             type="submit"
             disabled={isPending || logoUploading || coverUploading}
-            className="px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+            className="px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             {isPending ? (
               <span>Saving Changes...</span>
@@ -933,7 +933,7 @@ export function SubmitStartupForm({
               type="submit"
               onClick={() => setSelectedCurrency("INR")}
               disabled={isPending || logoUploading || coverUploading}
-              className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+              className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
             >
               {isPending && selectedCurrency === "INR" ? (
                 <span>Processing Order...</span>
@@ -948,7 +948,7 @@ export function SubmitStartupForm({
               type="submit"
               onClick={() => setSelectedCurrency("USD")}
               disabled={isPending || logoUploading || coverUploading}
-              className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+              className="px-6 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               {isPending && selectedCurrency === "USD" ? (
                 <span>Processing Order...</span>

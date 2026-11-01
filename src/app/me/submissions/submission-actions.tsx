@@ -132,7 +132,7 @@ export function SubmissionActions({
               type="button"
               onClick={() => handleResumePayment("INR")}
               disabled={paying}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
             >
               {paying ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
               <span>{paying ? "Opening Checkout..." : `Pay ${priceInr} (UPI / QR / cards)`}</span>
@@ -141,7 +141,7 @@ export function SubmissionActions({
               type="button"
               onClick={() => handleResumePayment("USD")}
               disabled={paying}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               {paying ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
               <span>{paying ? "Opening Checkout..." : `Pay ${priceUsd} (international card)`}</span>
@@ -152,7 +152,7 @@ export function SubmissionActions({
         {(status === "pending" || status === "awaiting_payment") && (
           <Link
             href={`/submit?edit=${slug}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <Edit2 className="w-3.5 h-3.5" />
             <span>Edit</span>
@@ -165,10 +165,10 @@ export function SubmissionActions({
               type="button"
               onClick={handleDelete}
               disabled={isPending}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shadow-xs cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 ${
                 confirming
                   ? "bg-red-600 hover:bg-red-700 text-white"
-                  : "border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100"
+                  : "border border-red-200 dark:border-red-900/60 bg-red-50/70 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/50"
               }`}
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -179,7 +179,7 @@ export function SubmissionActions({
               <button
                 type="button"
                 onClick={() => setConfirming(false)}
-                className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+                className="px-2 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg"
               >
                 Cancel
               </button>

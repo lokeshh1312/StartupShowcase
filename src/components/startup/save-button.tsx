@@ -55,19 +55,19 @@ export function SaveButton({
       onClick={handleSave}
       disabled={isPending}
       type="button"
-      className={`relative inline-flex items-center justify-center rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-90 disabled:opacity-75 cursor-pointer ${
+      className={`relative inline-flex items-center justify-center rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-90 disabled:opacity-75 cursor-pointer ${
         isSmall ? "p-1.5" : "p-2"
       } ${
         saved
-          ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800"
-          : "text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
+          ? "text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 shadow-xs"
+          : "text-slate-400 hover:text-slate-900 dark:hover:text-white bg-white/90 dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] border border-slate-200/90 dark:border-white/10 shadow-2xs"
       } ${className}`}
       title={saved ? "Remove from Saved" : "Save / Bookmark startup"}
       aria-label={saved ? `Unsave ${startupName}` : `Save ${startupName}`}
     >
       <Bookmark
         className={`${isSmall ? "w-3.5 h-3.5" : "w-4 h-4"} transition-all ${
-          saved ? "fill-blue-600 dark:fill-blue-400 stroke-blue-600 dark:stroke-blue-400" : "stroke-[1.8]"
+          saved ? "fill-brand-600 dark:fill-brand-400 stroke-brand-600 dark:stroke-brand-400" : "stroke-[1.8]"
         }`}
       />
     </button>

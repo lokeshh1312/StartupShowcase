@@ -59,7 +59,7 @@ export function UnverifiedBanner({ email }: UnverifiedBannerProps) {
             <button
               onClick={handleResend}
               disabled={isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-semibold transition-colors shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-semibold transition-colors shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500"
             >
               <Send className="w-3 h-3" />
               <span>{isPending ? "Sending…" : "Resend verification email"}</span>
