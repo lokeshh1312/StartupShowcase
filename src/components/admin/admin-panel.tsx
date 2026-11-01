@@ -122,43 +122,43 @@ export function AdminPanel({
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-2 border-b border-slate-200/90 dark:border-white/10 pb-3 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab("pending")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
             activeTab === "pending"
-              ? "bg-blue-600 text-white shadow-xs"
-              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "bg-brand-600 text-white shadow-xs"
+              : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
           Review Queue ({pendingItems.length})
         </button>
         <button
           onClick={() => setActiveTab("approved")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
             activeTab === "approved"
-              ? "bg-blue-600 text-white shadow-xs"
-              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "bg-brand-600 text-white shadow-xs"
+              : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
           Approved ({approvedItems.length})
         </button>
         <button
           onClick={() => setActiveTab("rejected")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
             activeTab === "rejected"
-              ? "bg-blue-600 text-white shadow-xs"
-              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "bg-brand-600 text-white shadow-xs"
+              : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
           Rejected ({rejectedItems.length})
         </button>
         <button
           onClick={() => setActiveTab("audit")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
             activeTab === "audit"
-              ? "bg-blue-600 text-white shadow-xs"
-              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "bg-brand-600 text-white shadow-xs"
+              : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
           Audit Log ({auditLogs.length})
@@ -166,14 +166,14 @@ export function AdminPanel({
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-400 font-medium">
+        <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-xs text-rose-600 dark:text-rose-400 font-medium">
           {error}
         </div>
       )}
 
       {/* Policy Notice for Admins */}
-      <div className="flex items-start gap-3 p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
-        <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 p-4 rounded-2xl bg-brand-50/70 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-900/60 text-xs text-brand-900 dark:text-brand-200 leading-relaxed">
+        <Info className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
         <div>
           <span className="font-semibold">Review &amp; Moderation Policy:</span> Paid startups can be rejected but not deleted. Abandoned unpaid drafts are cleared automatically after 7 days.
         </div>
@@ -183,12 +183,12 @@ export function AdminPanel({
       {activeTab === "pending" && (
         <div className="space-y-4">
           {pendingItems.length === 0 ? (
-            <div className="p-12 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-2">
+            <div className="p-12 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 text-center space-y-2 backdrop-blur-md shadow-xs">
               <ShieldCheck className="w-10 h-10 text-emerald-500 mx-auto" />
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">
                 Queue is clear
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 There are no pending submissions awaiting moderation.
               </p>
             </div>
@@ -196,7 +196,7 @@ export function AdminPanel({
             pendingItems.map((startup) => (
               <div
                 key={startup.id}
-                className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4"
+                className="p-6 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-4 backdrop-blur-md shadow-xs"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="space-y-2 min-w-0">
@@ -210,7 +210,7 @@ export function AdminPanel({
                     <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
                       {startup.tagline}
                     </p>
-                    <p className="text-xs text-slate-500 leading-relaxed max-w-3xl">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-3xl">
                       {startup.description}
                     </p>
                     <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
@@ -229,7 +229,7 @@ export function AdminPanel({
                             href={startup.websiteUrl}
                             target="_blank"
                             rel="ugc nofollow noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                            className="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
                           >
                             <span>Website</span>
                             <ExternalLink className="w-3 h-3" />
@@ -239,14 +239,14 @@ export function AdminPanel({
                     </div>
 
                     {startup.duplicateWarning && (
-                      <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                      <div className="p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
                         <span className="font-bold shrink-0">⚠️ Likely duplicate:</span>
                         <span>
                           Matches existing startup{" "}
                           <Link
                             href={`/startup/${startup.duplicateWarning.slug}`}
                             target="_blank"
-                            className="font-bold underline text-amber-950 dark:text-amber-100 hover:text-blue-600 dark:hover:text-blue-400"
+                            className="font-bold underline text-amber-950 dark:text-amber-100 hover:text-brand-600 dark:hover:text-brand-400 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
                           >
                             {startup.duplicateWarning.name}
                           </Link>{" "}
@@ -262,7 +262,7 @@ export function AdminPanel({
                     <button
                       onClick={() => setRejectingStartup(startup)}
                       disabled={busyId === startup.id || isPending}
-                      className="px-3.5 py-2 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-3.5 py-2 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-rose-500"
                     >
                       <X className="w-3.5 h-3.5" />
                       <span>Reject</span>
@@ -270,7 +270,7 @@ export function AdminPanel({
                     <button
                       onClick={() => handleApprove(startup)}
                       disabled={busyId === startup.id || isPending}
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
                     >
                       <Check className="w-3.5 h-3.5" />
                       <span>Approve</span>
@@ -287,14 +287,14 @@ export function AdminPanel({
       {activeTab === "approved" && (
         <div className="space-y-4">
           {approvedItems.length === 0 ? (
-            <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
+            <div className="p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 text-center text-xs text-slate-500 dark:text-slate-400 backdrop-blur-md shadow-xs">
               No approved startups in this view.
             </div>
           ) : (
             approvedItems.map((startup) => (
               <div
                 key={startup.id}
-                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4"
+                className="p-5 rounded-2xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 flex items-center justify-between gap-4 backdrop-blur-md shadow-xs"
               >
                 <div>
                   <div className="flex items-center gap-2">
@@ -304,14 +304,14 @@ export function AdminPanel({
                     <Badge variant="blue">{startup.category}</Badge>
                     <span className="text-xs text-slate-400">({startup.monthLabel})</span>
                   </div>
-                  <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
                     {startup.tagline}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Link
                     href={`/startup/${startup.slug}`}
-                    className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                   >
                     <span>View</span>
                     <ExternalLink className="w-3 h-3" />
@@ -319,7 +319,7 @@ export function AdminPanel({
                   <button
                     onClick={() => setRejectingStartup(startup)}
                     disabled={busyId === startup.id || isPending}
-                    className="px-3.5 py-1.5 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-rose-500"
                   >
                     <X className="w-3.5 h-3.5" />
                     <span>Reject / Unpublish</span>
@@ -335,14 +335,14 @@ export function AdminPanel({
       {activeTab === "rejected" && (
         <div className="space-y-4">
           {rejectedItems.length === 0 ? (
-            <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
+            <div className="p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 text-center text-xs text-slate-500 dark:text-slate-400 backdrop-blur-md shadow-xs">
               No rejected startups.
             </div>
           ) : (
             rejectedItems.map((startup) => (
               <div
                 key={startup.id}
-                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2"
+                className="p-5 rounded-2xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-2 backdrop-blur-md shadow-xs"
               >
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
@@ -351,12 +351,12 @@ export function AdminPanel({
                     </h3>
                     <Badge variant="blue">{startup.category}</Badge>
                   </div>
-                  <span className="text-xs font-semibold text-red-600 dark:text-red-400">
+                  <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
                     Rejected
                   </span>
                 </div>
                 {startup.rejectionReason && (
-                  <p className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 p-2.5 rounded-xl">
                     Reason: {startup.rejectionReason}
                   </p>
                 )}
@@ -368,7 +368,7 @@ export function AdminPanel({
 
       {/* Tab: Audit Log */}
       {activeTab === "audit" && (
-        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+        <div className="p-6 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-4 backdrop-blur-md shadow-xs">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-sm text-slate-900 dark:text-white">
               Security & Moderation Audit Trail (Latest {auditLogs.length} Entries)
@@ -376,17 +376,17 @@ export function AdminPanel({
             <span className="text-xs text-slate-400">Append-only audit record</span>
           </div>
           {auditLogs.length === 0 ? (
-            <p className="text-xs text-slate-500">No moderation actions recorded yet.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">No moderation actions recorded yet.</p>
           ) : (
             <div className="space-y-2 font-mono text-xs">
               {auditLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                  className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                 >
                   <div className="space-y-1">
                     <div>
-                      <span className="font-bold text-blue-600 dark:text-blue-400">
+                      <span className="font-bold text-brand-600 dark:text-brand-400">
                         {log.action}
                       </span>{" "}
                       on <span className="font-semibold text-slate-700 dark:text-slate-300">{log.targetType}</span>{" "}
@@ -429,11 +429,11 @@ export function AdminPanel({
       {/* Rejection Modal */}
       {rejectingStartup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 space-y-4 border border-slate-200 dark:border-slate-800 shadow-2xl">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 space-y-4 border border-slate-200/90 dark:border-white/10 shadow-2xl">
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
               Reject Submission: {rejectingStartup.name}
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Provide feedback to the founder regarding why this submission is not approved.
             </p>
 
@@ -445,7 +445,7 @@ export function AdminPanel({
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 placeholder="e.g. Please provide a working prototype demo or more specific market details."
-                className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-colors"
               />
 
               <div className="flex items-center justify-end gap-2 pt-2">
@@ -455,14 +455,14 @@ export function AdminPanel({
                     setRejectingStartup(null);
                     setRejectionReason("");
                   }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-rose-500 shadow-xs"
                 >
                   Confirm Rejection
                 </button>
