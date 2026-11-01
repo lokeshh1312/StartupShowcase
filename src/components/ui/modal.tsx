@@ -46,7 +46,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-7 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150"
+        className="w-full max-w-sm sm:max-w-md bg-white dark:bg-slate-950 rounded-3xl border border-slate-200/90 dark:border-white/10 p-6 sm:p-7 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150"
       >
         <h3
           id="modal-title"
@@ -64,7 +64,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             ref={okButtonRef}
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold transition-colors cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm font-bold transition-colors cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
           >
             OK
           </button>
@@ -73,4 +73,3 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     </div>
   );
 }
-

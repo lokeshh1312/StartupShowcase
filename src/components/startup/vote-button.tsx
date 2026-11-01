@@ -75,7 +75,7 @@ export function VoteButton({
       } ${
         liked
           ? "bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 border border-brand-300 dark:border-brand-700 shadow-xs"
-          : "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800"
+          : "bg-white/90 dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 border border-slate-200/90 dark:border-white/10 shadow-2xs"
       } ${className}`}
       title={liked ? "Upvoted! Click to undo" : "Upvote this startup"}
       aria-label={`Upvote ${startupName}, currently ${likes} votes`}
