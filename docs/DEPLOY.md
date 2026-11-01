@@ -57,6 +57,7 @@ All variables below must be configured in your hosting environment. At productio
 | `RAZORPAY_WEBHOOK_SECRET` | **Yes** | Runtime | Razorpay Webhook Secret for validating `X-Razorpay-Signature`. **Server-only secret.** |
 | `NEXT_PUBLIC_RAZORPAY_KEY_ID` | **Yes** | **Both** | Razorpay Key ID for client checkout. |
 | `SUBMISSION_PRICE_USD_CENTS` | **Yes** | Runtime | Price in USD cents for submission listing fee (`1000` for $10.00 USD). |
+| `SUBMISSION_PRICE_INR_PAISE` | Optional | Runtime | Price in INR paise for submission listing fee (`99900` for Rs 999.00 INR). Defaults to 99900. |
 | `ALLOW_RAZORPAY_TEST_IN_PRODUCTION` | Optional | Runtime | Safety override (`true`/`false`). Default `false`. Set `true` only if testing test keys in production. |
 | `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Optional | **Both** | Custom Plausible domain (e.g. `startupshowcase.com`). Disabled if unset. |
 | `NEXT_PUBLIC_POSTHOG_KEY` | Optional | **Both** | PostHog public key. Disabled if unset. |

@@ -1,5 +1,6 @@
 import "server-only";
 import crypto from "node:crypto";
+export { formatMoney, formatPriceButton, type PaymentCurrency } from "@/lib/money";
 
 /**
  * Returns the configured submission price in USD cents.
@@ -22,6 +23,50 @@ export function getSubmissionPriceCents(): number {
  */
 export function formatSubmissionPriceUsd(cents: number = getSubmissionPriceCents()): string {
   return `$${(cents / 100).toFixed(2)} USD`;
+}
+
+/**
+ * Returns the configured submission price in INR paise.
+ * Authoritative on the server: defaults to 99900 (₹999.00).
+ * The client never supplies an amount.
+ */
+export function getSubmissionPriceInrPaise(): number {
+  const envVal = process.env.SUBMISSION_PRICE_INR_PAISE?.trim();
+  if (envVal) {
+    const parsed = parseInt(envVal, 10);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return 99900;
+}
+
+/**
+ * Returns formatted submission price string in INR (e.g. "₹999.00" using the rupee sign).
+ */
+export function formatSubmissionPriceInr(paise: number = getSubmissionPriceInrPaise()): string {
+  return `₹${(paise / 100).toFixed(2)}`;
+}
+
+/**
+ * Server-authoritative helper returning amount in minor units and validated currency.
+ * Currency is strictly "INR" | "USD", defaulting to "USD".
+ */
+export function getSubmissionPrice(currency?: string): {
+  amountMinor: number;
+  currency: "INR" | "USD";
+} {
+  const norm = currency?.toUpperCase();
+  if (norm === "INR") {
+    return {
+      amountMinor: getSubmissionPriceInrPaise(),
+      currency: "INR",
+    };
+  }
+  return {
+    amountMinor: getSubmissionPriceCents(),
+    currency: "USD",
+  };
 }
 
 /**
@@ -159,16 +204,17 @@ export interface RazorpayOrderResult {
 
 /**
  * Creates a Razorpay Order via the REST API.
- * Currency is strictly "USD". Amount is server-set.
+ * Currency is strictly "USD" | "INR". Amount is server-set.
  */
 export async function createRazorpayOrder(options: {
   amountCents: number;
   receipt: string;
   notes: { startup_id: string; user_id: string };
-  currency?: string;
+  currency?: "INR" | "USD" | string;
 }): Promise<RazorpayOrderResult> {
   const { keyId, keySecret } = getRazorpayCredentials();
-  const currency = options.currency || "USD";
+  const currency: "INR" | "USD" =
+    options.currency?.toUpperCase() === "INR" ? "INR" : "USD";
 
   const basicAuth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
 
@@ -228,7 +274,6 @@ export async function fetchRazorpayPayment(paymentId: string): Promise<RazorpayP
   return data;
 }
 
-
 /**
  * Fetches an order from Razorpay by ID using the CURRENT credentials.
  * - Returns order details if found.
@@ -267,7 +312,6 @@ export async function fetchRazorpayOrder(orderId: string): Promise<RazorpayOrder
   const data = (await response.json()) as RazorpayOrderResult;
   return data;
 }
-
 
 /**
  * Fetches payments associated with a Razorpay order from the REST API.

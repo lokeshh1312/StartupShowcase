@@ -2,6 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import crypto from "crypto";
 import {
   getSubmissionPriceCents,
+  getSubmissionPriceInrPaise,
+  formatSubmissionPriceInr,
+  getSubmissionPrice,
   verifyPaymentSignature,
   verifyWebhookSignature,
 } from "@/server/razorpay";
@@ -11,10 +14,17 @@ import { db } from "@/db";
 import { payments, paymentEvents, startups } from "@/db/schema";
 import { NextRequest } from "next/server";
 import * as emailModule from "@/server/email";
-import { confirmPaymentAction } from "@/server/actions";
+import { confirmPaymentAction, getStartupPaymentOrderAction, submitStartupAction } from "@/server/actions";
+import { formatMoney, formatPriceButton } from "@/lib/money";
 import { deleteStartup } from "@/server/startups";
 import * as razorpayServer from "@/server/razorpay";
 import * as authServer from "@/lib/supabase/server";
+import * as startupsServer from "@/server/startups";
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+}));
 
 describe("Payments - Server-side price enforcement", () => {
   const originalEnv = process.env.SUBMISSION_PRICE_USD_CENTS;
@@ -1085,6 +1095,16 @@ describe("Payments - confirmPaymentAction validation", () => {
 
     vi.spyOn(razorpayServer, "verifyPaymentSignature").mockReturnValue(true);
 
+    vi.spyOn(db, "insert").mockImplementation((() => ({
+      values: () => ({
+        onConflictDoNothing: () => ({
+          returning: () => [{ eventId: "evt_ignored" }],
+        }),
+        returning: () => [],
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle insert mock
+    })) as any);
+
     vi.spyOn(db, "select").mockImplementation((() => ({
       from: () => ({
         where: () => ({
@@ -1616,3 +1636,588 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
   });
 });
 
+
+
+
+describe("Payments - INR Price helpers, formatMoney, and getSubmissionPrice", () => {
+  const originalInrEnv = process.env.SUBMISSION_PRICE_INR_PAISE;
+  const originalUsdEnv = process.env.SUBMISSION_PRICE_USD_CENTS;
+
+  afterEach(() => {
+    if (originalInrEnv !== undefined) {
+      process.env.SUBMISSION_PRICE_INR_PAISE = originalInrEnv;
+    } else {
+      delete process.env.SUBMISSION_PRICE_INR_PAISE;
+    }
+    if (originalUsdEnv !== undefined) {
+      process.env.SUBMISSION_PRICE_USD_CENTS = originalUsdEnv;
+    } else {
+      delete process.env.SUBMISSION_PRICE_USD_CENTS;
+    }
+  });
+
+  it("defaults to 99900 paise (₹999.00) when SUBMISSION_PRICE_INR_PAISE is unset", () => {
+    delete process.env.SUBMISSION_PRICE_INR_PAISE;
+    expect(getSubmissionPriceInrPaise()).toBe(99900);
+  });
+
+  it("reads positive integer amount from SUBMISSION_PRICE_INR_PAISE", () => {
+    process.env.SUBMISSION_PRICE_INR_PAISE = "149900";
+    expect(getSubmissionPriceInrPaise()).toBe(149900);
+  });
+
+  it("falls back to 99900 if SUBMISSION_PRICE_INR_PAISE is invalid or non-positive", () => {
+    process.env.SUBMISSION_PRICE_INR_PAISE = "invalid";
+    expect(getSubmissionPriceInrPaise()).toBe(99900);
+
+    process.env.SUBMISSION_PRICE_INR_PAISE = "-500";
+    expect(getSubmissionPriceInrPaise()).toBe(99900);
+
+    process.env.SUBMISSION_PRICE_INR_PAISE = "0";
+    expect(getSubmissionPriceInrPaise()).toBe(99900);
+  });
+
+  it("formats submission price using the rupee sign in formatSubmissionPriceInr", () => {
+    delete process.env.SUBMISSION_PRICE_INR_PAISE;
+    expect(formatSubmissionPriceInr()).toBe("₹999.00");
+    expect(formatSubmissionPriceInr(150000)).toBe("₹1500.00");
+  });
+
+  it("getSubmissionPrice returns server-computed minor amount and validated currency", () => {
+    delete process.env.SUBMISSION_PRICE_INR_PAISE;
+    delete process.env.SUBMISSION_PRICE_USD_CENTS;
+
+    expect(getSubmissionPrice("INR")).toEqual({ amountMinor: 99900, currency: "INR" });
+    expect(getSubmissionPrice("USD")).toEqual({ amountMinor: 1000, currency: "USD" });
+    // Defaults to USD
+    expect(getSubmissionPrice()).toEqual({ amountMinor: 1000, currency: "USD" });
+  });
+
+  it("formatMoney formats minor units and never prints '$' for INR payments", () => {
+    const inrFormatted = formatMoney(99900, "INR");
+    expect(inrFormatted).toBe("₹999.00");
+    expect(inrFormatted).not.toContain("$");
+
+    const usdFormatted = formatMoney(1000, "USD");
+    expect(usdFormatted).toBe("$10.00");
+
+    expect(formatMoney(0, "INR")).toBe("₹0.00");
+  });
+
+  it("formatPriceButton formats concise button labels", () => {
+    expect(formatPriceButton(99900, "INR")).toBe("Rs 999");
+    expect(formatPriceButton(1000, "USD")).toBe("$10");
+  });
+});
+
+describe("Payments - Currency Enum Validation in Server Actions", () => {
+  beforeEach(() => {
+    vi.spyOn(authServer, "getCurrentUserProfile").mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock user
+      user: { id: "user_valid_1", email_confirmed_at: "2026-01-01T00:00:00Z" } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock profile
+      profile: { id: "user_valid_1", role: "founder" } as any,
+    });
+    vi.spyOn(startupsServer, "isUserEmailVerified").mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("getStartupPaymentOrderAction rejects non-enum currency ('EUR', numbers, objects)", async () => {
+    const resEur = await getStartupPaymentOrderAction("startup_1", "EUR");
+    expect(resEur).toEqual({
+      error: "Invalid payment currency. Please choose either USD or INR.",
+    });
+
+    const resNum = await getStartupPaymentOrderAction("startup_1", 123);
+    expect(resNum).toEqual({
+      error: "Invalid payment currency. Please choose either USD or INR.",
+    });
+
+    const resObj = await getStartupPaymentOrderAction("startup_1", { evil: true });
+    expect(resObj).toEqual({
+      error: "Invalid payment currency. Please choose either USD or INR.",
+    });
+  });
+
+  it("submitStartupAction rejects non-enum currency ('EUR', numbers, objects)", async () => {
+    const dummyPayload = {
+      name: "Test Startup",
+      tagline: "Test Tagline",
+      description: "Test Description",
+      category: "AI",
+      stage: "MVP",
+      countryCode: "US",
+    };
+
+    const resEur = await submitStartupAction(dummyPayload, "EUR");
+    expect(resEur).toEqual({
+      error: "Invalid payment currency. Please choose either USD or INR.",
+    });
+
+    const resNum = await submitStartupAction(dummyPayload, 999);
+    expect(resNum).toEqual({
+      error: "Invalid payment currency. Please choose either USD or INR.",
+    });
+
+    const resObj = await submitStartupAction(dummyPayload, ["USD"]);
+    expect(resObj).toEqual({
+      error: "Invalid payment currency. Please choose either USD or INR.",
+    });
+  });
+});
+
+describe("Payments - INR Order Creation and Stale Order Replacement", () => {
+  let mockPaymentRows: MockPaymentRecord[];
+  const mockStartup = {
+    id: "startup_test_1",
+    ownerId: "user_test_1",
+    status: "awaiting_payment",
+    name: "Startup Test One",
+  };
+
+  beforeEach(() => {
+    mockPaymentRows = [
+      {
+        id: "pay_usd_existing",
+        startupId: "startup_test_1",
+        userId: "user_test_1",
+        amountCents: 1000,
+        amountRefundedCents: 0,
+        currency: "USD",
+        status: "created",
+        razorpayOrderId: "order_usd_old",
+        razorpayPaymentId: null,
+        webhookEventId: null,
+      },
+    ];
+
+    vi.spyOn(razorpayServer, "isPaymentRequired").mockReturnValue(true);
+    vi.spyOn(razorpayServer, "getRazorpayCredentials").mockReturnValue({
+      keyId: "rzp_test_current",
+      keySecret: "secret_current",
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle execute mock
+    vi.spyOn(db, "execute").mockResolvedValue([{ count: 1 }] as any);
+
+    vi.spyOn(db, "select").mockImplementation((() => ({
+      from: (table: unknown) => ({
+        where: () => {
+          const q = {
+            limit: () => {
+              if (table === startups) {
+                return [mockStartup];
+              }
+              const createdOrder = mockPaymentRows.find((p) => p.status === "created");
+              return createdOrder ? [createdOrder] : [];
+            },
+            orderBy: () => q,
+            then: (resolve: (v: unknown) => unknown) => {
+              if (table === startups) {
+                return resolve([{ count: 1 }]);
+              }
+              const createdOrder = mockPaymentRows.find((p) => p.status === "created");
+              return resolve(createdOrder ? [createdOrder] : []);
+            },
+          };
+          return q;
+        },
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+
+    vi.spyOn(db, "update").mockImplementation((() => ({
+      set: (vals: Record<string, unknown>) => ({
+        where: () => {
+          const row = mockPaymentRows.find((p) => p.status === "created");
+          if (row) {
+            Object.assign(row, vals);
+          }
+          return {
+            returning: () => (row ? [row] : []),
+          };
+        },
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+
+    vi.spyOn(db, "insert").mockImplementation((() => ({
+      values: (vals: Record<string, unknown>) => {
+        const newRow: MockPaymentRecord = {
+          id: `pay_${Date.now()}`,
+          startupId: vals.startupId as string,
+          userId: vals.userId as string,
+          amountCents: vals.amountCents as number,
+          amountRefundedCents: 0,
+          currency: (vals.currency as string) || "USD",
+          status: (vals.status as "created" | "paid" | "failed" | "refunded" | "partially_refunded") || "created",
+          razorpayOrderId: vals.razorpayOrderId as string,
+          razorpayPaymentId: null,
+          webhookEventId: null,
+        };
+        mockPaymentRows.push(newRow);
+        return {
+          returning: () => [newRow],
+        };
+      },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("creates a new INR order when requested and no prior unpaid order exists", async () => {
+    mockPaymentRows = [];
+
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
+      id: "order_inr_123",
+      amount: 99900,
+      currency: "INR",
+      status: "created",
+    });
+
+    const res = await getOrCreateStartupOrder("startup_test_1", "user_test_1", "INR");
+
+    expect(createSpy).toHaveBeenCalledWith({
+      amountCents: 99900,
+      currency: "INR",
+      receipt: "startup_test_1",
+      notes: {
+        startup_id: "startup_test_1",
+        user_id: "user_test_1",
+      },
+    });
+
+    expect(res.orderId).toBe("order_inr_123");
+    expect(res.amount).toBe(99900);
+    expect(res.currency).toBe("INR");
+  });
+
+  it("replaces existing USD order when user switches to INR (marks USD failed, creates INR)", async () => {
+    // Return null from fetchRazorpayOrder to trigger stale order replacement
+    vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue(null);
+
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
+      id: "order_inr_new_789",
+      amount: 99900,
+      currency: "INR",
+      status: "created",
+    });
+
+    const res = await getOrCreateStartupOrder("startup_test_1", "user_test_1", "INR");
+
+    // Old USD payment must be marked failed
+    expect(mockPaymentRows[0]?.status).toBe("failed");
+    expect(mockPaymentRows[0]?.currency).toBe("USD");
+
+    // New INR order created and returned
+    expect(createSpy).toHaveBeenCalledWith({
+      amountCents: 99900,
+      currency: "INR",
+      receipt: "startup_test_1",
+      notes: {
+        startup_id: "startup_test_1",
+        user_id: "user_test_1",
+      },
+    });
+
+    expect(res.orderId).toBe("order_inr_new_789");
+    expect(res.amount).toBe(99900);
+    expect(res.currency).toBe("INR");
+  });
+});
+
+describe("Payments - INR confirmPaymentAction and Webhook verification", () => {
+  let mockInrPayment: MockPaymentRecord;
+
+  beforeEach(() => {
+    mockInrPayment = {
+      id: "pay_inr_1",
+      startupId: "startup_inr_1",
+      userId: "user_inr_1",
+      razorpayOrderId: "order_inr_1",
+      razorpayPaymentId: "pay_rzp_inr_1",
+      amountCents: 99900,
+      amountRefundedCents: 0,
+      currency: "INR",
+      status: "created",
+      webhookEventId: null,
+    };
+
+    vi.spyOn(authServer, "getCurrentUserProfile").mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock user
+      user: { id: "user_inr_1" } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock profile
+      profile: { id: "user_inr_1", role: "founder" } as any,
+    });
+
+    vi.spyOn(razorpayServer, "verifyPaymentSignature").mockReturnValue(true);
+
+    vi.spyOn(db, "select").mockImplementation((() => ({
+      from: () => ({
+        where: () => ({
+          limit: () => [mockInrPayment],
+        }),
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock
+    })) as any);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("confirmPaymentAction succeeds when INR payment is captured with matching amount and currency", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayPayment").mockResolvedValue({
+      id: "pay_rzp_inr_1",
+      order_id: "order_inr_1",
+      amount: 99900,
+      currency: "INR",
+      status: "captured",
+    });
+
+    const targetStartup = {
+      id: "startup_inr_1",
+      status: "awaiting_payment",
+      name: "Acme India",
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle transaction mock
+    vi.spyOn(db, "transaction").mockImplementation(async (callback: any) => {
+      const mockTx = {
+        select: () => ({
+          from: (table: unknown) => ({
+            where: () => {
+              const q = {
+                for: () => q,
+                limit: () => (table === payments ? [mockInrPayment] : [targetStartup]),
+              };
+              return q;
+            },
+          }),
+        }),
+        update: (table: unknown) => ({
+          set: (vals: Record<string, unknown>) => ({
+            where: () => {
+              if (table === payments || vals.status === "paid") {
+                Object.assign(mockInrPayment, vals);
+                return { returning: () => [mockInrPayment] };
+              } else {
+                Object.assign(targetStartup, vals);
+                return { returning: () => [targetStartup] };
+              }
+            },
+          }),
+        }),
+        insert: () => ({
+          values: () => ({
+            onConflictDoNothing: () => ({
+              returning: () => [{ eventId: "evt_1" }],
+            }),
+            returning: () => [],
+          }),
+        }),
+        execute: async () => [{ email: "founder@example.com", display_name: "Founder" }],
+      };
+      return await callback(mockTx);
+    });
+
+    const res = await confirmPaymentAction({
+      startupId: "startup_inr_1",
+      razorpayOrderId: "order_inr_1",
+      razorpayPaymentId: "pay_rzp_inr_1",
+      razorpaySignature: "sig_inr_1",
+    });
+
+    expect(res).toEqual({ success: true });
+    expect(mockInrPayment.status).toBe("paid");
+  });
+
+  it("confirmPaymentAction rejects INR amount mismatch", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayPayment").mockResolvedValue({
+      id: "pay_rzp_inr_1",
+      order_id: "order_inr_1",
+      amount: 50000, // mismatch from 99900
+      currency: "INR",
+      status: "captured",
+    });
+
+    const res = await confirmPaymentAction({
+      startupId: "startup_inr_1",
+      razorpayOrderId: "order_inr_1",
+      razorpayPaymentId: "pay_rzp_inr_1",
+      razorpaySignature: "sig_inr_1",
+    });
+
+    expect(res).toEqual({ error: "Payment amount mismatch." });
+  });
+
+  it("confirmPaymentAction rejects currency mismatch (e.g. razorpay returns USD for stored INR order)", async () => {
+    vi.spyOn(razorpayServer, "fetchRazorpayPayment").mockResolvedValue({
+      id: "pay_rzp_inr_1",
+      order_id: "order_inr_1",
+      amount: 99900,
+      currency: "USD", // mismatch from INR
+      status: "captured",
+    });
+
+    const res = await confirmPaymentAction({
+      startupId: "startup_inr_1",
+      razorpayOrderId: "order_inr_1",
+      razorpayPaymentId: "pay_rzp_inr_1",
+      razorpaySignature: "sig_inr_1",
+    });
+
+    expect(res).toEqual({ error: "Payment currency mismatch." });
+  });
+
+  it("webhook marks INR payment paid when amount and currency match", async () => {
+    vi.spyOn(razorpayServer, "verifyWebhookSignature").mockReturnValue(true);
+
+    const targetStartup = {
+      id: "startup_inr_1",
+      status: "awaiting_payment",
+      name: "Acme India",
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle transaction mock
+    vi.spyOn(db, "transaction").mockImplementation(async (callback: any) => {
+      const mockTx = {
+        select: () => ({
+          from: (table: unknown) => ({
+            where: () => {
+              const q = {
+                for: () => q,
+                limit: () => (table === payments ? [mockInrPayment] : [targetStartup]),
+              };
+              return q;
+            },
+          }),
+        }),
+        update: (table: unknown) => ({
+          set: (vals: Record<string, unknown>) => ({
+            where: () => {
+              if (table === payments || vals.status === "paid") {
+                Object.assign(mockInrPayment, vals);
+                return { returning: () => [mockInrPayment] };
+              } else {
+                Object.assign(targetStartup, vals);
+                return { returning: () => [targetStartup] };
+              }
+            },
+          }),
+        }),
+        insert: () => ({
+          values: () => ({
+            onConflictDoNothing: () => ({
+              returning: () => [{ eventId: "evt_1" }],
+            }),
+            returning: () => [],
+          }),
+        }),
+        execute: async () => [{ email: "founder@example.com", display_name: "Founder" }],
+      };
+      return await callback(mockTx);
+    });
+
+    const payload = JSON.stringify({
+      id: "evt_inr_captured",
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_rzp_inr_1",
+            order_id: "order_inr_1",
+            amount: 99900,
+            currency: "INR",
+            status: "captured",
+          },
+        },
+      },
+    });
+
+    const req = new NextRequest("http://localhost:3000/api/webhooks/razorpay", {
+      method: "POST",
+      body: payload,
+      headers: {
+        "x-razorpay-signature": "dummy_sig",
+      },
+    });
+
+    const res = await webhookPost(req);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.received).toBe(true);
+    expect(mockInrPayment.status).toBe("paid");
+  });
+
+  it("webhook ignores INR event with amount mismatch", async () => {
+    vi.spyOn(razorpayServer, "verifyWebhookSignature").mockReturnValue(true);
+
+    const payload = JSON.stringify({
+      id: "evt_inr_amount_mismatch",
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_rzp_inr_1",
+            order_id: "order_inr_1",
+            amount: 50000, // mismatch from 99900
+            currency: "INR",
+            status: "captured",
+          },
+        },
+      },
+    });
+
+    const req = new NextRequest("http://localhost:3000/api/webhooks/razorpay", {
+      method: "POST",
+      body: payload,
+      headers: {
+        "x-razorpay-signature": "dummy_sig",
+      },
+    });
+
+    const res = await webhookPost(req);
+    expect(res.status).toBe(200);
+    // Payment should remain created (not marked paid)
+    expect(mockInrPayment.status).toBe("created");
+  });
+
+  it("webhook ignores INR event with currency mismatch", async () => {
+    vi.spyOn(razorpayServer, "verifyWebhookSignature").mockReturnValue(true);
+
+    const payload = JSON.stringify({
+      id: "evt_inr_curr_mismatch",
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_rzp_inr_1",
+            order_id: "order_inr_1",
+            amount: 99900,
+            currency: "USD", // mismatch from stored INR
+            status: "captured",
+          },
+        },
+      },
+    });
+
+    const req = new NextRequest("http://localhost:3000/api/webhooks/razorpay", {
+      method: "POST",
+      body: payload,
+      headers: {
+        "x-razorpay-signature": "dummy_sig",
+      },
+    });
+
+    const res = await webhookPost(req);
+    expect(res.status).toBe(200);
+    // Payment should remain created (not marked paid)
+    expect(mockInrPayment.status).toBe("created");
+  });
+});

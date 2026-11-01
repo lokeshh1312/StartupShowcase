@@ -57,6 +57,12 @@ export function validateProductionEnv(
     errors.push("SUBMISSION_PRICE_USD_CENTS must be a positive integer (e.g. 1000 for $10.00)");
   }
 
+  // Validate SUBMISSION_PRICE_INR_PAISE is a positive integer if provided
+  const priceInrVal = env.SUBMISSION_PRICE_INR_PAISE?.trim();
+  if (priceInrVal && (!/^\d+$/.test(priceInrVal) || parseInt(priceInrVal, 10) <= 0)) {
+    errors.push("SUBMISSION_PRICE_INR_PAISE must be a positive integer (e.g. 99900 for ₹999.00)");
+  }
+
   // Check test key in production
   const isProd = env.NODE_ENV === "production";
   const allowTestInProd = env.ALLOW_RAZORPAY_TEST_IN_PRODUCTION === "true";

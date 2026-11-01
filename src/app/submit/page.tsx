@@ -5,7 +5,12 @@ import { Rocket, ShieldAlert, ArrowLeft } from "lucide-react";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { getAvailableCountries } from "@/lib/validation";
 import { getStartupBySlug } from "@/server/startups";
-import { getSubmissionPriceCents, formatSubmissionPriceUsd } from "@/server/razorpay";
+import {
+  getSubmissionPriceCents,
+  formatSubmissionPriceUsd,
+  getSubmissionPriceInrPaise,
+} from "@/server/razorpay";
+import { formatPriceButton } from "@/lib/money";
 import { SubmitStartupForm } from "@/components/startup/submit-form";
 import type { Metadata } from "next";
 
@@ -34,6 +39,8 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   const isFounderOrAdmin = profile.role === "founder" || profile.role === "admin";
   const countries = getAvailableCountries();
   const formattedPrice = formatSubmissionPriceUsd(getSubmissionPriceCents());
+  const priceInr = formatPriceButton(getSubmissionPriceInrPaise(), "INR");
+  const priceUsd = formatPriceButton(getSubmissionPriceCents(), "USD");
 
   const { edit: editSlug } = await searchParams;
   let editingStartup = undefined;
@@ -92,6 +99,8 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
           userDisplayName={profile.displayName}
           initialStartup={editingStartup}
           formattedPrice={formattedPrice}
+          priceInr={priceInr}
+          priceUsd={priceUsd}
         />
       )}
     </div>

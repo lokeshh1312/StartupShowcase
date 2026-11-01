@@ -55,7 +55,7 @@ export default function RefundsPage() {
             1. Service and Price
           </h2>
           <p>
-            The standard fee is <strong>US$10 per startup submission</strong>, as displayed on the checkout page.
+            The standard fee is a <strong>one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards)</strong>, as displayed on the checkout page.
           </p>
           <p>
             The service includes the submission and review of one startup profile for potential publication. It is a digital service; no physical product is shipped.
@@ -87,7 +87,7 @@ export default function RefundsPage() {
           </h2>
           <p>Payment does not guarantee publication.</p>
           <p>
-            If your startup submission is rejected, you are entitled to a full refund of the US$10 submission fee. This does not apply where the submission was rejected because it involved fraud, spam, deliberately misleading or unlawful content, or another serious breach of our Terms &amp; Conditions.
+            If your startup submission is rejected, you are entitled to a full refund of the submission fee. Refunds are returned to the original payment method in the same currency. This does not apply where the submission was rejected because it involved fraud, spam, deliberately misleading or unlawful content, or another serious breach of our Terms &amp; Conditions.
           </p>
           <p>
             You do not need to request this separately in most cases: we will start the refund to your original payment method after rejecting the submission. If you have not received a refund, contact us with your order ID and we will review it.
@@ -147,7 +147,7 @@ export default function RefundsPage() {
             7. Refund Processing
           </h2>
           <p>
-            If a refund is approved, we will initiate it through the applicable payment provider or payment method where possible.
+            If a refund is approved, we will initiate it through the applicable payment provider or payment method where possible. Refunds are returned to the original payment method in the same currency.
           </p>
           <p>
             The time required for the funds to appear in your account depends on the payment provider, bank, and payment method. We will communicate any available updates.

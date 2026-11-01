@@ -79,7 +79,7 @@ export default function TermsPage() {
             3. Startup Submissions
           </h2>
           <p>
-            The standard startup submission fee is <strong>US$10 per submission</strong>, as displayed on our pricing and checkout pages.
+            The standard startup submission fee is a <strong>one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards)</strong>, as displayed on our pricing and checkout pages.
           </p>
           <p>
             Each paid submission covers one startup profile and its review for potential publication.
@@ -127,7 +127,7 @@ export default function TermsPage() {
             6. Refunds and Cancellations
           </h2>
           <p>
-            Refund and cancellation requests are governed by our Refund &amp; Cancellation Policy, subject to applicable law.
+            Refund and cancellation requests are governed by our Refund &amp; Cancellation Policy, subject to applicable law. When approved, refunds are returned to the original payment method in the same currency.
           </p>
           <p>
             Please review that policy before purchasing a submission.

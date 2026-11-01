@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq, and, sql } from "drizzle-orm";
+import { z } from "zod";
 import {
   getCurrentUser,
   getCurrentUserProfile,
@@ -38,6 +39,8 @@ import { profiles, auditLog, payments } from "@/db/schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrCreateStartupOrder, markPaymentPaid } from "@/server/payments";
 import { verifyPaymentSignature, fetchRazorpayPayment } from "@/server/razorpay";
+
+const currencyEnumSchema = z.enum(["INR", "USD"]);
 
 /**
  * Vote on a startup (authenticated & verified only)
@@ -198,7 +201,7 @@ export async function uploadStartupImageAction(formData: FormData): Promise<
 /**
  * Submit a startup (authenticated verified founders only, protected by CAPTCHA)
  */
-export async function submitStartupAction(rawData: unknown) {
+export async function submitStartupAction(rawData: unknown, currency?: unknown) {
   const authData = await getCurrentUserProfile();
   if (!authData) {
     return { error: "unauthenticated" };
@@ -215,6 +218,23 @@ export async function submitStartupAction(rawData: unknown) {
       error:
         "Only users with the Founder role can submit startups. Please update your role or register as a founder.",
     };
+  }
+
+  // Validate currency choice (enum INR|USD, default USD)
+  let targetCurrency: "INR" | "USD" = "USD";
+  const rawCurrency =
+    currency !== undefined
+      ? currency
+      : typeof rawData === "object" && rawData !== null && "currency" in rawData
+      ? (rawData as { currency?: unknown }).currency
+      : undefined;
+
+  if (rawCurrency !== undefined) {
+    const parsedCurrency = currencyEnumSchema.safeParse(rawCurrency);
+    if (!parsedCurrency.success) {
+      return { error: "Invalid payment currency. Please choose either USD or INR." };
+    }
+    targetCurrency = parsedCurrency.data;
   }
 
   try {
@@ -238,7 +258,7 @@ export async function submitStartupAction(rawData: unknown) {
     const created = await createStartup(validated, user.id);
 
     // Create or retrieve Razorpay order for this submission
-    const orderInfo = await getOrCreateStartupOrder(created.id, user.id);
+    const orderInfo = await getOrCreateStartupOrder(created.id, user.id, targetCurrency);
 
     // If payment is not required (development only when Razorpay keys are unset)
     if (!orderInfo.paymentRequired) {
@@ -274,14 +294,23 @@ export async function submitStartupAction(rawData: unknown) {
 /**
  * Get or resume Razorpay order for an awaiting_payment startup
  */
-export async function getStartupPaymentOrderAction(startupId: string) {
+export async function getStartupPaymentOrderAction(startupId: string, currency?: unknown) {
   const authData = await getCurrentUserProfile();
   if (!authData) {
     return { error: "unauthenticated" };
   }
 
+  let targetCurrency: "INR" | "USD" = "USD";
+  if (currency !== undefined) {
+    const parsedCurrency = currencyEnumSchema.safeParse(currency);
+    if (!parsedCurrency.success) {
+      return { error: "Invalid payment currency. Please choose either USD or INR." };
+    }
+    targetCurrency = parsedCurrency.data;
+  }
+
   try {
-    const orderInfo = await getOrCreateStartupOrder(startupId, authData.user.id);
+    const orderInfo = await getOrCreateStartupOrder(startupId, authData.user.id, targetCurrency);
     return { success: true, ...orderInfo };
   } catch (err: unknown) {
     return { error: formatActionError(err) };

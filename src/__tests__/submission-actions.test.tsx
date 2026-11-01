@@ -34,10 +34,54 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-describe("SubmissionActions Component - Accessible Error Modal", () => {
+describe("SubmissionActions Component - Accessible Error Modal & Dual Currency Payment Buttons", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     mockRefresh.mockClear();
+  });
+
+  it("renders both INR and USD payment buttons when awaiting payment", () => {
+    render(
+      <SubmissionActions
+        startupId="draft-1"
+        startupName="Test Draft"
+        slug="test-draft"
+        status="awaiting_payment"
+        priceInr="Rs 999"
+        priceUsd="$10"
+      />
+    );
+
+    expect(screen.getByRole("button", { name: /Pay Rs 999 \(UPI \/ QR \/ cards\)/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /Pay \$10 \(international card\)/i })).toBeDefined();
+  });
+
+  it("passes selected currency (INR or USD) to getStartupPaymentOrderAction and shares paying state", async () => {
+    const getOrderSpy = vi.spyOn(actions, "getStartupPaymentOrderAction").mockImplementation(
+      () => new Promise(() => {}) // never resolves to keep in paying state
+    );
+
+    render(
+      <SubmissionActions
+        startupId="draft-1"
+        startupName="Test Draft"
+        slug="test-draft"
+        status="awaiting_payment"
+      />
+    );
+
+    const inrBtn = screen.getByRole("button", { name: /Pay Rs 999/i });
+    const usdBtn = screen.getByRole("button", { name: /Pay \$10/i });
+
+    fireEvent.click(inrBtn);
+
+    expect(getOrderSpy).toHaveBeenCalledWith("draft-1", "INR");
+
+    // Both buttons should now be disabled and share the loading state
+    await waitFor(() => {
+      expect(inrBtn.hasAttribute("disabled")).toBe(true);
+      expect(usdBtn.hasAttribute("disabled")).toBe(true);
+    });
   });
 
   it("displays payment error in a modal dialog with title 'Payment couldn't start'", async () => {
@@ -54,8 +98,8 @@ describe("SubmissionActions Component - Accessible Error Modal", () => {
       />
     );
 
-    const resumeBtn = screen.getByRole("button", { name: /Resume Payment/i });
-    fireEvent.click(resumeBtn);
+    const inrBtn = screen.getByRole("button", { name: /Pay Rs 999/i });
+    fireEvent.click(inrBtn);
 
     await waitFor(() => {
       const dialog = screen.getByRole("dialog");
@@ -92,8 +136,8 @@ describe("SubmissionActions Component - Accessible Error Modal", () => {
       />
     );
 
-    const resumeBtn = screen.getByRole("button", { name: /Resume Payment/i });
-    fireEvent.click(resumeBtn);
+    const usdBtn = screen.getByRole("button", { name: /Pay \$10/i });
+    fireEvent.click(usdBtn);
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeDefined();
@@ -122,8 +166,8 @@ describe("SubmissionActions Component - Accessible Error Modal", () => {
       />
     );
 
-    const resumeBtn = screen.getByRole("button", { name: /Resume Payment/i });
-    fireEvent.click(resumeBtn);
+    const usdBtn = screen.getByRole("button", { name: /Pay \$10/i });
+    fireEvent.click(usdBtn);
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeDefined();
@@ -165,6 +209,9 @@ describe("SubmissionActions Component - Accessible Error Modal", () => {
       expect(screen.getByText(friendlyMsg)).toBeDefined();
     });
 
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^OK$/i })).toBeDefined();
+    });
     // Press Escape to close modal
     fireEvent.keyDown(window, { key: "Escape" });
 
@@ -187,7 +234,7 @@ describe("SubmissionActions Component - Accessible Error Modal", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Resume Payment/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Pay Rs 999/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeDefined();
