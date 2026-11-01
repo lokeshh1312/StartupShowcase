@@ -25,13 +25,22 @@ export function GoogleSignInButton({
 
   const handleGoogleSignIn = async () => {
     try {
-      setLoading(true);
       setError("");
+
+      const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "");
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin.replace(/\/+$/, "") : "";
+
+      if (configuredSiteUrl && currentOrigin && currentOrigin !== configuredSiteUrl) {
+        setError(`Please open the site at ${configuredSiteUrl} to sign in with Google.`);
+        return;
+      }
+
+      setLoading(true);
       const supabase = createClient();
 
       const safePath = safeRedirectPath(redirectPath);
       const siteUrl =
-        process.env.NEXT_PUBLIC_SITE_URL ||
+        configuredSiteUrl ||
         (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
 
       const redirectTo = `${siteUrl.replace(/\/+$/, "")}/auth/callback?redirect=${encodeURIComponent(safePath)}`;

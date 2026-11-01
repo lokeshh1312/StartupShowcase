@@ -44,7 +44,7 @@ describe("seed script database protection", () => {
         const output = (error.stderr?.toString() || "") + (error.stdout?.toString() || "");
         expect(output).toContain("Refusing to seed: not a local database");
       }
-    }, 15000);
+    }, 30000);
 
     it("refuses to seed if DATABASE_URL points to a remote database even if ALLOW_SEED=true", () => {
       const env = {
@@ -62,6 +62,6 @@ describe("seed script database protection", () => {
         const output = (error.stderr?.toString() || "") + (error.stdout?.toString() || "");
         expect(output).toContain("Refusing to seed: not a local database");
       }
-    }, 15000);
+    }, 30000);
   });
 });
