@@ -15,12 +15,18 @@ import { UnverifiedBanner } from "@/components/common/unverified-banner";
 import { Analytics } from "@/components/analytics";
 import "./globals.css";
 
-
 const inter = localFont({
   src: "./fonts/Inter-Variable.woff2",
   variable: "--font-inter",
   display: "swap",
   weight: "100 900",
+});
+
+const instrumentSerif = localFont({
+  src: "./fonts/InstrumentSerif-Italic.woff2",
+  variable: "--font-serif-italic",
+  display: "swap",
+  style: "italic",
 });
 
 export const metadata: Metadata = {
@@ -59,10 +65,10 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body
-        className={`${inter.variable} font-sans antialiased selection:bg-blue-600/15 selection:text-blue-700 min-h-screen`}
+        className={`${inter.variable} ${instrumentSerif.variable} font-sans antialiased selection:bg-brand-500/20 selection:text-brand-700 min-h-screen`}
       >
         <ThemeProvider>
-          <div className="min-h-screen flex flex-col">
+          <div className="min-h-screen flex flex-col" id="top">
             {authData?.user && !authData.user.email_confirmed_at && (
               <UnverifiedBanner email={authData.user.email || ""} />
             )}

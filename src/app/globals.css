@@ -1,18 +1,31 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
-/*
- * Design tokens ported from the original Vite SPA.
- * Colours: slate/blue palette · Font: Inter · Light BG: #F8FAFC
- */
+@theme {
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+  --color-brand-950: #1e1b4b;
+
+  --font-serif-italic: var(--font-serif-italic), Georgia, Cambria, "Times New Roman", Times, serif;
+}
 
 @layer base {
   :root {
     color-scheme: light;
+    --brand-primary: #4f46e5;
   }
 
   .dark {
     color-scheme: dark;
+    --brand-primary: #6366f1;
   }
 
   html {
@@ -36,9 +49,16 @@
 
   /* ---- Dark mode ---- */
   .dark body {
-    background-color: #0f172a;
+    background-color: #080b14;
     color: #e2e8f0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
+}
+
+.font-serif-italic {
+  font-family: var(--font-serif-italic), Georgia, Cambria, "Times New Roman", Times, serif;
+  font-style: italic;
 }
 
 /* Custom subtle scrollbars */
@@ -65,16 +85,36 @@
   scrollbar-width: none;
 }
 
-/* Pulse animation utility */
-@keyframes subtle-bounce {
-  0%,
-  100% {
-    transform: translateY(0);
+/* Cloud drift animations */
+@keyframes cloud-drift-left {
+  0% {
+    transform: translateX(0);
   }
-  50% {
-    transform: translateY(-2px);
+  100% {
+    transform: translateX(36px);
   }
 }
-.animate-subtle-bounce {
-  animation: subtle-bounce 2s ease-in-out infinite;
+
+@keyframes cloud-drift-right {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-30px);
+  }
+}
+
+.animate-cloud-left {
+  animation: cloud-drift-left 20s ease-in-out infinite alternate;
+}
+
+.animate-cloud-right {
+  animation: cloud-drift-right 24s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-cloud-left,
+  .animate-cloud-right {
+    animation: none;
+  }
 }

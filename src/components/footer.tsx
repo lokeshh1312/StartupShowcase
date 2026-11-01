@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowUp } from "lucide-react";
 import { Logo } from "@/components/logo";
 
 const platformLinks = [
@@ -24,10 +25,10 @@ const resourceLinks = [
 
 export function Footer() {
   return (
-    <footer className="w-full bg-white dark:bg-slate-950 border-t border-slate-200/80 dark:border-slate-800/80 py-12 mt-auto transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-slate-100 dark:border-slate-900">
-          {/* Brand & mission */}
+    <footer className="w-full bg-white dark:bg-slate-950/80 border-t border-slate-200/80 dark:border-white/10 py-12 mt-auto transition-colors">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-slate-100 dark:border-white/5">
+          {/* Brand & Mission */}
           <div className="md:col-span-2 space-y-3">
             <Logo size="md" />
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed pt-1">
@@ -38,7 +39,7 @@ export function Footer() {
 
           {/* Directory Links */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
               Explore
             </h4>
             <ul className="space-y-2 text-xs">
@@ -46,7 +47,7 @@ export function Footer() {
                 <li key={href}>
                   <Link
                     href={href}
-                    className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    className="text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
                   >
                     {label}
                   </Link>
@@ -57,7 +58,7 @@ export function Footer() {
 
           {/* Platform & Support */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
               Platform & Legal
             </h4>
             <ul className="space-y-2 text-xs">
@@ -65,7 +66,7 @@ export function Footer() {
                 <li key={href}>
                   <Link
                     href={href}
-                    className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    className="text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
                   >
                     {label}
                   </Link>
@@ -75,41 +76,51 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom copyright */}
+        {/* Bottom Bar: Copyright + Links + Back to top */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
           <p>© {new Date().getFullYear()} Startup Showcase. Built for founders worldwide.</p>
-          <div className="flex flex-wrap items-center gap-4">
-            <Link href="/about" className="hover:underline">
+          
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs">
+            <Link href="/about" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               About
             </Link>
-            <Link href="/pricing" className="hover:underline">
+            <Link href="/pricing" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               Pricing
             </Link>
-            <Link href="/contact" className="hover:underline">
+            <Link href="/contact" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               Contact
             </Link>
-            <Link href="/faq" className="hover:underline">
+            <Link href="/faq" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               FAQ
             </Link>
-            <Link href="/support" className="hover:underline">
+            <Link href="/support" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               Support
             </Link>
-            <Link href="/refunds" className="hover:underline">
+            <Link href="/refunds" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               Refunds
             </Link>
-            <Link href="/delivery" className="hover:underline">
+            <Link href="/delivery" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               Delivery
             </Link>
-            <Link href="/privacy" className="hover:underline">
+            <Link href="/privacy" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               Privacy
             </Link>
-            <Link href="/terms" className="hover:underline">
+            <Link href="/terms" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               Terms
             </Link>
-            <Link href="/cookies" className="hover:underline">
+            <Link href="/cookies" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               Cookies
             </Link>
           </div>
+
+          {/* Big circular indigo Back to top button */}
+          <a
+            href="#top"
+            aria-label="Back to top"
+            className="w-10 h-10 rounded-full bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center transition-all duration-200 shadow-md hover:scale-105 active:scale-95 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            <ArrowUp className="w-4 h-4" />
+          </a>
         </div>
       </div>
     </footer>

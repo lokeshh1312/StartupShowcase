@@ -66,7 +66,7 @@ export function VoteButton({
       onClick={handleVote}
       disabled={isPending}
       type="button"
-      className={`group/vote flex items-center justify-center transition-all duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 active:scale-95 disabled:opacity-75 ${
+      className={`group/vote flex items-center justify-center transition-all duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-95 disabled:opacity-75 ${
         isLarge
           ? "flex-col gap-1 px-5 py-3 rounded-2xl min-w-[76px]"
           : isSmall
@@ -74,7 +74,7 @@ export function VoteButton({
           : "flex-col gap-0.5 px-3.5 py-2 rounded-xl min-w-[58px] text-xs"
       } ${
         liked
-          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-300 dark:border-blue-700 shadow-xs"
+          ? "bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 border border-brand-300 dark:border-brand-700 shadow-xs"
           : "bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800"
       } ${className}`}
       title={liked ? "Upvoted! Click to undo" : "Upvote this startup"}
@@ -85,7 +85,7 @@ export function VoteButton({
           isLarge ? "w-5 h-5" : isSmall ? "w-3.5 h-3.5" : "w-4 h-4"
         } ${
           liked
-            ? "text-blue-600 dark:text-blue-400 stroke-[2.5]"
+            ? "text-brand-600 dark:text-brand-400 stroke-[2.5]"
             : "text-slate-400 dark:text-slate-500 group-hover/vote:text-slate-900 dark:group-hover/vote:text-white"
         }`}
       />
@@ -94,7 +94,7 @@ export function VoteButton({
           isLarge ? "text-base font-bold" : isSmall ? "text-[11px]" : "text-xs"
         } ${
           liked
-            ? "text-blue-600 dark:text-blue-400"
+            ? "text-brand-600 dark:text-brand-400"
             : "text-slate-700 dark:text-slate-300 group-hover/vote:text-slate-900 dark:group-hover/vote:text-white"
         }`}
       >
