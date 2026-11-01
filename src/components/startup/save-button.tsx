@@ -59,8 +59,8 @@ export function SaveButton({
         isSmall ? "p-1.5" : "p-2"
       } ${
         saved
-          ? "text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800"
-          : "text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
+          ? "text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 shadow-xs"
+          : "text-slate-400 hover:text-slate-900 dark:hover:text-white bg-white/90 dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] border border-slate-200/90 dark:border-white/10 shadow-2xs"
       } ${className}`}
       title={saved ? "Remove from Saved" : "Save / Bookmark startup"}
       aria-label={saved ? `Unsave ${startupName}` : `Save ${startupName}`}
