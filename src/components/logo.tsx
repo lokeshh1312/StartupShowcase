@@ -26,7 +26,7 @@ export function Logo({ size = "default", className = "" }: LogoProps) {
     <Link
       href="/"
       className={`group flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg py-1 transition-transform duration-200 active:scale-95 ${className}`}
-      aria-label="Startup Showcase Home"
+      aria-label="Startup Showcase Global Home"
     >
       {/* Lightbulb icon */}
       <div
@@ -48,6 +48,11 @@ export function Logo({ size = "default", className = "" }: LogoProps) {
           className={`text-brand-600 dark:text-brand-400 ml-1.5 ${s.text}`}
         >
           Showcase
+        </span>
+        <span
+          className={`text-brand-600 dark:text-brand-400 ml-1.5 ${s.text} max-[380px]:hidden`}
+        >
+          Global
         </span>
       </div>
     </Link>

@@ -37,7 +37,6 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/browse", label: "Browse" },
   { href: "/categories", label: "Categories" },
-  { href: "/countries", label: "Countries" },
   { href: "/about", label: "About" },
 ] as const;
 
@@ -60,7 +59,7 @@ export function Navbar({ user, profile }: NavbarProps) {
 
           {/* Center Navigation */}
           <nav
-            className="hidden md:flex items-center gap-2 lg:gap-3"
+            className="hidden md:flex items-center gap-1.5 lg:gap-3"
             aria-label="Primary navigation"
           >
             {navLinks.map(({ href, label }) => {
@@ -71,7 +70,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                 <Link
                   key={href}
                   href={href}
-                  className={`px-3.5 py-1.5 text-xs font-semibold transition-all select-none ${
+                  className={`px-2.5 lg:px-3.5 py-1.5 text-xs font-semibold transition-all select-none ${
                     isActive
                       ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
                       : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
