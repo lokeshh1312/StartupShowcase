@@ -4,7 +4,7 @@ import Image from "next/image";
 import { StartupLogo } from "@/components/common/startup-logo";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { VoteButton } from "@/components/startup/vote-button";
-import { MapPin, Eye, ChevronRight, Image as ImageIcon } from "lucide-react";
+import { MapPin, ChevronRight, Image as ImageIcon } from "lucide-react";
 import { getCountryName } from "@/lib/validation";
 import { isAllowedImageUrl } from "@/lib/images";
 import type { FormattedStartup } from "@/server/startups";
@@ -54,42 +54,36 @@ export function LeaderboardTable({
   }
 
   return (
-    <div className="w-full rounded-3xl border border-slate-200/90 dark:border-white/10 bg-white dark:bg-slate-950/70 shadow-sm dark:shadow-none overflow-hidden backdrop-blur-sm">
-      {/* Scrollable Container (overflow-x-auto scrolls inside the card on mobile; page never scrolls) */}
+    <div className="w-full lg:rounded-3xl lg:border lg:border-slate-200/90 lg:dark:border-white/10 lg:bg-white lg:dark:bg-slate-950/70 lg:shadow-sm lg:dark:shadow-none overflow-hidden lg:backdrop-blur-sm">
+      {/* Scrollable Container (harmless fallback wrapper; mobile renders stacked cards) */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[880px] border-collapse text-left">
-          <thead>
+        <table className="max-lg:block w-full max-lg:min-w-0 lg:min-w-[880px] border-collapse text-left">
+          <thead className="max-lg:sr-only">
             <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/70 dark:bg-white/[0.02] text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase">
-              <th scope="col" className="py-4 pl-6 pr-2 w-14 text-center">
-                #
-              </th>
-              <th scope="col" className="py-4 px-3 w-28 text-center">
+              <th scope="col" className="py-3.5 px-2 w-24 text-center">
                 Logo
               </th>
-              <th scope="col" className="py-4 px-3 w-24 text-center">
+              <th scope="col" className="py-3.5 px-2 w-24 text-center">
                 Image
               </th>
-              <th scope="col" className="py-4 px-4 min-w-[200px]">
+              <th scope="col" className="py-3.5 px-3 min-w-[200px]">
                 Startup Idea
               </th>
-              <th scope="col" className="py-4 px-3 w-32">
+              <th scope="col" className="py-3.5 px-2.5 w-32">
                 Category
               </th>
-              <th scope="col" className="py-4 px-3 w-32">
-                Location
+              <th scope="col" className="py-3.5 px-2.5 w-32">
+                Country
               </th>
-              <th scope="col" className="py-4 px-3 w-28">
+              <th scope="col" className="py-3.5 px-2.5 w-28">
                 Stage
               </th>
-              <th scope="col" className="py-4 px-3 w-24 text-center">
-                Views
-              </th>
-              <th scope="col" className="py-4 pl-2 pr-6 w-28 text-right">
+              <th scope="col" className="py-3.5 pl-2 pr-6 w-28 text-right">
                 <span className="sr-only">Actions</span>
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
+          <tbody className="max-lg:flex max-lg:flex-col max-lg:gap-3.5 sm:max-lg:gap-4 max-lg:p-0 divide-y-0 lg:divide-y divide-slate-100 dark:divide-white/5 text-sm">
             {startups.map((startup, index) => {
               const rank = startup.rank || index + 1;
               const country = getCountryName(startup.countryCode);
@@ -101,34 +95,13 @@ export function LeaderboardTable({
               return (
                 <tr
                   key={startup.id}
-                  className="group relative hover:bg-slate-50/70 dark:hover:bg-white/[0.03] transition-colors"
+                  className="group relative transition-colors max-lg:flex max-lg:flex-wrap max-lg:items-start max-lg:p-4 sm:max-lg:p-5 max-lg:rounded-2xl sm:max-lg:rounded-3xl max-lg:border max-lg:border-slate-200/90 max-lg:dark:border-white/10 max-lg:bg-white max-lg:dark:bg-slate-950/70 max-lg:shadow-sm max-lg:dark:shadow-none hover:bg-slate-50/70 dark:hover:bg-white/[0.03]"
                 >
-                  {/* Rank Badge */}
-                  <td className="py-4 pl-6 pr-2 text-center align-middle font-bold text-xs">
-                    {rank === 1 ? (
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400 text-amber-950 font-extrabold text-xs shadow-xs">
-                        1
-                      </span>
-                    ) : rank === 2 ? (
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-300 dark:bg-slate-600 text-slate-800 dark:text-slate-100 font-extrabold text-xs shadow-xs">
-                        2
-                      </span>
-                    ) : rank === 3 ? (
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-600 text-white font-extrabold text-xs shadow-xs">
-                        3
-                      </span>
-                    ) : (
-                      <span className="text-slate-500 dark:text-slate-400 font-semibold text-xs">
-                        {rank}
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Logo + Name underneath */}
-                  <td className="py-3 px-3 text-center align-middle">
+                  {/* Logo + Name underneath ("<rank>. <name>") */}
+                  <td className="py-4 px-2 w-24 text-center align-top max-lg:order-1 max-lg:flex max-lg:items-center max-lg:flex-1 max-lg:p-0 max-lg:min-w-0 max-lg:border-0">
                     <Link
                       href={`/startup/${startup.slug}`}
-                      className="inline-flex flex-col items-center gap-1 group/logo focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-1"
+                      className="inline-flex max-lg:flex-row max-lg:items-center max-lg:gap-2.5 lg:flex-col lg:items-center lg:gap-1.5 group/logo focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-0.5 max-w-full"
                     >
                       <StartupLogo
                         name={startup.name}
@@ -137,17 +110,20 @@ export function LeaderboardTable({
                         logoColor={startup.logoColor}
                         size="sm"
                       />
-                      <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[84px] group-hover/logo:text-brand-600 dark:group-hover/logo:text-brand-400 transition-colors">
-                        {startup.name}
+                      <span
+                        title={`${rank}. ${startup.name}`}
+                        className="text-xs sm:text-sm lg:text-[11px] font-bold lg:font-semibold text-slate-900 dark:text-white lg:text-slate-700 lg:dark:text-slate-300 line-clamp-2 break-words max-w-[180px] sm:max-w-[260px] lg:max-w-[96px] group-hover/logo:text-brand-600 dark:group-hover/logo:text-brand-400 transition-colors text-left lg:text-center"
+                      >
+                        {rank}. {startup.name}
                       </span>
                     </Link>
                   </td>
 
-                  {/* Startup Image Thumbnail */}
-                  <td className="py-3 px-3 text-center align-middle">
+                  {/* Startup Image Thumbnail (w-20 h-14, sizes="80px") */}
+                  <td className="py-4 px-2 w-24 text-center align-top max-lg:order-2 max-lg:p-0 max-lg:shrink-0 max-lg:ml-auto max-lg:border-0">
                     <Link
                       href={`/startup/${startup.slug}`}
-                      className="inline-block relative w-16 h-12 rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs hover:scale-105 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      className="inline-block relative w-20 h-14 rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs hover:scale-105 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                     >
                       {hasImage ? (
                         <Image
@@ -155,7 +131,7 @@ export function LeaderboardTable({
                           alt={startup.name}
                           fill
                           className="object-cover"
-                          sizes="64px"
+                          sizes="80px"
                         />
                       ) : (
                         <div
@@ -167,52 +143,49 @@ export function LeaderboardTable({
                     </Link>
                   </td>
 
-                  {/* Startup Idea Title + Tagline/Description */}
-                  <td className="py-4 px-4 align-middle">
+                  {/* Startup Idea Title + Full Description */}
+                  <td className="py-4 px-3 align-top max-lg:order-3 max-lg:w-full max-lg:p-0 max-lg:mt-3 max-lg:border-0">
                     <Link
                       href={`/startup/${startup.slug}`}
                       className="block group/idea focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg"
                     >
-                      <h4 className="font-bold text-slate-900 dark:text-white group-hover/idea:text-brand-600 dark:group-hover/idea:text-brand-400 transition-colors text-sm line-clamp-1">
+                      <h4 className="font-bold text-slate-900 dark:text-white group-hover/idea:text-brand-600 dark:group-hover/idea:text-brand-400 transition-colors text-sm sm:text-base lg:text-sm line-clamp-1">
                         {startup.ideaTitle || startup.name}
                       </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
-                        {startup.tagline || startup.description}
+                      <p className="text-xs sm:text-sm lg:text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere] mt-1 sm:mt-1.5 leading-relaxed">
+                        {startup.description || startup.tagline}
                       </p>
                     </Link>
                   </td>
 
                   {/* Category Pill */}
-                  <td className="py-4 px-3 align-middle">
+                  <td className="py-4 px-2.5 w-32 align-top max-lg:order-4 max-lg:p-0 max-lg:w-auto max-lg:mt-3 max-lg:mr-2 max-lg:border-0">
                     <Badge variant="brand" size="sm">
                       {startup.category}
                     </Badge>
                   </td>
 
-                  {/* Location with Pin Icon */}
-                  <td className="py-4 px-3 align-middle text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5" title={country}>
+                  {/* Country with Pin Icon */}
+                  <td className="py-4 px-2.5 w-32 align-top text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap max-lg:order-5 max-lg:p-0 max-lg:w-auto max-lg:mt-3 max-lg:mr-2 max-lg:border-0">
+                    <div
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 lg:bg-transparent lg:border-0 lg:p-0"
+                      title={country}
+                    >
                       <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">{country}</span>
+                      <span className="truncate max-w-[140px] sm:max-w-none">
+                        {country}
+                      </span>
                     </div>
                   </td>
 
                   {/* Stage Pill */}
-                  <td className="py-4 px-3 align-middle">
+                  <td className="py-4 px-2.5 w-28 align-top max-lg:order-6 max-lg:p-0 max-lg:w-auto max-lg:mt-3 max-lg:border-0">
                     <StageBadge stage={startup.stage} />
                   </td>
 
-                  {/* Views Count with Eye Icon */}
-                  <td className="py-4 px-3 text-center align-middle font-mono text-xs text-slate-500 dark:text-slate-400">
-                    <div className="inline-flex items-center gap-1.5">
-                      <Eye className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{startup.views}</span>
-                    </div>
-                  </td>
-
-                  {/* Compact Vote Button + Chevron Right */}
-                  <td className="py-4 pl-2 pr-6 text-right align-middle">
-                    <div className="flex items-center justify-end gap-2 relative z-20">
+                  {/* Like Button + Chevron Link */}
+                  <td className="py-4 pl-2 pr-6 w-28 text-right align-top max-lg:order-7 max-lg:w-full max-lg:p-0 max-lg:pt-3 max-lg:mt-3.5 max-lg:border-t max-lg:border-slate-100 max-lg:dark:border-white/5 max-lg:border-x-0 max-lg:border-b-0">
+                    <div className="flex items-center justify-between lg:justify-end gap-2 relative z-20 w-full">
                       <VoteButton
                         startupIdOrSlug={startup.slug}
                         initialLikes={startup.likes}
@@ -222,7 +195,7 @@ export function LeaderboardTable({
                       />
                       <Link
                         href={`/startup/${startup.slug}`}
-                        className="inline-flex p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 rounded-lg transition-colors group-hover:translate-x-0.5"
+                        className="inline-flex items-center justify-center min-w-[36px] min-h-[36px] p-2 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 rounded-lg transition-colors group-hover:translate-x-0.5"
                         aria-label={`View details for ${startup.name}`}
                       >
                         <ChevronRight className="w-4 h-4" />

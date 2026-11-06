@@ -10,7 +10,11 @@ interface LogoProps {
 
 const sizeMap: Record<LogoSize, { box: string; icon: string; text: string }> = {
   sm: { box: "w-8 h-8", icon: "w-4 h-4", text: "text-lg" },
-  default: { box: "w-9 h-9", icon: "w-5 h-5", text: "text-xl" },
+  default: {
+    box: "w-8 h-8 min-[420px]:w-9 min-[420px]:h-9",
+    icon: "w-4 h-4 min-[420px]:w-5 min-[420px]:h-5",
+    text: "text-sm min-[420px]:text-base sm:text-xl",
+  },
   md: { box: "w-9 h-9", icon: "w-5 h-5", text: "text-xl" },
   lg: { box: "w-11 h-11", icon: "w-6 h-6", text: "text-2xl" },
 };
