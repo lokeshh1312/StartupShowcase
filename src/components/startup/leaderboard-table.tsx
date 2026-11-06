@@ -54,7 +54,7 @@ export function LeaderboardTable({
   }
 
   return (
-    <div className="w-full lg:rounded-3xl lg:border lg:border-slate-200/90 lg:dark:border-white/10 lg:bg-white lg:dark:bg-slate-950/70 lg:shadow-sm lg:dark:shadow-none overflow-hidden lg:backdrop-blur-sm">
+    <div className="w-full lg:rounded-3xl lg:border lg:border-slate-200/90 lg:dark:border-white/10 lg:bg-white/90 lg:dark:bg-white/[0.03] lg:shadow-xs lg:backdrop-blur-md overflow-hidden">
       {/* Scrollable Container (harmless fallback wrapper; mobile renders stacked cards) */}
       <div className="overflow-x-auto">
         <table className="max-lg:block w-full max-lg:min-w-0 lg:min-w-[880px] border-collapse text-left">
@@ -95,7 +95,7 @@ export function LeaderboardTable({
               return (
                 <tr
                   key={startup.id}
-                  className="group relative transition-colors max-lg:flex max-lg:flex-wrap max-lg:items-start max-lg:p-4 sm:max-lg:p-5 max-lg:rounded-2xl sm:max-lg:rounded-3xl max-lg:border max-lg:border-slate-200/90 max-lg:dark:border-white/10 max-lg:bg-white max-lg:dark:bg-slate-950/70 max-lg:shadow-sm max-lg:dark:shadow-none hover:bg-slate-50/70 dark:hover:bg-white/[0.03]"
+                  className="group relative transition-colors max-lg:flex max-lg:flex-wrap max-lg:items-start max-lg:p-4 sm:max-lg:p-5 max-lg:rounded-2xl sm:max-lg:rounded-3xl max-lg:border max-lg:border-slate-200/90 max-lg:dark:border-white/10 max-lg:bg-white/90 max-lg:dark:bg-white/[0.03] max-lg:shadow-sm max-lg:dark:shadow-none max-lg:backdrop-blur-md hover:bg-slate-50/70 dark:hover:bg-white/[0.03]"
                 >
                   {/* Logo + Name underneath ("<rank>. <name>") */}
                   <td className="py-4 px-2 w-24 text-center align-top max-lg:order-1 max-lg:flex max-lg:items-center max-lg:flex-1 max-lg:p-0 max-lg:min-w-0 max-lg:border-0">
