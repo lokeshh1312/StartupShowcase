@@ -49,13 +49,13 @@ export function Navbar({ user, profile }: NavbarProps) {
   const isAdmin = profile?.role === "admin";
 
   return (
-    <header className="sticky top-4 z-50 w-full max-w-6xl mx-auto px-4 sm:px-6 transition-all">
+    <header className="sticky top-4 z-50 w-full max-w-6xl mx-auto px-3 min-[420px]:px-4 sm:px-6 transition-all">
       {/* Floating Pill Container */}
-      <div className="relative rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/90 dark:bg-slate-950/80 backdrop-blur-md shadow-sm dark:shadow-none px-4 sm:px-6 py-2.5 transition-colors">
-        <div className="flex items-center justify-between gap-4">
+      <div className="relative rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/90 dark:bg-slate-950/80 backdrop-blur-md shadow-sm dark:shadow-none px-3 min-[420px]:px-4 sm:px-6 py-2 min-[420px]:py-2.5 transition-colors">
+        <div className="flex items-center justify-between gap-1.5 min-[420px]:gap-4">
           {/* Left: Brand Logo */}
-          <div className="flex items-center">
-            <Logo />
+          <div className="flex items-center shrink-0">
+            <Logo className="max-[420px]:gap-1.5 [&_span]:max-[420px]:text-sm" />
           </div>
 
           {/* Center Navigation */}
@@ -84,8 +84,8 @@ export function Navbar({ user, profile }: NavbarProps) {
           </nav>
 
           {/* Right: Theme Toggle + Auth + Submit */}
-          <div className="flex items-center gap-2.5">
-            <ThemeToggle />
+          <div className="flex items-center gap-1.5 min-[420px]:gap-2 sm:gap-2.5 shrink-0">
+            <ThemeToggle className="min-w-[36px] min-h-[36px] flex items-center justify-center shrink-0" />
 
             {/* Auth Section */}
             {user ? (
@@ -198,16 +198,17 @@ export function Navbar({ user, profile }: NavbarProps) {
             {/* Submit Button */}
             <Link
               href="/submit"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold transition-all shadow-xs active:scale-95 bg-slate-900 hover:bg-slate-800 text-white rounded-xl dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 dark:rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="inline-flex items-center justify-center gap-1.5 min-w-[36px] min-h-[36px] px-2.5 py-1.5 min-[420px]:px-3.5 min-[420px]:py-1.5 sm:px-4 sm:py-2 text-xs font-bold transition-all shadow-xs active:scale-95 bg-slate-900 hover:bg-slate-800 text-white rounded-xl dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 dark:rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
+              aria-label="Submit Startup"
             >
-              <Send className="w-3.5 h-3.5" />
-              <span>Submit Startup</span>
+              <Send className="w-3.5 h-3.5 shrink-0" />
+              <span className="max-[420px]:sr-only">Submit Startup</span>
             </Link>
 
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="md:hidden p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
               aria-label="Toggle mobile menu"
               aria-expanded={mobileMenuOpen}
             >

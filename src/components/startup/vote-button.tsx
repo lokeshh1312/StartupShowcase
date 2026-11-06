@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { ChevronUp } from "lucide-react";
+import { ThumbsUp } from "lucide-react";
 import { voteAction } from "@/server/actions";
 import { useRouter } from "next/navigation";
 
@@ -68,25 +68,25 @@ export function VoteButton({
       type="button"
       className={`group/vote flex items-center justify-center transition-all duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-95 disabled:opacity-75 ${
         isLarge
-          ? "flex-col gap-1 px-5 py-3 rounded-2xl min-w-[76px]"
+          ? "flex-col gap-1 px-5 py-3 rounded-2xl min-w-[76px] min-h-[36px]"
           : isSmall
-          ? "gap-1 px-2.5 py-1 rounded-lg text-xs"
-          : "flex-col gap-0.5 px-3.5 py-2 rounded-xl min-w-[58px] text-xs"
+          ? "gap-1.5 px-2.5 py-1 min-h-[36px] rounded-lg text-xs"
+          : "flex-col gap-0.5 px-3.5 py-2 rounded-xl min-w-[58px] min-h-[36px] text-xs"
       } ${
         liked
           ? "bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 border border-brand-300 dark:border-brand-700 shadow-xs"
           : "bg-white/90 dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 border border-slate-200/90 dark:border-white/10 shadow-2xs"
       } ${className}`}
-      title={liked ? "Upvoted! Click to undo" : "Upvote this startup"}
-      aria-label={`Upvote ${startupName}, currently ${likes} votes`}
+      title={liked ? "Liked! Click to undo" : "Like this startup"}
+      aria-label={`Like ${startupName}, currently ${likes} likes`}
     >
-      <ChevronUp
-        className={`transition-transform duration-200 group-hover/vote:-translate-y-0.5 ${
+      <ThumbsUp
+        className={`transition-colors duration-200 ${
           isLarge ? "w-5 h-5" : isSmall ? "w-3.5 h-3.5" : "w-4 h-4"
         } ${
           liked
-            ? "text-brand-600 dark:text-brand-400 stroke-[2.5]"
-            : "text-slate-400 dark:text-slate-500 group-hover/vote:text-slate-900 dark:group-hover/vote:text-white"
+            ? "text-brand-600 dark:text-brand-400 fill-current"
+            : "text-slate-400 dark:text-slate-500 fill-none group-hover/vote:text-slate-900 dark:group-hover/vote:text-white"
         }`}
       />
       <span
@@ -102,7 +102,7 @@ export function VoteButton({
       </span>
       {isLarge && (
         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          {liked ? "Upvoted" : "Vote"}
+          {liked ? "Liked" : "Like"}
         </span>
       )}
     </button>
