@@ -214,6 +214,29 @@ describe("Navbar Component", () => {
     expect(screen.queryByRole("link", { name: "Admin Review" })).toBeNull();
   });
 
+  it("keeps the sign-out form and overlay mounted when Sign out button is clicked", () => {
+    const mockUser = { id: "user-123", email: "founder@example.com" };
+    const mockProfile = { id: "user-123", displayName: "Founder", role: "founder" };
+
+    render(<Navbar user={mockUser} profile={mockProfile} />);
+
+    const hamburger = screen.getByRole("button", { name: "Toggle mobile menu" });
+    fireEvent.click(hamburger);
+
+    const dialog = screen.getByRole("dialog", { name: "Main menu" });
+    expect(dialog).toBeDefined();
+
+    const signOutBtn = screen.getByRole("button", { name: "Sign out" });
+    const form = signOutBtn.closest("form");
+    expect(form).not.toBeNull();
+
+    // Clicking the Sign out button should NOT unmount the dialog or form prematurely
+    fireEvent.click(signOutBtn);
+
+    expect(screen.getByRole("dialog", { name: "Main menu" })).toBeDefined();
+    expect(document.body.contains(form)).toBe(true);
+  });
+
   it("renders Admin Review link for admin users", () => {
     const mockUser = { id: "admin-456", email: "admin@example.com" };
     const mockProfile = { id: "admin-456", displayName: "Admin User", role: "admin" };

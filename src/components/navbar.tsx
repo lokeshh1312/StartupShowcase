@@ -452,7 +452,6 @@ export function Navbar({ user, profile }: NavbarProps) {
                       <form action={signOutAction} className="w-full">
                         <button
                           type="submit"
-                          onClick={() => setMobileMenuOpen(false)}
                           className="text-lg font-semibold py-3 px-1 text-rose-600 dark:text-rose-400 hover:opacity-80 transition-opacity text-left w-full"
                         >
                           Sign out
