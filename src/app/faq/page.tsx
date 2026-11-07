@@ -47,7 +47,7 @@ const FAQ_SECTIONS = [
       },
       {
         q: "Is submitting a startup free?",
-        a: "Submissions require a one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards) covering review and cohort placement. If a submission is not approved, refunds are returned to the original payment method in the same currency.",
+        a: "Submissions require a one-time listing fee based on the plan you choose: Basic Listing ($9), Investor Connect ($199) or Investor Ready ($999), paid in USD by international card, as displayed on our pricing and checkout pages. If a submission is not approved, refunds are returned to the original payment method in the same currency.",
       },
       {
         q: "What happens after I submit?",

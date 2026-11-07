@@ -264,6 +264,7 @@ export const payments = pgTable(
     amountCents: integer("amount_cents").notNull(),
     amountRefundedCents: integer("amount_refunded_cents").notNull().default(0),
     currency: text("currency").notNull(),
+    plan: text("plan").notNull().default("basic"),
     status: text("status", {
       enum: ["created", "paid", "failed", "refunded", "partially_refunded"],
     }).notNull(),

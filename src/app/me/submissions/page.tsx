@@ -5,8 +5,8 @@ import { ClipboardList, Plus, ExternalLink, AlertCircle } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { getMySubmissions } from "@/server/startups";
 import { Badge, StageBadge } from "@/components/common/badge";
-import { getSubmissionPriceCents, getSubmissionPriceInrPaise } from "@/server/razorpay";
-import { formatMoney, formatPriceButton } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
+import { getPlan, DEFAULT_PLAN } from "@/lib/plans";
 import { SubmissionActions } from "./submission-actions";
 import { CloudBackground } from "@/components/ui/cloud-background";
 import type { Metadata } from "next";
@@ -47,8 +47,6 @@ export default async function MySubmissionsPage() {
   }
 
   const submissionsResult = await getMySubmissions(user.id, 1, 50);
-  const priceInr = formatPriceButton(getSubmissionPriceInrPaise(), "INR");
-  const priceUsd = formatPriceButton(getSubmissionPriceCents(), "USD");
 
   return (
     <div className="relative isolate min-h-screen">
@@ -126,6 +124,23 @@ export default async function MySubmissionsPage() {
                       >
                         {statusInfo.label}
                       </span>
+                      {(() => {
+                        const planMeta = getPlan(startup.plan || DEFAULT_PLAN);
+                        const isHighlight = planMeta.key === "investor_ready";
+                        const isPopular = planMeta.key === "investor_connect";
+                        const planClasses = isHighlight
+                          ? "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                          : isPopular
+                          ? "bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 border-brand-200 dark:border-brand-800"
+                          : "bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10";
+                        return (
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${planClasses}`}
+                          >
+                            Plan: {planMeta.name}
+                          </span>
+                        );
+                      })()}
                       <StageBadge stage={startup.stage} />
                       <Badge variant="default">{startup.category}</Badge>
                     </div>
@@ -189,8 +204,7 @@ export default async function MySubmissionsPage() {
                         startupName={startup.name}
                         slug={startup.slug}
                         status={startup.status}
-                        priceInr={priceInr}
-                        priceUsd={priceUsd}
+                        plan={startup.plan}
                       />
                     )}
                     {startup.status === "approved" && (

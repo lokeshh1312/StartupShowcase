@@ -34,31 +34,30 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-describe("SubmissionActions Component - Accessible Error Modal & Dual Currency Payment Buttons", () => {
+describe("SubmissionActions Component - Plan Selection & Payment Flow", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     mockRefresh.mockClear();
   });
 
-  it("renders both INR and USD payment buttons when awaiting payment", () => {
+  it("renders single Pay button when awaiting payment", () => {
     render(
       <SubmissionActions
         startupId="draft-1"
         startupName="Test Draft"
         slug="test-draft"
         status="awaiting_payment"
-        priceInr="Rs 999"
-        priceUsd="$10"
+        plan="basic"
       />
     );
 
-    expect(screen.getByRole("button", { name: /Pay Rs 999 \(UPI \/ QR \/ cards\)/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /Pay \$10 \(international card\)/i })).toBeDefined();
+    expect(screen.getByRole("button", { name: /^Pay$/i })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /Pay Rs 999/i })).toBeNull();
   });
 
-  it("passes selected currency (INR or USD) to getStartupPaymentOrderAction and shares paying state", async () => {
+  it("opens PlanPickerModal on clicking Pay, and choosing a plan passes selected plan to getStartupPaymentOrderAction", async () => {
     const getOrderSpy = vi.spyOn(actions, "getStartupPaymentOrderAction").mockImplementation(
-      () => new Promise(() => {}) // never resolves to keep in paying state
+      () => new Promise(() => {}) // keep in paying state
     );
 
     render(
@@ -67,21 +66,19 @@ describe("SubmissionActions Component - Accessible Error Modal & Dual Currency P
         startupName="Test Draft"
         slug="test-draft"
         status="awaiting_payment"
+        plan="basic"
       />
     );
 
-    const inrBtn = screen.getByRole("button", { name: /Pay Rs 999/i });
-    const usdBtn = screen.getByRole("button", { name: /Pay \$10/i });
+    const payBtn = screen.getByRole("button", { name: /^Pay$/i });
+    fireEvent.click(payBtn);
 
-    fireEvent.click(inrBtn);
+    // Plan picker modal should appear
+    expect(screen.getByText("Choose your listing plan")).toBeDefined();
+    const selectBasicBtn = screen.getByRole("button", { name: /Choose Basic Listing plan/i });
+    fireEvent.click(selectBasicBtn);
 
-    expect(getOrderSpy).toHaveBeenCalledWith("draft-1", "INR");
-
-    // Both buttons should now be disabled and share the loading state
-    await waitFor(() => {
-      expect(inrBtn.hasAttribute("disabled")).toBe(true);
-      expect(usdBtn.hasAttribute("disabled")).toBe(true);
-    });
+    expect(getOrderSpy).toHaveBeenCalledWith("draft-1", "basic");
   });
 
   it("displays payment error in a modal dialog with title 'Payment couldn't start'", async () => {
@@ -95,11 +92,12 @@ describe("SubmissionActions Component - Accessible Error Modal & Dual Currency P
         startupName="Test Draft"
         slug="test-draft"
         status="awaiting_payment"
+        plan="basic"
       />
     );
 
-    const inrBtn = screen.getByRole("button", { name: /Pay Rs 999/i });
-    fireEvent.click(inrBtn);
+    fireEvent.click(screen.getByRole("button", { name: /^Pay$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Choose Basic Listing plan/i }));
 
     await waitFor(() => {
       const dialog = screen.getByRole("dialog");
@@ -136,8 +134,8 @@ describe("SubmissionActions Component - Accessible Error Modal & Dual Currency P
       />
     );
 
-    const usdBtn = screen.getByRole("button", { name: /Pay \$10/i });
-    fireEvent.click(usdBtn);
+    fireEvent.click(screen.getByRole("button", { name: /^Pay$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Choose Basic Listing plan/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeDefined();
@@ -150,10 +148,11 @@ describe("SubmissionActions Component - Accessible Error Modal & Dual Currency P
     vi.spyOn(actions, "getStartupPaymentOrderAction").mockResolvedValue({
       success: true,
       orderId: "order_123",
-      amount: 1000,
+      amount: 900,
       currency: "USD",
       keyId: "rzp_test_123",
       paymentRequired: true,
+      plan: "basic",
     });
     vi.spyOn(razorpayClient, "openRazorpayCheckout").mockResolvedValue(false);
 
@@ -166,8 +165,8 @@ describe("SubmissionActions Component - Accessible Error Modal & Dual Currency P
       />
     );
 
-    const usdBtn = screen.getByRole("button", { name: /Pay \$10/i });
-    fireEvent.click(usdBtn);
+    fireEvent.click(screen.getByRole("button", { name: /^Pay$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Choose Basic Listing plan/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeDefined();
@@ -234,7 +233,8 @@ describe("SubmissionActions Component - Accessible Error Modal & Dual Currency P
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Pay Rs 999/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Pay$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Choose Basic Listing plan/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeDefined();

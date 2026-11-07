@@ -168,8 +168,10 @@ describe("SubmitStartupForm feedback & error handling", () => {
 
     fillForm();
 
-    const submitBtn = screen.getByRole("button", { name: /Pay \$10|Submit and pay/i });
+    const submitBtn = screen.getByRole("button", { name: /Pay & Choose Plan|Choose Plan/i });
     fireEvent.click(submitBtn);
+    const selectPlanBtn = screen.getByRole("button", { name: /Choose Basic Listing plan/i });
+    fireEvent.click(selectPlanBtn);
 
     await waitFor(() => {
       const err = screen.getByText("Something went wrong submitting your startup. Please try again.");
@@ -187,8 +189,10 @@ describe("SubmitStartupForm feedback & error handling", () => {
 
     fillForm();
 
-    const submitBtn = screen.getByRole("button", { name: /Pay \$10|Submit and pay/i });
+    const submitBtn = screen.getByRole("button", { name: /Pay & Choose Plan|Choose Plan/i });
     fireEvent.click(submitBtn);
+    const selectPlanBtn = screen.getByRole("button", { name: /Choose Basic Listing plan/i });
+    fireEvent.click(selectPlanBtn);
 
     await waitFor(() => {
       const err = screen.getByText("No response from the server. Please try again.");
@@ -205,9 +209,10 @@ describe("SubmitStartupForm feedback & error handling", () => {
       paymentRequired: true,
       order: {
         orderId: "order_123",
-        amount: 1000,
+        amount: 900,
         currency: "USD",
         keyId: "rzp_test_123",
+        plan: "basic",
       },
     });
 
@@ -218,8 +223,10 @@ describe("SubmitStartupForm feedback & error handling", () => {
 
     fillForm();
 
-    const submitBtn = screen.getByRole("button", { name: /Pay \$10|Submit and pay/i });
+    const submitBtn = screen.getByRole("button", { name: /Pay & Choose Plan|Choose Plan/i });
     fireEvent.click(submitBtn);
+    const selectPlanBtn = screen.getByRole("button", { name: /Choose Basic Listing plan/i });
+    fireEvent.click(selectPlanBtn);
 
     await waitFor(() => {
       const err = screen.getByText(

@@ -26,26 +26,24 @@ import { CATEGORIES, STAGES } from "@/lib/validation";
 import { TurnstileWidget } from "@/components/common/turnstile";
 import { isAllowedImageUrl } from "@/lib/images";
 import { CreditCard } from "lucide-react";
+import { PlanPickerModal } from "@/components/plans/plan-picker-modal";
+import { DEFAULT_PLAN, type PlanKey } from "@/lib/plans";
 import type { Startup } from "@/db/schema";
 
 interface SubmitFormProps {
   countries: Array<{ code: string; name: string }>;
   userDisplayName?: string;
   initialStartup?: Partial<Startup>;
-  formattedPrice?: string;
-  priceInr?: string;
-  priceUsd?: string;
 }
 
 export function SubmitStartupForm({
   countries,
   userDisplayName,
   initialStartup,
-  formattedPrice = "$10.00 USD",
-  priceInr = "Rs 999",
-  priceUsd = "$10",
 }: SubmitFormProps) {
   const isEditing = Boolean(initialStartup?.id);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [isPlanPickerOpen, setIsPlanPickerOpen] = useState(false);
 
   const [name, setName] = useState(initialStartup?.name || "");
   const [tagline, setTagline] = useState(initialStartup?.tagline || "");
@@ -123,7 +121,6 @@ export function SubmitStartupForm({
   } | null>(null);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
-  const [selectedCurrency, setSelectedCurrency] = useState<"INR" | "USD">("USD");
   const [isPending, startTransition] = useTransition();
 
   const handleFileUpload = async (
@@ -225,10 +222,7 @@ export function SubmitStartupForm({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
+  const buildPayload = () => {
     const techStack = techStackInput
       .split(",")
       .map((t) => t.trim())
@@ -239,7 +233,7 @@ export function SubmitStartupForm({
       .map((t) => t.trim())
       .filter(Boolean);
 
-    const payload = {
+    return {
       name,
       tagline,
       description,
@@ -264,10 +258,52 @@ export function SubmitStartupForm({
       },
       captchaToken: captchaToken || undefined,
     };
+  };
+
+  const doSubmit = (plan: PlanKey) => {
+    setError("");
+    const payload = buildPayload();
 
     startTransition(async () => {
       try {
-        if (isEditing && initialStartup?.id) {
+        const res = await submitStartupAction(payload, plan);
+        if (res?.error) {
+          setError(res.error);
+          setCaptchaToken("");
+          setCaptchaResetSignal((prev) => prev + 1);
+        } else if (res?.startup) {
+          if (res.paymentRequired && res.order) {
+            const orderData = {
+              startup: { id: res.startup.id, name: res.startup.name, slug: res.startup.slug },
+              order: res.order,
+            };
+            setPendingPayment(orderData);
+            triggerCheckout(orderData);
+          } else {
+            setSubmittedStartup({
+              id: res.startup.id,
+              name: res.startup.name,
+              slug: res.startup.slug,
+            });
+          }
+        } else {
+          setError("No response from the server. Please try again.");
+        }
+      } catch {
+        setError("Something went wrong submitting your startup. Please try again.");
+        setCaptchaToken("");
+        setCaptchaResetSignal((prev) => prev + 1);
+      }
+    });
+  };
+
+  const handleEditSubmit = () => {
+    setError("");
+    const payload = buildPayload();
+
+    startTransition(async () => {
+      try {
+        if (initialStartup?.id) {
           const res = await updateStartupAction(initialStartup.id, payload);
           if (res?.error) {
             setError(res.error);
@@ -280,45 +316,43 @@ export function SubmitStartupForm({
               slug: res.startup.slug,
             });
           }
-        } else {
-          const res = await submitStartupAction(payload, selectedCurrency);
-          if (res?.error) {
-            setError(res.error);
-            setCaptchaToken("");
-            setCaptchaResetSignal((prev) => prev + 1);
-          } else if (res?.startup) {
-            if (res.paymentRequired && res.order) {
-              const orderData = {
-                startup: { id: res.startup.id, name: res.startup.name, slug: res.startup.slug },
-                order: res.order,
-              };
-              setPendingPayment(orderData);
-              triggerCheckout(orderData);
-            } else {
-              setSubmittedStartup({
-                id: res.startup.id,
-                name: res.startup.name,
-                slug: res.startup.slug,
-              });
-            }
-          } else {
-            setError("No response from the server. Please try again.");
-          }
         }
       } catch {
-        setError("Something went wrong submitting your startup. Please try again.");
+        setError("Something went wrong updating your startup. Please try again.");
         setCaptchaToken("");
         setCaptchaResetSignal((prev) => prev + 1);
       }
     });
   };
 
-  const handlePayPending = async (currency: "INR" | "USD") => {
+  const handleChoosePlanClick = () => {
+    if (formRef.current) {
+      const isValid = formRef.current.reportValidity();
+      if (!isValid) return;
+    }
+    setIsPlanPickerOpen(true);
+  };
+
+  const handlePlanSelect = (plan: PlanKey) => {
+    setIsPlanPickerOpen(false);
+    doSubmit(plan);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isEditing) {
+      handleEditSubmit();
+    } else {
+      handleChoosePlanClick();
+    }
+  };
+
+  const handlePayPending = async (plan: PlanKey = DEFAULT_PLAN) => {
     if (!pendingPayment) return;
     setPaymentError("");
     setVerifyingPayment(true);
     try {
-      const res = await getStartupPaymentOrderAction(pendingPayment.startup.id, currency);
+      const res = await getStartupPaymentOrderAction(pendingPayment.startup.id, plan);
       setVerifyingPayment(false);
       if (!res || "error" in res) {
         setPaymentError(res?.error || "Failed to initiate payment.");
@@ -380,24 +414,14 @@ export function SubmitStartupForm({
 
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           {!verifyingPayment && (
-            <>
-              <button
-                type="button"
-                onClick={() => handlePayPending("INR")}
-                className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>Pay {priceInr} (UPI / QR / cards)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handlePayPending("USD")}
-                className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>Pay {priceUsd} (international card)</span>
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={() => setIsPlanPickerOpen(true)}
+              className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>Choose Plan &amp; Pay</span>
+            </button>
           )}
           <Link
             href="/me/submissions"
@@ -406,6 +430,16 @@ export function SubmitStartupForm({
             Go to My Submissions
           </Link>
         </div>
+
+        <PlanPickerModal
+          isOpen={isPlanPickerOpen}
+          onClose={() => setIsPlanPickerOpen(false)}
+          onSelect={(plan) => {
+            setIsPlanPickerOpen(false);
+            handlePayPending(plan);
+          }}
+          disabled={verifyingPayment}
+        />
       </div>
     );
   }
@@ -447,7 +481,7 @@ export function SubmitStartupForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
       {error && (
         <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-xs text-red-600 dark:text-red-400 font-medium">
           {error}
@@ -888,28 +922,6 @@ export function SubmitStartupForm({
         resetSignal={captchaResetSignal}
       />
 
-      {/* Price line for new submissions */}
-      {!isEditing && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-brand-50/70 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-900/60 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-600/10 dark:bg-brand-400/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
-              <CreditCard className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
-                Review &amp; Listing Fee
-              </p>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Listing fee: <span className="font-extrabold text-brand-600 dark:text-brand-400">{formattedPrice}</span>, one time, secure payment by Razorpay
-              </p>
-            </div>
-          </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Choose UPI/QR/cards (INR) or international card (USD). One-time fee.
-          </div>
-        </div>
-      )}
-
       {/* Submit / Save Button */}
       <div className="flex flex-wrap items-center justify-end gap-4">
         {isEditing ? (
@@ -928,40 +940,33 @@ export function SubmitStartupForm({
             )}
           </button>
         ) : (
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              onClick={() => setSelectedCurrency("INR")}
-              disabled={isPending || logoUploading || coverUploading}
-              className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
-            >
-              {isPending && selectedCurrency === "INR" ? (
-                <span>Processing Order...</span>
-              ) : (
-                <>
-                  <CreditCard className="w-4 h-4" />
-                  <span>Pay {priceInr} (UPI / QR / cards)</span>
-                </>
-              )}
-            </button>
-            <button
-              type="submit"
-              onClick={() => setSelectedCurrency("USD")}
-              disabled={isPending || logoUploading || coverUploading}
-              className="px-6 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
-            >
-              {isPending && selectedCurrency === "USD" ? (
-                <span>Processing Order...</span>
-              ) : (
-                <>
-                  <CreditCard className="w-4 h-4" />
-                  <span>Pay {priceUsd} (international card)</span>
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleChoosePlanClick}
+            disabled={isPending || logoUploading || coverUploading}
+            className="px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            {isPending ? (
+              <span>Processing Order...</span>
+            ) : (
+              <>
+                <CreditCard className="w-4 h-4" />
+                <span>Pay &amp; Choose Plan</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
         )}
       </div>
+
+      {!isEditing && (
+        <PlanPickerModal
+          isOpen={isPlanPickerOpen}
+          onClose={() => setIsPlanPickerOpen(false)}
+          onSelect={handlePlanSelect}
+          disabled={isPending}
+        />
+      )}
     </form>
   );
 }
