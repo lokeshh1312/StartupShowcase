@@ -71,10 +71,10 @@ export function LeaderboardTable({
               className="w-full py-3 px-4 border-y border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] backdrop-blur-md transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.05]"
             >
               <div className="grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-2 items-start">
-                {/* LEFT: Startup Image (w-12 h-12) */}
+                {/* LEFT: Startup Image (w-20 h-12) */}
                 <Link
                   href={`/startup/${startup.slug}`}
-                  className="col-start-1 row-start-1 relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  className="col-start-1 row-start-1 relative w-20 h-12 rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                   aria-label={`${startup.name} image`}
                 >
                   {hasImage ? (
@@ -83,7 +83,7 @@ export function LeaderboardTable({
                       alt={startup.name}
                       fill
                       className="object-cover"
-                      sizes="48px"
+                      sizes="80px"
                     />
                   ) : (
                     <div
@@ -94,18 +94,32 @@ export function LeaderboardTable({
                   )}
                 </Link>
 
-                {/* MIDDLE, Row 1: Startup Name + Flag */}
-                <div className="col-start-2 row-start-1 flex items-center min-w-0 self-center">
-                  <Link
-                    href={`/startup/${startup.slug}`}
-                    className="truncate min-w-0 text-sm font-semibold text-slate-900 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
-                  >
-                    {rank}. {startup.name}
-                  </Link>
-                  <CountryFlag
-                    code={startup.countryCode}
-                    className="ml-1.5 shrink-0"
-                  />
+                {/* MIDDLE, Row 1: Startup Name + Flag & Badges */}
+                <div className="col-start-2 row-start-1 flex flex-col justify-center gap-1 min-w-0 self-stretch">
+                  <div className="flex items-center min-w-0">
+                    <Link
+                      href={`/startup/${startup.slug}`}
+                      className="truncate min-w-0 text-sm font-semibold text-slate-900 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+                    >
+                      {rank}. {startup.name}
+                    </Link>
+                    <CountryFlag
+                      code={startup.countryCode}
+                      className="ml-1.5 shrink-0"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5 min-w-0 overflow-hidden flex-nowrap">
+                    <Badge
+                      variant="brand"
+                      size="sm"
+                      className="max-w-[120px] truncate shrink-0"
+                    >
+                      {startup.category}
+                    </Badge>
+                    <span className="inline-flex shrink-0 whitespace-nowrap">
+                      <StageBadge stage={startup.stage} />
+                    </span>
+                  </div>
                 </div>
 
                 {/* RIGHT COLUMN: Logo on top, VoteButton directly below, spanning both rows */}
@@ -120,7 +134,7 @@ export function LeaderboardTable({
                       category={startup.category}
                       logoType={startup.logoType}
                       logoColor={startup.logoColor}
-                      size="sm"
+                      size="md"
                     />
                   </Link>
                   <VoteButton
