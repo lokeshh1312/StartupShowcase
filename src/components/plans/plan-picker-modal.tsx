@@ -15,6 +15,10 @@ export interface PlanPickerModalProps {
   selectedPlan?: PlanKey | null;
   title?: string;
   subtitle?: string;
+  plans?: PlanKey[];
+  ctaLabel?: (key: PlanKey) => string;
+  priceLabel?: (key: PlanKey) => string;
+  showDifferenceNote?: boolean;
 }
 
 export function PlanPickerModal({
@@ -27,6 +31,10 @@ export function PlanPickerModal({
   selectedPlan = null,
   title = "Choose your listing plan",
   subtitle = "One-time payment, no subscription. Secure payment by Razorpay.",
+  plans,
+  ctaLabel,
+  priceLabel,
+  showDifferenceNote = false,
 }: PlanPickerModalProps) {
   const handleSelect = onSelect || onSelectPlan || (() => {});
   return (
@@ -46,6 +54,10 @@ export function PlanPickerModal({
           disabled={disabled}
           pendingPlan={pendingPlan}
           selectedPlan={selectedPlan}
+          plans={plans}
+          ctaLabel={ctaLabel}
+          priceLabel={priceLabel}
+          showDifferenceNote={showDifferenceNote}
           mode="checkout"
         />
       </div>

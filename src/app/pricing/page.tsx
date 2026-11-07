@@ -51,8 +51,11 @@ export default function PricingPage() {
         </div>
 
         {/* Three Plan Cards */}
-        <div className="pt-2">
+        <div className="pt-2 space-y-4">
           <PlanCards mode="pricing" />
+          <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+            Already listed? You can upgrade to a higher plan any time from My Submissions by paying only the difference.
+          </p>
         </div>
 
         {/* Services & Terms Detail Card */}

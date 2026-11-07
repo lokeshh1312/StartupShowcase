@@ -128,5 +128,42 @@ describe("AdminPanel Component - Approved Tab & Moderation", () => {
     expect(screen.getByText("Acme Cloud")).toBeDefined();
     expect(screen.getByText("Reason: Violates terms of service.")).toBeDefined();
   });
+
+  it("displays + Upgrade in paid info and shows warning note in rejection modal when upgradePaidCents > 0", () => {
+    const startupWithUpgrade = {
+      ...dummyApprovedStartup,
+      plan: "investor_connect" as const,
+      paymentAmountCents: 900,
+      upgradePaidCents: 19000,
+    };
+
+    render(
+      <AdminPanel
+        initialPending={[]}
+        initialApproved={[startupWithUpgrade]}
+        initialRejected={[]}
+        auditLogs={[]}
+      />
+    );
+
+    // Switch to Approved tab
+    fireEvent.click(screen.getByRole("button", { name: /Approved \(1\)/i }));
+
+    // Check that Paid line includes the upgrade amount
+    expect(
+      screen.getByText(/Paid:.*\$9\.00.*\(Investor Connect\).*\+ Upgrade \$190\.00/i)
+    ).toBeDefined();
+
+    // Click Reject / Unpublish
+    const rejectBtn = screen.getByRole("button", { name: /Reject \/ Unpublish/i });
+    fireEvent.click(rejectBtn);
+
+    // Rejection modal should show the note about refunding upgrade separately in Razorpay
+    expect(
+      screen.getByText(
+        "This startup also has a paid plan upgrade. Refund it separately in Razorpay."
+      )
+    ).toBeDefined();
+  });
 });
 

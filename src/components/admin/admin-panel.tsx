@@ -35,6 +35,7 @@ interface AdminStartupItem {
   paidAt?: Date | null;
   plan?: PlanKey | null;
   ownerEmail?: string | null;
+  upgradePaidCents?: number | null;
   duplicateWarning?: {
     id: string;
     name: string;
@@ -253,7 +254,7 @@ export function AdminPanel({
                       <span>Cohort: {startup.monthLabel}</span>
                       <span>•</span>
                       <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                        Paid: {formatMoney(startup.paymentAmountCents ?? 1000, startup.paymentCurrency || "USD")}{startup.plan ? ` (${getPlan(startup.plan).name})` : ""}
+                        Paid: {formatMoney(startup.paymentAmountCents ?? 1000, startup.paymentCurrency || "USD")}{startup.plan ? ` (${getPlan(startup.plan).name})` : ""}{startup.upgradePaidCents && startup.upgradePaidCents > 0 ? ` + Upgrade ${formatMoney(startup.upgradePaidCents, "USD")}` : ""}
                         {startup.razorpayPaymentId ? ` (ID: ${startup.razorpayPaymentId})` : ""}
                       </span>
                       {startup.ownerEmail && (
@@ -363,6 +364,9 @@ export function AdminPanel({
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
                     {startup.tagline}
+                  </p>
+                  <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                    Paid: {formatMoney(startup.paymentAmountCents ?? 1000, startup.paymentCurrency || "USD")}{startup.plan ? ` (${getPlan(startup.plan).name})` : ""}{startup.upgradePaidCents && startup.upgradePaidCents > 0 ? ` + Upgrade ${formatMoney(startup.upgradePaidCents, "USD")}` : ""}
                   </p>
                   {startup.ownerEmail && (
                     <p className="text-xs text-slate-400 mt-1 break-all">
@@ -524,6 +528,11 @@ export function AdminPanel({
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Provide feedback to the founder regarding why this submission is not approved.
             </p>
+            {Boolean(rejectingStartup.upgradePaidCents && rejectingStartup.upgradePaidCents > 0) && (
+              <p className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-200 font-medium">
+                This startup also has a paid plan upgrade. Refund it separately in Razorpay.
+              </p>
+            )}
 
             <form onSubmit={handleRejectConfirm} className="space-y-4">
               <textarea
@@ -665,7 +674,7 @@ export function AdminPanel({
                   <div>
                     <span className="text-slate-400">Amount:</span>{" "}
                     <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                      {formatMoney(inspectingStartup.paymentAmountCents ?? planMeta.priceCents, inspectingStartup.paymentCurrency || "USD")}
+                      {formatMoney(inspectingStartup.paymentAmountCents ?? planMeta.priceCents, inspectingStartup.paymentCurrency || "USD")}{inspectingStartup.upgradePaidCents && inspectingStartup.upgradePaidCents > 0 ? ` + Upgrade ${formatMoney(inspectingStartup.upgradePaidCents, "USD")}` : ""}
                     </span>
                   </div>
                   <div>

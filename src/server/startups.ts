@@ -128,7 +128,7 @@ export function formatStartupRow(row: Record<string, unknown>): FormattedStartup
     paymentCurrency: (row.paymentCurrency ?? row.payment_currency ?? null) as string | null,
     razorpayPaymentId: (row.razorpayPaymentId ?? row.razorpay_payment_id ?? null) as string | null,
     razorpayOrderId: (row.razorpayOrderId ?? row.razorpay_order_id ?? null) as string | null,
-    plan: ((row.plan ?? row.payment_plan) as PlanKey | undefined) ?? null,
+    plan: ((row.effective_plan ?? row.plan ?? row.payment_plan) as PlanKey | undefined) ?? null,
   };
 }
 
@@ -1301,6 +1301,7 @@ export async function getMySubmissions(
       razorpay_order_id: string | null;
       razorpay_payment_id: string | null;
       payment_plan: string | null;
+      effective_plan: string | null;
     }
   >(sql`
     SELECT
@@ -1312,7 +1313,19 @@ export async function getMySubmissions(
       p.currency AS payment_currency,
       p.razorpay_order_id,
       p.razorpay_payment_id,
-      p.plan AS payment_plan
+      p.plan AS payment_plan,
+      (
+        SELECT plan
+        FROM public.payments
+        WHERE public.payments.startup_id = startups.id
+          AND public.payments.status IN ('paid', 'partially_refunded')
+        ORDER BY CASE plan
+          WHEN 'investor_ready' THEN 3
+          WHEN 'investor_connect' THEN 2
+          ELSE 1
+        END DESC
+        LIMIT 1
+      ) AS effective_plan
     FROM public.startups
     LEFT JOIN (
       SELECT startup_id, count(*)::int AS count
@@ -1323,6 +1336,7 @@ export async function getMySubmissions(
       SELECT status, amount_cents, amount_refunded_cents, currency, razorpay_order_id, razorpay_payment_id, plan
       FROM public.payments
       WHERE public.payments.startup_id = startups.id
+        AND public.payments.kind = 'listing'
       ORDER BY created_at DESC
       LIMIT 1
     ) p ON true
@@ -1378,6 +1392,7 @@ export type AdminStartupItem = Startup & {
   paidAt?: Date | null;
   plan?: PlanKey | null;
   ownerEmail?: string | null;
+  upgradePaidCents?: number | null;
 };
 
 /**
@@ -1418,6 +1433,26 @@ export async function listAdminStartups(
     .select({
       startup: startups,
       ownerEmail: sql<string | null>`(select u.email from auth.users u where u.id = ${startups.ownerId})`,
+      effectivePlan: sql<string | null>`(
+        select plan
+        from public.payments
+        where public.payments.startup_id = ${startups.id}
+          and public.payments.status in ('paid', 'partially_refunded')
+        order by case plan
+          when 'investor_ready' then 3
+          when 'investor_connect' then 2
+          else 1
+        end desc
+        limit 1
+      )`,
+      upgradePaidCents: sql<number | null>`(
+        select coalesce(sum(amount_cents), 0)::int
+        from public.payments
+        where public.payments.startup_id = ${startups.id}
+          and public.payments.kind = 'upgrade'
+          and public.payments.status in ('paid', 'partially_refunded')
+          and public.payments.currency = 'USD'
+      )`,
       payment: {
         amountCents: payments.amountCents,
         currency: payments.currency,
@@ -1429,7 +1464,11 @@ export async function listAdminStartups(
     .from(startups)
     .leftJoin(
       payments,
-      and(eq(payments.startupId, startups.id), eq(payments.status, "paid"))
+      and(
+        eq(payments.startupId, startups.id),
+        eq(payments.status, "paid"),
+        eq(payments.kind, "listing")
+      )
     )
     .where(eq(startups.status, status))
     .orderBy(desc(startups.createdAt))
@@ -1437,7 +1476,7 @@ export async function listAdminStartups(
     .offset(offset);
 
   const itemsToReturn: AdminStartupItem[] = await Promise.all(
-    rows.map(async ({ startup, payment, ownerEmail }) => {
+    rows.map(async ({ startup, payment, ownerEmail, effectivePlan, upgradePaidCents }) => {
       const warning =
         status === "pending"
           ? await checkStartupDuplicate(startup.name, startup.websiteUrl, startup.id)
@@ -1449,8 +1488,9 @@ export async function listAdminStartups(
         paymentCurrency: payment?.currency ?? null,
         razorpayPaymentId: payment?.razorpayPaymentId ?? null,
         paidAt: payment?.paidAt ? new Date(payment.paidAt) : null,
-        plan: (payment?.plan as PlanKey | undefined) ?? null,
+        plan: ((effectivePlan ?? payment?.plan) as PlanKey | undefined) ?? null,
         ownerEmail: ownerEmail ?? null,
+        upgradePaidCents: upgradePaidCents ?? 0,
       };
     })
   );

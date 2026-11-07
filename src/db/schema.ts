@@ -265,6 +265,7 @@ export const payments = pgTable(
     amountRefundedCents: integer("amount_refunded_cents").notNull().default(0),
     currency: text("currency").notNull(),
     plan: text("plan").notNull().default("basic"),
+    kind: text("kind").notNull().default("listing"),
     status: text("status", {
       enum: ["created", "paid", "failed", "refunded", "partially_refunded"],
     }).notNull(),
@@ -281,6 +282,11 @@ export const payments = pgTable(
     index("idx_payments_status").on(table.status),
     index("idx_payments_order_id").on(table.razorpayOrderId),
     index("idx_payments_payment_id").on(table.razorpayPaymentId),
+    index("idx_payments_startup_kind_status").on(
+      table.startupId,
+      table.kind,
+      table.status
+    ),
   ]
 );
 

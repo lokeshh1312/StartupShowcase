@@ -10,6 +10,12 @@ export const PLAN_DISPLAY_ORDER: PlanKey[] = [
 
 export const DEFAULT_PLAN: PlanKey = "basic";
 
+export const PLAN_RANK: Record<PlanKey, number> = {
+  basic: 1,
+  investor_connect: 2,
+  investor_ready: 3,
+};
+
 export interface PlanDefinition {
   key: PlanKey;
   name: string;
@@ -88,5 +94,34 @@ export function formatPlanPrice(keyOrPlan: PlanKey | PlanDefinition): string {
     return getPlan(keyOrPlan).priceFormatted;
   }
   return keyOrPlan.priceFormatted;
+}
+
+/**
+ * Returns the upgrade difference in USD cents between two plans.
+ * Returns null if the target plan rank is less than or equal to current rank.
+ */
+export function getUpgradePriceCents(from: PlanKey, to: PlanKey): number | null {
+  if (!isPlanKey(from) || !isPlanKey(to)) {
+    return null;
+  }
+  const fromRank = PLAN_RANK[from];
+  const toRank = PLAN_RANK[to];
+  if (toRank <= fromRank) {
+    return null;
+  }
+  return PLANS[to].priceCents - PLANS[from].priceCents;
+}
+
+/**
+ * Returns all plans that have a strictly higher rank than the current plan.
+ */
+export function getUpgradeTargets(current: PlanKey): PlanKey[] {
+  if (!isPlanKey(current)) {
+    return [];
+  }
+  const currentRank = PLAN_RANK[current] ?? 0;
+  return (PLAN_KEYS as readonly PlanKey[])
+    .filter((key) => (PLAN_RANK[key] ?? 0) > currentRank)
+    .sort((a, b) => (PLAN_RANK[a] ?? 0) - (PLAN_RANK[b] ?? 0));
 }
 

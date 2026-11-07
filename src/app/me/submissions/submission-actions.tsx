@@ -4,11 +4,21 @@ import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Edit2, Trash2, CreditCard, Sparkles } from "lucide-react";
-import { deleteStartupAction, getStartupPaymentOrderAction, confirmPaymentAction } from "@/server/actions";
+import {
+  deleteStartupAction,
+  getStartupPaymentOrderAction,
+  getStartupUpgradeOrderAction,
+  confirmPaymentAction,
+} from "@/server/actions";
 import { openRazorpayCheckout } from "@/lib/razorpay-client";
 import { Modal } from "@/components/ui/modal";
 import { PlanPickerModal } from "@/components/plans/plan-picker-modal";
-import { DEFAULT_PLAN, type PlanKey } from "@/lib/plans";
+import {
+  DEFAULT_PLAN,
+  type PlanKey,
+  getUpgradeTargets,
+  getUpgradePriceCents,
+} from "@/lib/plans";
 
 interface SubmissionActionsProps {
   startupId: string;
@@ -30,9 +40,16 @@ export function SubmissionActions({
   const [confirming, setConfirming] = useState(false);
   const [paying, setPaying] = useState(false);
   const [isPlanPickerOpen, setIsPlanPickerOpen] = useState(false);
+  const [isUpgradePickerOpen, setIsUpgradePickerOpen] = useState(false);
   const [errorModal, setErrorModal] = useState<{ title: string; message: string } | null>(null);
 
-  const handleResumePayment = async (selectedPlan: PlanKey = plan || DEFAULT_PLAN) => {
+  const effectivePlan: PlanKey = plan || DEFAULT_PLAN;
+  const canUpgrade =
+    (status === "pending" || status === "approved") &&
+    effectivePlan !== "investor_ready";
+  const upgradeTargets = canUpgrade ? getUpgradeTargets(effectivePlan) : [];
+
+  const handleResumePayment = async (selectedPlan: PlanKey = effectivePlan) => {
     setErrorModal(null);
     setPaying(true);
     try {
@@ -104,6 +121,78 @@ export function SubmissionActions({
     }
   };
 
+  const handleUpgradePayment = async (targetPlan: PlanKey) => {
+    setErrorModal(null);
+    setPaying(true);
+    try {
+      const res = await getStartupUpgradeOrderAction(startupId, targetPlan);
+      if (!res || "error" in res) {
+        setErrorModal({
+          title: "Payment couldn't start",
+          message: res?.error || "Failed to initiate plan upgrade.",
+        });
+        setPaying(false);
+        return;
+      }
+
+      if (!res.paymentRequired) {
+        router.refresh();
+        setPaying(false);
+        return;
+      }
+
+      const opened = await openRazorpayCheckout({
+        keyId: res.keyId,
+        orderId: res.orderId,
+        amount: res.amount,
+        currency: res.currency,
+        startupName,
+        onSuccess: async (rzpRes) => {
+          const confirmRes = await confirmPaymentAction({
+            startupId,
+            razorpayOrderId: rzpRes.razorpay_order_id,
+            razorpayPaymentId: rzpRes.razorpay_payment_id,
+            razorpaySignature: rzpRes.razorpay_signature,
+          });
+          setPaying(false);
+          if (confirmRes?.success) {
+            router.refresh();
+          } else {
+            setErrorModal({
+              title: "Payment couldn't start",
+              message: confirmRes?.error || "Payment verification failed.",
+            });
+          }
+        },
+        onDismiss: () => {
+          setPaying(false);
+        },
+      });
+
+      if (!opened) {
+        setErrorModal({
+          title: "Payment couldn't start",
+          message: "Failed to open checkout.",
+        });
+        setPaying(false);
+      }
+    } catch (err: unknown) {
+      const friendlyMessage =
+        err instanceof Error && err.message
+          ? err.message
+          : typeof err === "string" && err
+          ? err
+          : typeof err === "object" && err && "message" in err && typeof (err as { message: unknown }).message === "string" && (err as { message: string }).message
+          ? (err as { message: string }).message
+          : "";
+      setErrorModal({
+        title: "Payment couldn't start",
+        message: friendlyMessage || "Failed to initiate plan upgrade.",
+      });
+      setPaying(false);
+    }
+  };
+
   const handleDelete = () => {
     if (!confirming) {
       setConfirming(true);
@@ -149,6 +238,18 @@ export function SubmissionActions({
           </Link>
         )}
 
+        {canUpgrade && upgradeTargets.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setIsUpgradePickerOpen(true)}
+            disabled={paying}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-brand-200 dark:border-brand-800/80 bg-brand-50/70 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/60 text-xs font-bold transition-colors shadow-2xs cursor-pointer disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+            <span>Upgrade plan</span>
+          </button>
+        )}
+
         {status === "awaiting_payment" && (
           <>
             <button
@@ -192,10 +293,35 @@ export function SubmissionActions({
         <PlanPickerModal
           isOpen={isPlanPickerOpen}
           onClose={() => setIsPlanPickerOpen(false)}
-          selectedPlan={plan || DEFAULT_PLAN}
+          selectedPlan={effectivePlan}
           onSelect={(selectedPlanKey) => {
             setIsPlanPickerOpen(false);
             handleResumePayment(selectedPlanKey);
+          }}
+          disabled={paying}
+        />
+      )}
+
+      {canUpgrade && upgradeTargets.length > 0 && (
+        <PlanPickerModal
+          isOpen={isUpgradePickerOpen}
+          onClose={() => setIsUpgradePickerOpen(false)}
+          title="Upgrade your plan"
+          subtitle="Pay only the difference. Your current plan is credited."
+          plans={upgradeTargets}
+          selectedPlan={effectivePlan}
+          priceLabel={(targetKey) => {
+            const diffCents = getUpgradePriceCents(effectivePlan, targetKey);
+            return diffCents !== null ? `$${diffCents / 100}` : "";
+          }}
+          ctaLabel={(targetKey) => {
+            const diffCents = getUpgradePriceCents(effectivePlan, targetKey);
+            return diffCents !== null ? `Upgrade for $${diffCents / 100}` : "Upgrade";
+          }}
+          showDifferenceNote={true}
+          onSelect={(selectedPlanKey) => {
+            setIsUpgradePickerOpen(false);
+            handleUpgradePayment(selectedPlanKey);
           }}
           disabled={paying}
         />
