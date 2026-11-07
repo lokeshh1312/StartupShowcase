@@ -4,7 +4,7 @@ import {
   verifyPaymentSignature,
   verifyWebhookSignature,
 } from "@/server/razorpay";
-import { markPaymentPaid, processPaymentRefund, getOrCreateStartupOrder, getStartupsPlansMap } from "@/server/payments";
+import { markPaymentPaid, processPaymentRefund, getOrCreateStartupOrder } from "@/server/payments";
 import { POST as webhookPost } from "@/app/api/webhooks/razorpay/route";
 import { db } from "@/db";
 import { payments, paymentEvents, startups } from "@/db/schema";
@@ -12,7 +12,8 @@ import { NextRequest } from "next/server";
 import * as emailModule from "@/server/email";
 import { confirmPaymentAction, getStartupPaymentOrderAction, submitStartupAction } from "@/server/actions";
 import { formatMoney, formatPriceButton } from "@/lib/money";
-import { deleteStartup } from "@/server/startups";
+import { deleteStartup, listAdminStartups } from "@/server/startups";
+import * as duplicatesServer from "@/server/duplicates";
 import * as razorpayServer from "@/server/razorpay";
 import * as authServer from "@/lib/supabase/server";
 import * as startupsServer from "@/server/startups";
@@ -1909,9 +1910,94 @@ describe("Payments - Plan Order Creation and Stale Order Replacement", () => {
     expect(res.currency).toBe("USD");
   });
 
-  it("getStartupsPlansMap returns empty map for empty array", async () => {
-    const map = await getStartupsPlansMap([]);
-    expect(map.size).toBe(0);
+  it("throws forbidden error when non-admin calls listAdminStartups", async () => {
+    vi.spyOn(db, "select").mockImplementation((() => ({
+      from: () => ({
+        where: () => ({
+          limit: () => [{ role: "founder" }],
+        }),
+      }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle mock
+    })) as any);
+
+    await expect(listAdminStartups("pending", "user-non-admin")).rejects.toThrow(
+      "Forbidden: only admins can access review queue."
+    );
+  });
+
+  it("returns joined paid plan and ownerEmail from auth.users subquery for admin caller", async () => {
+    vi.spyOn(duplicatesServer, "checkStartupDuplicate").mockResolvedValue(null);
+
+    let selectCallCount = 0;
+    vi.spyOn(db, "select").mockImplementation((() => {
+      selectCallCount++;
+      if (selectCallCount === 1) {
+        // reviewerProfile check
+        return {
+          from: () => ({
+            where: () => ({
+              limit: () => [{ role: "admin" }],
+            }),
+          }),
+        };
+      }
+      if (selectCallCount === 2) {
+        // countResult query
+        return {
+          from: () => ({
+            where: () => [{ total: 1 }],
+          }),
+        };
+      }
+      // rows query with leftJoin
+      return {
+        from: () => ({
+          leftJoin: () => ({
+            where: () => ({
+              orderBy: () => ({
+                limit: () => ({
+                  offset: () => [
+                    {
+                      startup: {
+                        id: "startup-101",
+                        name: "Investor Ready AI",
+                        slug: "investor-ready-ai",
+                        tagline: "AI for investors",
+                        description: "Deep AI startup",
+                        category: "Artificial Intelligence",
+                        stage: "Seed",
+                        countryCode: "US",
+                        ownerId: "user-buyer-456",
+                        status: "pending",
+                        createdAt: new Date("2026-11-01T10:00:00Z"),
+                      },
+                      ownerEmail: "buyer@example.com",
+                      payment: {
+                        amountCents: 99900,
+                        currency: "USD",
+                        razorpayPaymentId: "pay_rzp_admin_test_123",
+                        paidAt: new Date("2026-11-01T10:05:00Z"),
+                        plan: "investor_ready",
+                      },
+                    },
+                  ],
+                }),
+              }),
+            }),
+          }),
+        }),
+      };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle mock
+    }) as any);
+
+    const result = await listAdminStartups("pending", "admin-user-789");
+    expect(result.total).toBe(1);
+    expect(result.items.length).toBe(1);
+    expect(result.items[0].ownerEmail).toBe("buyer@example.com");
+    expect(result.items[0].plan).toBe("investor_ready");
+    expect(result.items[0].paymentAmountCents).toBe(99900);
+    expect(result.items[0].paymentCurrency).toBe("USD");
+    expect(result.items[0].razorpayPaymentId).toBe("pay_rzp_admin_test_123");
   });
 });
 

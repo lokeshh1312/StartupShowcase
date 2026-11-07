@@ -46,7 +46,7 @@ export default function PricingPage() {
             </em>
           </h1>
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
-            Choose the plan that fits your launch goals. One-time payment, no subscriptions, no hidden fees.
+            Choose the plan that fits your launch goals. One-time payment, no subscriptions.
           </p>
         </div>
 
@@ -75,7 +75,7 @@ export default function PricingPage() {
                 <strong>Basic Listing ($9 USD, one time):</strong> Global startup listing, company profile showcase, and global audience visibility on the platform.
               </li>
               <li>
-                <strong>Investor Connect ($199 USD, one time):</strong> Everything in Basic, plus investor networking support and 3 investor meetings curated by our team.
+                <strong>Investor Connect ($199 USD, one time):</strong> Everything in Basic, plus investor networking support and 3 investor meetings.
               </li>
               <li>
                 <strong>Investor Ready ($999 USD, one time):</strong> Everything in Investor Connect, plus investor readiness support, pitch deck, financials &amp; fundraising preparation, and 5 investor meetings.

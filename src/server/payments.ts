@@ -272,49 +272,6 @@ export async function getOrCreateStartupOrder(
 }
 
 /**
- * Resolves the effective plan for startups in batch.
- * Definition:
- * A startup's plan = the plan of its latest payment with status in ('created' for awaiting) / 'paid','partially_refunded','refunded' for history.
- * For display use: latest payments row for that startup that is paid or partially_refunded; if none, latest 'created' row; else latest refunded; else none.
- */
-export async function getStartupsPlansMap(
-  startupIds: string[]
-): Promise<Map<string, PlanKey>> {
-  if (!startupIds || startupIds.length === 0) {
-    return new Map();
-  }
-
-  const rows = await db.execute<{
-    startup_id: string;
-    plan: string;
-  }>(sql`
-    SELECT DISTINCT ON (startup_id)
-      startup_id,
-      plan
-    FROM public.payments
-    WHERE startup_id = ANY(${startupIds}::uuid[])
-      AND status IN ('paid', 'partially_refunded', 'created', 'refunded')
-    ORDER BY
-      startup_id,
-      CASE
-        WHEN status IN ('paid', 'partially_refunded') THEN 1
-        WHEN status = 'created' THEN 2
-        WHEN status = 'refunded' THEN 3
-        ELSE 4
-      END ASC,
-      created_at DESC
-  `);
-
-  const map = new Map<string, PlanKey>();
-  for (const row of rows) {
-    if (row.startup_id && isPlanKey(row.plan)) {
-      map.set(row.startup_id, row.plan);
-    }
-  }
-  return map;
-}
-
-/**
  * Authoritative, idempotent function to mark a payment as 'paid'.
  * Used by both client confirmPaymentAction and server webhook.
  * In one transaction:

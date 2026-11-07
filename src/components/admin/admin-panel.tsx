@@ -34,6 +34,7 @@ interface AdminStartupItem {
   razorpayPaymentId?: string | null;
   paidAt?: Date | null;
   plan?: PlanKey | null;
+  ownerEmail?: string | null;
   duplicateWarning?: {
     id: string;
     name: string;
@@ -43,30 +44,29 @@ interface AdminStartupItem {
   } | null;
 }
 
-function PlanBadge({ plan, currency }: { plan?: PlanKey | null; currency?: string | null }) {
-  const planKey = plan || "basic";
-  const isHistoricalInr = currency === "INR";
+function PlanBadge({ plan }: { plan?: PlanKey | null; currency?: string | null }) {
+  if (!plan) return null;
 
-  if (planKey === "investor_ready") {
+  if (plan === "investor_ready") {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
         <Sparkles className="w-3 h-3 text-amber-500" />
-        <span>Investor Ready $999</span>
+        <span>Investor Ready</span>
       </span>
     );
   }
 
-  if (planKey === "investor_connect") {
+  if (plan === "investor_connect") {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-        <span>Investor Connect $199</span>
+        <span>Investor Connect</span>
       </span>
     );
   }
 
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10">
-      <span>{isHistoricalInr ? "Basic (₹999)" : "Basic $9"}</span>
+      <span>Basic</span>
     </span>
   );
 }
@@ -253,9 +253,23 @@ export function AdminPanel({
                       <span>Cohort: {startup.monthLabel}</span>
                       <span>•</span>
                       <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                        Paid: {formatMoney(startup.paymentAmountCents ?? 1000, startup.paymentCurrency || "USD")} ({getPlan(startup.plan || "basic").name})
+                        Paid: {formatMoney(startup.paymentAmountCents ?? 1000, startup.paymentCurrency || "USD")}{startup.plan ? ` (${getPlan(startup.plan).name})` : ""}
                         {startup.razorpayPaymentId ? ` (ID: ${startup.razorpayPaymentId})` : ""}
                       </span>
+                      {startup.ownerEmail && (
+                        <>
+                          <span>•</span>
+                          <span className="break-all">
+                            Buyer email:{" "}
+                            <a
+                              href={`mailto:${startup.ownerEmail}`}
+                              className="text-brand-600 dark:text-brand-400 underline font-medium"
+                            >
+                              {startup.ownerEmail}
+                            </a>
+                          </span>
+                        </>
+                      )}
                       {startup.websiteUrl && (
                         <>
                           <span>•</span>
@@ -350,6 +364,17 @@ export function AdminPanel({
                   <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
                     {startup.tagline}
                   </p>
+                  {startup.ownerEmail && (
+                    <p className="text-xs text-slate-400 mt-1 break-all">
+                      Buyer email:{" "}
+                      <a
+                        href={`mailto:${startup.ownerEmail}`}
+                        className="text-brand-600 dark:text-brand-400 underline font-medium"
+                      >
+                        {startup.ownerEmail}
+                      </a>
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
@@ -407,6 +432,17 @@ export function AdminPanel({
                     Rejected
                   </span>
                 </div>
+                {startup.ownerEmail && (
+                  <p className="text-xs text-slate-400 break-all">
+                    Buyer email:{" "}
+                    <a
+                      href={`mailto:${startup.ownerEmail}`}
+                      className="text-brand-600 dark:text-brand-400 underline font-medium"
+                    >
+                      {startup.ownerEmail}
+                    </a>
+                  </p>
+                )}
                 {startup.rejectionReason && (
                   <p className="text-xs text-slate-500 dark:text-slate-400 bg-slate-50/70 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 p-2.5 rounded-xl">
                     Reason: {startup.rejectionReason}
@@ -552,7 +588,7 @@ export function AdminPanel({
                       Selected Plan
                     </span>
                     <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
-                      {planMeta.name} — ${planMeta.priceCents / 100}
+                      {planMeta.name}
                     </h4>
                   </div>
                   <PlanBadge plan={inspectingStartup.plan} currency={inspectingStartup.paymentCurrency} />
@@ -573,7 +609,7 @@ export function AdminPanel({
                 </div>
 
                 <p className="text-[11px] text-brand-900 dark:text-brand-300 bg-brand-100/60 dark:bg-brand-900/40 p-2.5 rounded-xl border border-brand-200 dark:border-brand-800/60">
-                  Fulfilment of investor services is manual by email. Use the founder email above to reach out.
+                  Fulfilment of investor services is manual, by email. Use the buyer email shown on this card.
                 </p>
               </div>
 
@@ -589,6 +625,17 @@ export function AdminPanel({
                   <div>
                     <span className="text-slate-400">Role:</span> {founderObj.role || "Founder"}
                   </div>
+                  {inspectingStartup.ownerEmail && (
+                    <div className="sm:col-span-2 break-all">
+                      <span className="text-slate-400">Buyer Email (Account):</span>{" "}
+                      <a
+                        href={`mailto:${inspectingStartup.ownerEmail}`}
+                        className="text-brand-600 dark:text-brand-400 underline font-medium"
+                      >
+                        {inspectingStartup.ownerEmail}
+                      </a>
+                    </div>
+                  )}
                   {founderObj.email && (
                     <div className="sm:col-span-2">
                       <span className="text-slate-400">Email:</span>{" "}

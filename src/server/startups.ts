@@ -38,7 +38,6 @@ import {
   fireAndForgetEmail,
 } from "@/server/email";
 import type { PlanKey } from "@/lib/plans";
-import { getStartupsPlansMap } from "@/server/payments";
 
 // Re-export for existing consumers
 export { buildSafePrefixTsQuery } from "@/lib/search";
@@ -1324,15 +1323,7 @@ export async function getMySubmissions(
       SELECT status, amount_cents, amount_refunded_cents, currency, razorpay_order_id, razorpay_payment_id, plan
       FROM public.payments
       WHERE public.payments.startup_id = startups.id
-        AND status IN ('paid', 'partially_refunded', 'created', 'refunded')
-      ORDER BY
-        CASE
-          WHEN status IN ('paid', 'partially_refunded') THEN 1
-          WHEN status = 'created' THEN 2
-          WHEN status = 'refunded' THEN 3
-          ELSE 4
-        END ASC,
-        created_at DESC
+      ORDER BY created_at DESC
       LIMIT 1
     ) p ON true
     WHERE startups.owner_id = ${userId}::uuid
@@ -1386,6 +1377,7 @@ export type AdminStartupItem = Startup & {
   razorpayPaymentId?: string | null;
   paidAt?: Date | null;
   plan?: PlanKey | null;
+  ownerEmail?: string | null;
 };
 
 /**
@@ -1425,11 +1417,13 @@ export async function listAdminStartups(
   const rows = await db
     .select({
       startup: startups,
+      ownerEmail: sql<string | null>`(select u.email from auth.users u where u.id = ${startups.ownerId})`,
       payment: {
         amountCents: payments.amountCents,
         currency: payments.currency,
         razorpayPaymentId: payments.razorpayPaymentId,
         paidAt: payments.paidAt,
+        plan: payments.plan,
       },
     })
     .from(startups)
@@ -1442,11 +1436,8 @@ export async function listAdminStartups(
     .limit(pageSize)
     .offset(offset);
 
-  const startupIds = rows.map(({ startup }) => startup.id);
-  const planMap = await getStartupsPlansMap(startupIds);
-
   const itemsToReturn: AdminStartupItem[] = await Promise.all(
-    rows.map(async ({ startup, payment }) => {
+    rows.map(async ({ startup, payment, ownerEmail }) => {
       const warning =
         status === "pending"
           ? await checkStartupDuplicate(startup.name, startup.websiteUrl, startup.id)
@@ -1458,7 +1449,8 @@ export async function listAdminStartups(
         paymentCurrency: payment?.currency ?? null,
         razorpayPaymentId: payment?.razorpayPaymentId ?? null,
         paidAt: payment?.paidAt ? new Date(payment.paidAt) : null,
-        plan: planMap.get(startup.id) ?? null,
+        plan: (payment?.plan as PlanKey | undefined) ?? null,
+        ownerEmail: ownerEmail ?? null,
       };
     })
   );
