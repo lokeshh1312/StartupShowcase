@@ -2,6 +2,12 @@ export const PLAN_KEYS = ["basic", "investor_connect", "investor_ready"] as cons
 
 export type PlanKey = (typeof PLAN_KEYS)[number];
 
+export const PLAN_DISPLAY_ORDER: PlanKey[] = [
+  "basic",
+  "investor_ready",
+  "investor_connect",
+];
+
 export const DEFAULT_PLAN: PlanKey = "basic";
 
 export interface PlanDefinition {
@@ -18,7 +24,7 @@ export interface PlanDefinition {
 export const PLANS: Record<PlanKey, PlanDefinition> = {
   basic: {
     key: "basic",
-    name: "Basic Listing",
+    name: "Startup Listing",
     priceCents: 900,
     priceFormatted: "$9",
     billingText: "One-time payment",
@@ -34,20 +40,20 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     priceCents: 19900,
     priceFormatted: "$199",
     billingText: "One-time payment",
-    highlighted: true,
-    badge: "Most Popular",
     features: [
-      "Everything in Basic",
+      "Everything in Startup Listing",
       "Investor networking support",
       "3 investor meetings",
     ],
   },
   investor_ready: {
     key: "investor_ready",
-    name: "Investor Ready",
+    name: "Investor Ready+Connect",
     priceCents: 99900,
     priceFormatted: "$999",
     billingText: "One-time payment",
+    highlighted: true,
+    badge: "Most Popular",
     features: [
       "Everything in Investor Connect",
       "Investor readiness support",

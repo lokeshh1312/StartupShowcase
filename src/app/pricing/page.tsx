@@ -10,7 +10,7 @@ import { PlanCards } from "@/components/plans/plan-cards";
 export const metadata: Metadata = createMetadata({
   title: "Pricing & Plans | Startup Showcase",
   description:
-    "Transparent, founder-friendly listing plans for early-stage startups worldwide. Basic Listing, Investor Connect, and Investor Ready.",
+    "Transparent, founder-friendly listing plans for early-stage startups worldwide. Startup Listing, Investor Connect, and Investor Ready+Connect.",
   path: "/pricing",
 });
 
@@ -72,13 +72,13 @@ export default function PricingPage() {
             </h2>
             <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
               <li>
-                <strong>Basic Listing ($9 USD, one time):</strong> Global startup listing, company profile showcase, and global audience visibility on the platform.
+                <strong>Startup Listing ($9 USD, one time):</strong> Global startup listing, company profile showcase, and global audience visibility on the platform.
               </li>
               <li>
-                <strong>Investor Connect ($199 USD, one time):</strong> Everything in Basic, plus investor networking support and 3 investor meetings.
+                <strong>Investor Connect ($199 USD, one time):</strong> Everything in Startup Listing, plus investor networking support and 3 investor meetings.
               </li>
               <li>
-                <strong>Investor Ready ($999 USD, one time):</strong> Everything in Investor Connect, plus investor readiness support, pitch deck, financials &amp; fundraising preparation, and 5 investor meetings.
+                <strong>Investor Ready+Connect ($999 USD, one time):</strong> Everything in Investor Connect, plus investor readiness support, pitch deck, financials &amp; fundraising preparation, and 5 investor meetings.
               </li>
             </ul>
           </section>
@@ -89,10 +89,10 @@ export default function PricingPage() {
             </h2>
             <ol className="list-decimal pl-5 space-y-2 text-slate-700 dark:text-slate-300">
               <li>Complete the startup submission form with your venture details.</li>
-              <li>Choose your listing plan (Basic, Investor Connect, or Investor Ready).</li>
+              <li>Choose your listing plan (Startup Listing, Investor Connect, or Investor Ready+Connect).</li>
               <li>Pay the one-time fee securely in USD via international card through Razorpay.</li>
               <li>Our team reviews your submission for platform standards.</li>
-              <li>Once approved, your startup is published live. For Investor Connect and Investor Ready tiers, our team reaches out directly by email to coordinate your investor readiness and meetings.</li>
+              <li>Once approved, your startup is published live. For Investor Connect and Investor Ready+Connect tiers, our team reaches out directly by email to coordinate your investor readiness and meetings.</li>
             </ol>
           </section>
 

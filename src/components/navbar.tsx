@@ -59,7 +59,7 @@ export function Navbar({ user, profile }: NavbarProps) {
 
           {/* Center Navigation */}
           <nav
-            className="hidden md:flex items-center gap-1.5 lg:gap-3"
+            className="hidden lg:flex items-center gap-1.5 lg:gap-3"
             aria-label="Primary navigation"
           >
             {navLinks.map(({ href, label }) => {
@@ -207,8 +207,8 @@ export function Navbar({ user, profile }: NavbarProps) {
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
-              aria-label="Toggle mobile menu"
+              className="lg:hidden p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? (
@@ -223,7 +223,7 @@ export function Navbar({ user, profile }: NavbarProps) {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md px-4 pt-3 pb-6 space-y-3 mt-2 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="lg:hidden rounded-2xl border border-slate-200 dark:border-white/10 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md px-4 pt-3 pb-6 space-y-3 mt-2 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="flex flex-col gap-1 pt-1">
             {navLinks.map(({ href, label }) => {
               const isActive =

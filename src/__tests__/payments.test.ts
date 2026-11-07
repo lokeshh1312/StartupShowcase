@@ -17,7 +17,7 @@ import * as duplicatesServer from "@/server/duplicates";
 import * as razorpayServer from "@/server/razorpay";
 import * as authServer from "@/lib/supabase/server";
 import * as startupsServer from "@/server/startups";
-import { PLANS, PLAN_KEYS, getPlan, isPlanKey, formatPlanPrice, type PlanKey } from "@/lib/plans";
+import { PLANS, PLAN_KEYS, PLAN_DISPLAY_ORDER, getPlan, isPlanKey, formatPlanPrice, type PlanKey } from "@/lib/plans";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -32,12 +32,28 @@ describe("Payments - Pricing Plans Constants and Helpers", () => {
     expect(PLANS.investor_ready.priceCents).toBe(99900); // $999
   });
 
+  it("defines PLAN_DISPLAY_ORDER with each key exactly once and investor_ready in the center", () => {
+    expect(PLAN_DISPLAY_ORDER).toEqual(["basic", "investor_ready", "investor_connect"]);
+    expect(new Set(PLAN_DISPLAY_ORDER).size).toBe(PLAN_KEYS.length);
+    expect(PLAN_DISPLAY_ORDER[1]).toBe("investor_ready");
+    expect(PLAN_DISPLAY_ORDER.every((k) => PLAN_KEYS.includes(k))).toBe(true);
+  });
+
+  it("assigns Most Popular badge and highlighted only to investor_ready", () => {
+    expect(PLANS.investor_ready.highlighted).toBe(true);
+    expect(PLANS.investor_ready.badge).toBe("Most Popular");
+    expect(PLANS.basic.highlighted).toBeFalsy();
+    expect(PLANS.basic.badge).toBeUndefined();
+    expect(PLANS.investor_connect.highlighted).toBeFalsy();
+    expect(PLANS.investor_connect.badge).toBeUndefined();
+  });
+
   it("getPlan returns plan metadata and safely defaults to basic for unknown keys", () => {
-    expect(getPlan("basic").name).toBe("Basic Listing");
+    expect(getPlan("basic").name).toBe("Startup Listing");
     expect(getPlan("investor_connect").name).toBe("Investor Connect");
-    expect(getPlan("investor_ready").name).toBe("Investor Ready");
-    expect(getPlan("unknown" as PlanKey).name).toBe("Basic Listing");
-    expect(getPlan(undefined as unknown as PlanKey).name).toBe("Basic Listing");
+    expect(getPlan("investor_ready").name).toBe("Investor Ready+Connect");
+    expect(getPlan("unknown" as PlanKey).name).toBe("Startup Listing");
+    expect(getPlan(undefined as unknown as PlanKey).name).toBe("Startup Listing");
   });
 
   it("isPlanKey validates plan keys correctly", () => {
@@ -1677,17 +1693,17 @@ describe("Payments - Currency Enum Validation in Server Actions", () => {
   it("getStartupPaymentOrderAction rejects non-enum plan ('EUR', 'pro', numbers, objects)", async () => {
     const resEur = await getStartupPaymentOrderAction("startup_1", "EUR" as unknown as PlanKey);
     expect(resEur).toEqual({
-      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
+      error: "Invalid listing plan selected. Please choose Startup Listing, Investor Connect, or Investor Ready+Connect.",
     });
 
     const resNum = await getStartupPaymentOrderAction("startup_1", 123 as unknown as PlanKey);
     expect(resNum).toEqual({
-      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
+      error: "Invalid listing plan selected. Please choose Startup Listing, Investor Connect, or Investor Ready+Connect.",
     });
 
     const resObj = await getStartupPaymentOrderAction("startup_1", { evil: true } as unknown as PlanKey);
     expect(resObj).toEqual({
-      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
+      error: "Invalid listing plan selected. Please choose Startup Listing, Investor Connect, or Investor Ready+Connect.",
     });
   });
 
@@ -1703,17 +1719,17 @@ describe("Payments - Currency Enum Validation in Server Actions", () => {
 
     const resEur = await submitStartupAction(dummyPayload, "EUR" as unknown as PlanKey);
     expect(resEur).toEqual({
-      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
+      error: "Invalid listing plan selected. Please choose Startup Listing, Investor Connect, or Investor Ready+Connect.",
     });
 
     const resNum = await submitStartupAction(dummyPayload, 999 as unknown as PlanKey);
     expect(resNum).toEqual({
-      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
+      error: "Invalid listing plan selected. Please choose Startup Listing, Investor Connect, or Investor Ready+Connect.",
     });
 
     const resObj = await submitStartupAction(dummyPayload, ["USD"] as unknown as PlanKey);
     expect(resObj).toEqual({
-      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
+      error: "Invalid listing plan selected. Please choose Startup Listing, Investor Connect, or Investor Ready+Connect.",
     });
   });
 });
@@ -1849,7 +1865,7 @@ describe("Payments - Plan Order Creation and Stale Order Replacement", () => {
     expect(res.currency).toBe("USD");
   });
 
-  it("replaces existing Basic order when user switches to Investor Connect (marks Basic failed, creates Investor Connect)", async () => {
+  it("replaces existing Startup Listing order when user switches to Investor Connect (marks Startup Listing failed, creates Investor Connect)", async () => {
     vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue(null);
 
     const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
@@ -1861,7 +1877,7 @@ describe("Payments - Plan Order Creation and Stale Order Replacement", () => {
 
     const res = await getOrCreateStartupOrder("startup_test_1", "user_test_1", "investor_connect");
 
-    // Old Basic payment must be marked failed
+    // Old Startup Listing payment must be marked failed
     expect(mockPaymentRows[0]?.status).toBe("failed");
     expect(mockPaymentRows[0]?.plan).toBe("basic");
 
@@ -1882,7 +1898,7 @@ describe("Payments - Plan Order Creation and Stale Order Replacement", () => {
     expect(res.currency).toBe("USD");
   });
 
-  it("creates an Investor Ready order with 99900 cents and notes.plan = investor_ready", async () => {
+  it("creates an Investor Ready+Connect order with 99900 cents and notes.plan = investor_ready", async () => {
     mockPaymentRows = [];
 
     const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
@@ -1960,8 +1976,8 @@ describe("Payments - Plan Order Creation and Stale Order Replacement", () => {
                     {
                       startup: {
                         id: "startup-101",
-                        name: "Investor Ready AI",
-                        slug: "investor-ready-ai",
+                        name: "Investor Ready+Connect AI",
+                        slug: "investor-ready-connect-ai",
                         tagline: "AI for investors",
                         description: "Deep AI startup",
                         category: "Artificial Intelligence",
