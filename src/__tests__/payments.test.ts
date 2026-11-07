@@ -4,20 +4,42 @@ import {
   verifyPaymentSignature,
   verifyWebhookSignature,
 } from "@/server/razorpay";
-import { markPaymentPaid, processPaymentRefund, getOrCreateStartupOrder } from "@/server/payments";
+import {
+  markPaymentPaid,
+  processPaymentRefund,
+  getOrCreateStartupOrder,
+  getOrCreateUpgradeOrder,
+} from "@/server/payments";
 import { POST as webhookPost } from "@/app/api/webhooks/razorpay/route";
 import { db } from "@/db";
 import { payments, paymentEvents, startups } from "@/db/schema";
 import { NextRequest } from "next/server";
 import * as emailModule from "@/server/email";
-import { confirmPaymentAction, getStartupPaymentOrderAction, submitStartupAction } from "@/server/actions";
+import {
+  confirmPaymentAction,
+  getStartupPaymentOrderAction,
+  submitStartupAction,
+} from "@/server/actions";
 import { formatMoney, formatPriceButton } from "@/lib/money";
 import { deleteStartup, listAdminStartups } from "@/server/startups";
 import * as duplicatesServer from "@/server/duplicates";
 import * as razorpayServer from "@/server/razorpay";
 import * as authServer from "@/lib/supabase/server";
 import * as startupsServer from "@/server/startups";
-import { PLANS, PLAN_KEYS, PLAN_DISPLAY_ORDER, getPlan, isPlanKey, formatPlanPrice, type PlanKey } from "@/lib/plans";
+import * as rateLimitModule from "@/server/rate-limit";
+import { RATE_LIMIT_MESSAGE } from "@/server/rate-limit";
+import {
+  PLANS,
+  PLAN_KEYS,
+  PLAN_DISPLAY_ORDER,
+  PLAN_RANK,
+  getPlan,
+  isPlanKey,
+  formatPlanPrice,
+  getUpgradePriceCents,
+  getUpgradeTargets,
+  type PlanKey,
+} from "@/lib/plans";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -313,6 +335,7 @@ interface MockPaymentRecord {
   amountRefundedCents: number;
   currency: string;
   plan?: string;
+  kind?: "listing" | "upgrade";
   status: "created" | "paid" | "failed" | "refunded" | "partially_refunded";
   webhookEventId: string | null;
   paidAt?: Date | null;
@@ -2305,5 +2328,618 @@ describe("Payments - INR confirmPaymentAction and Webhook verification", () => {
     expect(res.status).toBe(200);
     // Payment should remain created (not marked paid)
     expect(mockInrPayment.status).toBe("created");
+  });
+});
+
+describe("Payments - Plan Upgrades: Pricing Rules & Helper Functions", () => {
+  it("assigns correct numerical ranks to plans", () => {
+    expect(PLAN_RANK.basic).toBe(1);
+    expect(PLAN_RANK.investor_connect).toBe(2);
+    expect(PLAN_RANK.investor_ready).toBe(3);
+    expect(PLAN_RANK.basic < PLAN_RANK.investor_connect).toBe(true);
+    expect(PLAN_RANK.investor_connect < PLAN_RANK.investor_ready).toBe(true);
+  });
+
+  it("calculates exact server-set upgrade prices in USD cents", () => {
+    // basic ($9 = 900) -> investor_connect ($199 = 19900) : 19000 ($190)
+    expect(getUpgradePriceCents("basic", "investor_connect")).toBe(19000);
+    // basic ($9 = 900) -> investor_ready ($999 = 99900) : 99000 ($990)
+    expect(getUpgradePriceCents("basic", "investor_ready")).toBe(99000);
+    // investor_connect ($199 = 19900) -> investor_ready ($999 = 99900) : 80000 ($800)
+    expect(getUpgradePriceCents("investor_connect", "investor_ready")).toBe(80000);
+  });
+
+  it("refuses same-plan upgrades and downgrades", () => {
+    // Same plan
+    expect(getUpgradePriceCents("basic", "basic")).toBeNull();
+    expect(getUpgradePriceCents("investor_connect", "investor_connect")).toBeNull();
+    expect(getUpgradePriceCents("investor_ready", "investor_ready")).toBeNull();
+
+    // Downgrades
+    expect(getUpgradePriceCents("investor_ready", "basic")).toBeNull();
+    expect(getUpgradePriceCents("investor_ready", "investor_connect")).toBeNull();
+    expect(getUpgradePriceCents("investor_connect", "basic")).toBeNull();
+  });
+
+  it("getUpgradeTargets returns all plans with higher rank in increasing rank order", () => {
+    expect(getUpgradeTargets("basic")).toEqual(["investor_connect", "investor_ready"]);
+    expect(getUpgradeTargets("investor_connect")).toEqual(["investor_ready"]);
+    expect(getUpgradeTargets("investor_ready")).toEqual([]);
+    expect(getUpgradeTargets("invalid" as PlanKey)).toEqual([]);
+  });
+});
+
+describe("Payments - Plan Upgrades: getOrCreateUpgradeOrder flow", () => {
+  let mockStartup: { id: string; name: string; ownerId: string; status: string };
+  let mockPayments: Array<{
+    id: string;
+    startupId: string;
+    userId: string;
+    razorpayOrderId: string;
+    amountCents: number;
+    currency: string;
+    plan: string;
+    kind: "listing" | "upgrade";
+    status: string;
+  }>;
+
+  beforeEach(() => {
+    mockStartup = {
+      id: "startup_upg_1",
+      name: "Upgrade Startup",
+      ownerId: "user_upg_1",
+      status: "pending",
+    };
+    mockPayments = [
+      {
+        id: "pay_listing_1",
+        startupId: "startup_upg_1",
+        userId: "user_upg_1",
+        razorpayOrderId: "order_listing_1",
+        amountCents: 900,
+        currency: "USD",
+        plan: "basic",
+        kind: "listing",
+        status: "paid",
+      },
+    ];
+
+    vi.spyOn(rateLimitModule, "checkRateLimit").mockResolvedValue({
+      allowed: true,
+      count: 1,
+      maxCount: 10,
+      resetInSeconds: 3600,
+    });
+
+    vi.spyOn(db, "select").mockImplementation((() => ({
+      from: (table: unknown) => {
+        if (table === startups) {
+          return {
+            where: () => ({
+              limit: () => (mockStartup ? [mockStartup] : []),
+              then: (resolve: (val: unknown) => void) => resolve([{ count: 0 }]),
+            }),
+          };
+        }
+        if (table === payments) {
+          return {
+            where: () => ({
+              limit: () => mockPayments.filter((p) => p.status === "created"),
+              // When used without limit for finding paid payments
+              then: (resolve: (val: unknown) => void) =>
+                resolve(mockPayments.filter((p) => ["paid", "partially_refunded"].includes(p.status))),
+              [Symbol.iterator]: function* () {
+                yield* mockPayments.filter((p) => ["paid", "partially_refunded"].includes(p.status));
+              },
+            }),
+          };
+        }
+        return {
+          where: () => ({
+            limit: () => [],
+            then: (resolve: (val: unknown) => void) => resolve([]),
+          }),
+        };
+      },
+    })) as unknown as typeof db.select);
+
+    vi.spyOn(db, "insert").mockImplementation((() => ({
+      values: (val: Record<string, unknown>) => {
+        const row = {
+          id: `pay_${Date.now()}`,
+          startupId: val.startupId as string,
+          userId: val.userId as string,
+          razorpayOrderId: val.razorpayOrderId as string,
+          amountCents: val.amountCents as number,
+          currency: val.currency as string,
+          plan: val.plan as string,
+          kind: (val.kind as "listing" | "upgrade") || "listing",
+          status: (val.status as string) || "created",
+        };
+        mockPayments.push(row);
+        return {
+          returning: () => [row],
+        };
+      },
+    })) as unknown as typeof db.insert);
+
+    vi.spyOn(db, "update").mockImplementation((() => ({
+      set: (val: Record<string, unknown>) => ({
+        where: () => {
+          mockPayments.forEach((p) => {
+            if (p.status === "created") {
+              Object.assign(p, val);
+            }
+          });
+          return [{ count: 1 }];
+        },
+      }),
+    })) as unknown as typeof db.update);
+  });
+
+  it("refuses upgrade if user does not own the startup", async () => {
+    await expect(
+      getOrCreateUpgradeOrder("startup_upg_1", "other_user", "investor_connect")
+    ).rejects.toThrow("Forbidden: You do not own this startup.");
+  });
+
+  it("refuses upgrade if startup is in awaiting_payment or rejected status", async () => {
+    mockStartup.status = "awaiting_payment";
+    await expect(
+      getOrCreateUpgradeOrder("startup_upg_1", "user_upg_1", "investor_connect")
+    ).rejects.toThrow("Startup is not eligible for upgrades");
+
+    mockStartup.status = "rejected";
+    await expect(
+      getOrCreateUpgradeOrder("startup_upg_1", "user_upg_1", "investor_connect")
+    ).rejects.toThrow("Startup is not eligible for upgrades");
+  });
+
+  it("allows upgrade when startup status is pending or approved", async () => {
+    vi.spyOn(razorpayServer, "isPaymentRequired").mockReturnValue(false);
+    mockStartup.status = "pending";
+    const resPending = await getOrCreateUpgradeOrder(
+      "startup_upg_1",
+      "user_upg_1",
+      "investor_connect"
+    );
+    expect(resPending.amount).toBe(19000);
+    expect(resPending.kind).toBe("upgrade");
+
+    mockStartup.status = "approved";
+    const resApproved = await getOrCreateUpgradeOrder(
+      "startup_upg_1",
+      "user_upg_1",
+      "investor_ready"
+    );
+    expect(resApproved.amount).toBe(99000);
+    expect(resApproved.kind).toBe("upgrade");
+  });
+
+  it("refuses upgrade if startup has no paid listing", async () => {
+    mockPayments = []; // no payments
+    await expect(
+      getOrCreateUpgradeOrder("startup_upg_1", "user_upg_1", "investor_connect")
+    ).rejects.toThrow("No paid listing found.");
+  });
+
+  it("refuses upgrade to same or lower plan", async () => {
+    // Current is basic
+    await expect(
+      getOrCreateUpgradeOrder("startup_upg_1", "user_upg_1", "basic")
+    ).rejects.toThrow("Choose a higher plan than your current one.");
+
+    // Current is investor_ready
+    mockPayments.push({
+      id: "pay_upg_ready",
+      startupId: "startup_upg_1",
+      userId: "user_upg_1",
+      razorpayOrderId: "order_upg_ready",
+      amountCents: 99000,
+      currency: "USD",
+      plan: "investor_ready",
+      kind: "upgrade",
+      status: "paid",
+    });
+    await expect(
+      getOrCreateUpgradeOrder("startup_upg_1", "user_upg_1", "investor_connect")
+    ).rejects.toThrow("Choose a higher plan than your current one.");
+  });
+
+  it("mock mode creates upgrade order with kind='upgrade' and exact difference amount", async () => {
+    vi.spyOn(razorpayServer, "isPaymentRequired").mockReturnValue(false);
+    const res = await getOrCreateUpgradeOrder("startup_upg_1", "user_upg_1", "investor_connect");
+
+    expect(res.amount).toBe(19000);
+    expect(res.currency).toBe("USD");
+    expect(res.paymentRequired).toBe(false);
+    expect(res.plan).toBe("investor_connect");
+    expect(res.kind).toBe("upgrade");
+
+    const inserted = mockPayments.find((p) => p.razorpayOrderId === res.orderId);
+    expect(inserted).toBeDefined();
+    expect(inserted?.kind).toBe("upgrade");
+    expect(inserted?.amountCents).toBe(19000);
+    expect(inserted?.plan).toBe("investor_connect");
+  });
+
+  it("listing order flow ignores unpaid upgrade rows", async () => {
+    vi.spyOn(razorpayServer, "isPaymentRequired").mockReturnValue(false);
+    mockStartup.status = "awaiting_payment";
+
+    // Add an existing unpaid upgrade payment
+    mockPayments.push({
+      id: "pay_unpaid_upg",
+      startupId: "startup_upg_1",
+      userId: "user_upg_1",
+      razorpayOrderId: "order_mock_unpaid_upg",
+      amountCents: 19000,
+      currency: "USD",
+      plan: "investor_connect",
+      kind: "upgrade",
+      status: "created",
+    });
+
+    // Calling getOrCreateStartupOrder must create a listing order, not pick up the upgrade order
+    const listingRes = await getOrCreateStartupOrder("startup_upg_1", "user_upg_1", "basic");
+    expect(listingRes.amount).toBe(900);
+    expect(listingRes.plan).toBe("basic");
+    expect(listingRes.kind).toBe("listing");
+    expect(listingRes.orderId).not.toBe("order_mock_unpaid_upg");
+  });
+
+  it("enforces order creation rate limit (10 per hour per user)", async () => {
+    vi.spyOn(rateLimitModule, "checkRateLimit").mockResolvedValueOnce({
+      allowed: false,
+      count: 11,
+      maxCount: 10,
+      resetInSeconds: 3600,
+    });
+    await expect(
+      getOrCreateUpgradeOrder("startup_upg_1", "user_upg_1", "investor_connect")
+    ).rejects.toThrow(RATE_LIMIT_MESSAGE);
+  });
+
+  it("reuses existing unpaid upgrade order if amount, plan, and currency match", async () => {
+    vi.spyOn(razorpayServer, "isPaymentRequired").mockReturnValue(true);
+    vi.spyOn(razorpayServer, "getRazorpayCredentials").mockReturnValue({
+      keyId: "test_key",
+      keySecret: "test_secret",
+    });
+    mockPayments.push({
+      id: "pay_created_upg",
+      startupId: "startup_upg_1",
+      userId: "user_upg_1",
+      razorpayOrderId: "order_rzp_upg_open",
+      amountCents: 19000,
+      currency: "USD",
+      plan: "investor_connect",
+      kind: "upgrade",
+      status: "created",
+    });
+
+    vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
+      id: "order_rzp_upg_open",
+      amount: 19000,
+      currency: "USD",
+      status: "created",
+      amount_paid: 0,
+    });
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder");
+
+    const res = await getOrCreateUpgradeOrder(
+      "startup_upg_1",
+      "user_upg_1",
+      "investor_connect"
+    );
+    expect(res.orderId).toBe("order_rzp_upg_open");
+    expect(res.amount).toBe(19000);
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  it("replaces existing unpaid upgrade order if target plan changes", async () => {
+    vi.spyOn(razorpayServer, "isPaymentRequired").mockReturnValue(true);
+    vi.spyOn(razorpayServer, "getRazorpayCredentials").mockReturnValue({
+      keyId: "test_key",
+      keySecret: "test_secret",
+    });
+    mockPayments.push({
+      id: "pay_created_upg_old",
+      startupId: "startup_upg_1",
+      userId: "user_upg_1",
+      razorpayOrderId: "order_rzp_upg_old",
+      amountCents: 19000,
+      currency: "USD",
+      plan: "investor_connect",
+      kind: "upgrade",
+      status: "created",
+    });
+
+    vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
+      id: "order_rzp_upg_old",
+      amount: 19000,
+      currency: "USD",
+      status: "created",
+      amount_paid: 0,
+    });
+
+    const createSpy = vi
+      .spyOn(razorpayServer, "createRazorpayOrder")
+      .mockResolvedValue({
+        id: "order_rzp_upg_new",
+        amount: 99000,
+        currency: "USD",
+        status: "created",
+      });
+
+    const res = await getOrCreateUpgradeOrder(
+      "startup_upg_1",
+      "user_upg_1",
+      "investor_ready"
+    );
+    expect(res.orderId).toBe("order_rzp_upg_new");
+    expect(res.amount).toBe(99000);
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amountCents: 99000,
+        currency: "USD",
+        notes: expect.objectContaining({
+          kind: "upgrade",
+          plan: "investor_ready",
+        }),
+      })
+    );
+  });
+});
+
+describe("Payments - Plan Upgrades: markPaymentPaid for upgrade kind", () => {
+  let mockPayment: MockPaymentRecord;
+  let mockStartup: MockStartupRecord;
+  let auditLogs: Array<{ action: string; targetId: string; metadata: Record<string, unknown> }>;
+  let emailSent: boolean;
+
+  beforeEach(() => {
+    emailSent = false;
+    auditLogs = [];
+    mockPayment = {
+      id: "pay_upgrade_row_1",
+      startupId: "startup_upg_paid_1",
+      userId: "user_upg_1",
+      razorpayOrderId: "order_upg_paid_1",
+      razorpayPaymentId: "pay_rzp_upg_1",
+      amountCents: 19000,
+      amountRefundedCents: 0,
+      currency: "USD",
+      plan: "investor_connect",
+      kind: "upgrade",
+      status: "created",
+      webhookEventId: null,
+    };
+    mockStartup = {
+      id: "startup_upg_paid_1",
+      name: "Upgrade Paid Startup",
+      status: "approved", // already approved
+    };
+
+    vi.spyOn(emailModule, "sendSubmissionReceivedEmail").mockImplementation((() => {
+      emailSent = true;
+      return Promise.resolve();
+    }) as unknown as typeof emailModule.sendSubmissionReceivedEmail);
+
+    vi.spyOn(db, "transaction").mockImplementation(async (callback) => {
+      const mockTx = {
+        select: () => ({
+          from: (table: unknown) => ({
+            where: () => {
+              if (table === payments) {
+                return {
+                  for: () => ({
+                    limit: () => [mockPayment],
+                  }),
+                  // When looking for previous paid payments for from_plan
+                  then: (resolve: (val: unknown) => void) =>
+                    resolve([{ plan: "basic" }]),
+                  [Symbol.iterator]: function* () {
+                    yield { plan: "basic" };
+                  },
+                };
+              }
+              return {
+                limit: () => [mockStartup],
+              };
+            },
+          }),
+        }),
+        update: () => ({
+          set: (vals: Record<string, unknown>) => {
+            Object.assign(mockPayment, vals);
+            return {
+              where: () => ({
+                returning: () => [mockPayment],
+              }),
+            };
+          },
+        }),
+        insert: () => ({
+          values: (val: Record<string, unknown>) => {
+            if ("action" in val) {
+              auditLogs.push(val as { action: string; targetId: string; metadata: Record<string, unknown> });
+            }
+            return {
+              onConflictDoNothing: () => ({
+                returning: () => [{ eventId: "evt_test" }],
+              }),
+            };
+          },
+        }),
+        execute: async () => [{ email: "founder@example.com", display_name: "Founder" }],
+      };
+      return await callback(mockTx as unknown as Parameters<typeof callback>[0]);
+    });
+  });
+
+  it("marks upgrade payment paid, does not change startup status, writes audit log, and does not send submission email", async () => {
+    const res = await markPaymentPaid({
+      razorpayOrderId: "order_upg_paid_1",
+      razorpayPaymentId: "pay_rzp_upg_1",
+    });
+
+    expect(res.success).toBe(true);
+    expect(mockPayment.status).toBe("paid");
+    // Startup status must NOT change (remains approved)
+    expect(mockStartup.status).toBe("approved");
+    // Submission received email must NOT be sent for upgrades
+    expect(emailSent).toBe(false);
+
+    // Audit log must record action payment.upgrade_paid
+    const upgLog = auditLogs.find((l) => l.action === "payment.upgrade_paid");
+    expect(upgLog).toBeDefined();
+    expect(upgLog?.metadata.kind).toBe("upgrade");
+    expect(upgLog?.metadata.plan).toBe("investor_connect");
+    expect(upgLog?.metadata.amount_cents).toBe(19000);
+  });
+
+  it("is idempotent when replaying markPaymentPaid for upgrade", async () => {
+    mockPayment.status = "paid";
+    const res = await markPaymentPaid({
+      razorpayOrderId: "order_upg_paid_1",
+      razorpayPaymentId: "pay_rzp_upg_1",
+    });
+    expect(res.success).toBe(true);
+    expect(res.alreadyPaid).toBe(true);
+    expect(mockStartup.status).toBe("approved");
+    expect(emailSent).toBe(false);
+  });
+});
+
+describe("Payments - Plan Upgrades: Refund safety", () => {
+  let mockPayment: MockPaymentRecord;
+  let mockStartup: MockStartupRecord;
+
+  beforeEach(() => {
+    mockPayment = {
+      id: "pay_upg_refund_1",
+      startupId: "startup_refund_1",
+      userId: "user_refund_1",
+      razorpayOrderId: "order_upg_refund_1",
+      razorpayPaymentId: "pay_rzp_upg_refund_1",
+      amountCents: 19000,
+      amountRefundedCents: 0,
+      currency: "USD",
+      plan: "investor_connect",
+      kind: "upgrade",
+      status: "paid",
+      webhookEventId: null,
+    };
+    mockStartup = {
+      id: "startup_refund_1",
+      name: "Refunded Startup",
+      status: "approved",
+    };
+
+    vi.spyOn(db, "transaction").mockImplementation(async (callback) => {
+      const mockTx = {
+        insert: () => ({
+          values: () => ({
+            onConflictDoNothing: () => ({
+              returning: () => [{ eventId: "evt_rfnd" }],
+            }),
+          }),
+        }),
+        select: () => ({
+          from: (table: unknown) => ({
+            where: () => ({
+              for: () => ({
+                limit: () => (table === payments ? [mockPayment] : [mockStartup]),
+              }),
+              limit: () => (table === payments ? [mockPayment] : [mockStartup]),
+            }),
+          }),
+        }),
+        update: () => ({
+          set: (vals: Record<string, unknown>) => ({
+            where: () => {
+              if (vals.amountRefundedCents !== undefined) {
+                Object.assign(mockPayment, vals);
+              } else {
+                Object.assign(mockStartup, vals);
+              }
+              return [{ count: 1 }];
+            },
+          }),
+        }),
+      };
+      return await callback(mockTx as unknown as Parameters<typeof callback>[0]);
+    });
+  });
+
+  it("full refund of an upgrade payment does NOT reject the startup", async () => {
+    const res = await processPaymentRefund({
+      razorpayPaymentId: "pay_rzp_upg_refund_1",
+      refundAmountCents: 19000,
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.isPartial).toBe(false);
+    expect(mockPayment.status).toBe("refunded");
+    // CRITICAL: Startup must remain approved, NOT rejected!
+    expect(mockStartup.status).toBe("approved");
+    expect(res.startupRejected).toBeFalsy();
+  });
+
+  it("full refund of a listing payment STILL rejects the startup", async () => {
+    mockPayment.kind = "listing";
+    mockPayment.amountCents = 900;
+    mockStartup.status = "approved";
+
+    const res = await processPaymentRefund({
+      razorpayPaymentId: "pay_rzp_upg_refund_1",
+      refundAmountCents: 900,
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.isPartial).toBe(false);
+    expect(mockPayment.status).toBe("refunded");
+    // Listing refund still auto-rejects startup
+    expect(mockStartup.status).toBe("rejected");
+    expect(res.startupRejected).toBe(true);
+  });
+});
+
+describe("Payments - Plan Upgrades: Admin & My Submissions resolution", () => {
+  it("resolves highest rank effective plan and upgradePaidCents properly", () => {
+    const paymentsList = [
+      { id: "1", plan: "basic", kind: "listing", status: "paid", amount_cents: 900 },
+      { id: "2", plan: "investor_connect", kind: "upgrade", status: "paid", amount_cents: 19000 },
+    ];
+
+    // Filter paid/partially_refunded payments
+    const activePayments = paymentsList.filter((p) =>
+      ["paid", "partially_refunded"].includes(p.status)
+    );
+    // Sort by rank descending
+    activePayments.sort((a, b) => PLAN_RANK[b.plan as PlanKey] - PLAN_RANK[a.plan as PlanKey]);
+    const effectivePlan = activePayments[0]?.plan;
+    expect(effectivePlan).toBe("investor_connect");
+
+    // Upgrade paid cents
+    const upgradePaidCents = paymentsList
+      .filter((p) => p.kind === "upgrade" && ["paid", "partially_refunded"].includes(p.status))
+      .reduce((sum, p) => sum + p.amount_cents, 0);
+    expect(upgradePaidCents).toBe(19000);
+  });
+
+  it("falls back effective plan when upgrade payment is refunded", () => {
+    const paymentsList = [
+      { id: "1", plan: "basic", kind: "listing", status: "paid" },
+      { id: "2", plan: "investor_connect", kind: "upgrade", status: "refunded" }, // refunded
+    ];
+
+    const activePayments = paymentsList.filter((p) =>
+      ["paid", "partially_refunded"].includes(p.status)
+    );
+    activePayments.sort((a, b) => PLAN_RANK[b.plan as PlanKey] - PLAN_RANK[a.plan as PlanKey]);
+    const effectivePlan = activePayments[0]?.plan;
+    expect(effectivePlan).toBe("basic");
   });
 });

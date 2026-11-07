@@ -11,7 +11,17 @@ export interface PlanCardsProps {
   pendingPlan?: PlanKey | null;
   mode?: "checkout" | "pricing";
   selectedPlan?: PlanKey | null;
+  plans?: PlanKey[];
+  ctaLabel?: (key: PlanKey) => string;
+  priceLabel?: (key: PlanKey) => string;
+  showDifferenceNote?: boolean;
 }
+
+const gridClassesByCount: Record<number, string> = {
+  1: "grid grid-cols-1 gap-4 lg:gap-6 items-stretch w-full max-w-md mx-auto",
+  2: "grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 items-stretch w-full max-w-3xl mx-auto",
+  3: "grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch w-full",
+};
 
 export function PlanCards({
   onSelect,
@@ -19,16 +29,27 @@ export function PlanCards({
   pendingPlan = null,
   mode = "checkout",
   selectedPlan = null,
+  plans,
+  ctaLabel,
+  priceLabel,
+  showDifferenceNote = false,
 }: PlanCardsProps) {
   const isPricingMode = mode === "pricing";
+  const visiblePlanKeys = PLAN_DISPLAY_ORDER.filter(
+    (key) => !plans || plans.includes(key)
+  );
+  const isAllThree = visiblePlanKeys.length === 3;
+  const gridContainerClass =
+    gridClassesByCount[visiblePlanKeys.length] || gridClassesByCount[3];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch w-full">
-      {PLAN_DISPLAY_ORDER.map((key) => {
+    <div className={gridContainerClass}>
+      {visiblePlanKeys.map((key) => {
         const plan = PLANS[key];
-        const isHighlighted = Boolean(plan.highlighted);
+        const isHighlighted = isAllThree && Boolean(plan.highlighted);
         const isPending = pendingPlan === key;
         const isCurrentSelected = selectedPlan === key;
+        const displayedPrice = priceLabel ? priceLabel(key) : plan.priceFormatted;
 
         return (
           <div
@@ -61,13 +82,20 @@ export function PlanCards({
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   {plan.name}
                 </h3>
-                <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                    {plan.priceFormatted}
-                  </span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    {plan.billingText}
-                  </span>
+                <div className="mt-2 flex flex-col gap-0.5">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                      {displayedPrice}
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      {plan.billingText}
+                    </span>
+                  </div>
+                  {showDifferenceNote && (
+                    <span className="text-[11px] text-brand-600 dark:text-brand-400 font-medium">
+                      Pay only the difference
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -118,7 +146,7 @@ export function PlanCards({
                   type="button"
                   onClick={() => onSelect?.(key)}
                   disabled={disabled || isPending}
-                  aria-label={`Choose ${plan.name} plan, ${plan.priceFormatted}`}
+                  aria-label={`Choose ${plan.name} plan, ${displayedPrice}`}
                   className={`w-full py-3 px-4 rounded-xl text-center text-xs sm:text-sm font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
                     isHighlighted
                       ? "bg-brand-600 hover:bg-brand-500 text-white shadow-md hover:shadow-lg"
@@ -128,7 +156,7 @@ export function PlanCards({
                   {isPending ? (
                     <span>Processing...</span>
                   ) : (
-                    <span>Pay {plan.priceFormatted}</span>
+                    <span>{ctaLabel ? ctaLabel(key) : `Pay ${displayedPrice}`}</span>
                   )}
                 </button>
               )}

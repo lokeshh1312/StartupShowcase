@@ -37,7 +37,7 @@ import {
 import { db } from "@/db";
 import { profiles, auditLog, payments } from "@/db/schema";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getOrCreateStartupOrder, markPaymentPaid } from "@/server/payments";
+import { getOrCreateStartupOrder, getOrCreateUpgradeOrder, markPaymentPaid } from "@/server/payments";
 import { verifyPaymentSignature, fetchRazorpayPayment } from "@/server/razorpay";
 import { PLAN_KEYS, type PlanKey, DEFAULT_PLAN } from "@/lib/plans";
 
@@ -313,6 +313,45 @@ export async function getStartupPaymentOrderAction(startupId: string, plan?: unk
 
   try {
     const orderInfo = await getOrCreateStartupOrder(startupId, authData.user.id, targetPlan);
+    return { success: true, ...orderInfo };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
+  }
+}
+
+/**
+ * Get Razorpay order for upgrading a startup's listing plan
+ */
+export async function getStartupUpgradeOrderAction(startupId: string, plan: unknown) {
+  const authData = await getCurrentUserProfile();
+  if (!authData) {
+    return { error: "unauthenticated" };
+  }
+
+  const parsedPlan = planEnumSchema.safeParse(plan);
+  if (!parsedPlan.success) {
+    return {
+      error:
+        "Invalid listing plan selected. Please choose Startup Listing, Investor Connect, or Investor Ready+Connect.",
+    };
+  }
+
+  try {
+    const orderInfo = await getOrCreateUpgradeOrder(
+      startupId,
+      authData.user.id,
+      parsedPlan.data
+    );
+
+    if (!orderInfo.paymentRequired) {
+      await markPaymentPaid({
+        razorpayOrderId: orderInfo.orderId,
+        razorpayPaymentId: `mock_pay_upg_${startupId.slice(0, 8)}`,
+      });
+      revalidatePath("/me/submissions");
+      revalidatePath("/admin");
+    }
+
     return { success: true, ...orderInfo };
   } catch (err: unknown) {
     return { error: formatActionError(err) };

@@ -247,4 +247,126 @@ describe("SubmissionActions Component - Plan Selection & Payment Flow", () => {
       expect(screen.queryByRole("dialog")).toBeNull();
     });
   });
+
+  it("shows 'Upgrade plan' button for pending or approved startups when effective plan is not investor_ready", () => {
+    const { rerender } = render(
+      <SubmissionActions
+        startupId="startup-pending-1"
+        startupName="Pending Startup"
+        slug="pending-startup"
+        status="pending"
+        plan="basic"
+      />
+    );
+
+    expect(screen.getByRole("button", { name: /Upgrade plan/i })).toBeDefined();
+
+    rerender(
+      <SubmissionActions
+        startupId="startup-approved-1"
+        startupName="Approved Startup"
+        slug="approved-startup"
+        status="approved"
+        plan="investor_connect"
+      />
+    );
+    expect(screen.getByRole("button", { name: /Upgrade plan/i })).toBeDefined();
+  });
+
+  it("does not show 'Upgrade plan' button when status is awaiting_payment, rejected, or already investor_ready", () => {
+    const { rerender } = render(
+      <SubmissionActions
+        startupId="startup-awaiting-1"
+        startupName="Awaiting Startup"
+        slug="awaiting-startup"
+        status="awaiting_payment"
+        plan="basic"
+      />
+    );
+    expect(screen.queryByRole("button", { name: /Upgrade plan/i })).toBeNull();
+
+    rerender(
+      <SubmissionActions
+        startupId="startup-rejected-1"
+        startupName="Rejected Startup"
+        slug="rejected-startup"
+        status="rejected"
+        plan="basic"
+      />
+    );
+    expect(screen.queryByRole("button", { name: /Upgrade plan/i })).toBeNull();
+
+    rerender(
+      <SubmissionActions
+        startupId="startup-max-1"
+        startupName="Max Plan Startup"
+        slug="max-plan-startup"
+        status="approved"
+        plan="investor_ready"
+      />
+    );
+    expect(screen.queryByRole("button", { name: /Upgrade plan/i })).toBeNull();
+  });
+
+  it("opens upgrade modal and clicking upgrade card triggers getStartupUpgradeOrderAction and checkout", async () => {
+    const upgradeOrderSpy = vi
+      .spyOn(actions, "getStartupUpgradeOrderAction")
+      .mockResolvedValue({
+        success: true,
+        orderId: "order_upg_test_123",
+        amount: 19000,
+        currency: "USD",
+        keyId: "test_key",
+        paymentRequired: true,
+        plan: "investor_connect",
+        kind: "upgrade",
+      });
+
+    const openCheckoutSpy = vi
+      .spyOn(razorpayClient, "openRazorpayCheckout")
+      .mockResolvedValue(true);
+
+    render(
+      <SubmissionActions
+        startupId="startup-1"
+        startupName="My Startup"
+        slug="my-startup"
+        status="pending"
+        plan="basic"
+      />
+    );
+
+    const upgradeBtn = screen.getByRole("button", { name: /Upgrade plan/i });
+    fireEvent.click(upgradeBtn);
+
+    // Modal title and difference text should be visible
+    expect(screen.getByText("Upgrade your plan")).toBeDefined();
+    expect(
+      screen.getByText("Pay only the difference. Your current plan is credited.")
+    ).toBeDefined();
+
+    // Since current is basic, target plans are investor_connect and investor_ready
+    // Upgrade for $190
+    expect(screen.getByText("Upgrade for $190")).toBeDefined();
+    // Upgrade for $990
+    expect(screen.getByText("Upgrade for $990")).toBeDefined();
+
+    // Click investor_connect upgrade
+    const chooseConnect = screen.getByRole("button", {
+      name: /Choose Investor Connect plan, \$190/i,
+    });
+    fireEvent.click(chooseConnect);
+
+    await waitFor(() => {
+      expect(upgradeOrderSpy).toHaveBeenCalledWith("startup-1", "investor_connect");
+      expect(openCheckoutSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderId: "order_upg_test_123",
+          amount: 19000,
+          currency: "USD",
+          startupName: "My Startup",
+        })
+      );
+    });
+  });
 });

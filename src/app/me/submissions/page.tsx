@@ -198,15 +198,6 @@ export default async function MySubmissionsPage() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    {(startup.status === "pending" || startup.status === "awaiting_payment") && (
-                      <SubmissionActions
-                        startupId={startup.id}
-                        startupName={startup.name}
-                        slug={startup.slug}
-                        status={startup.status}
-                        plan={startup.plan}
-                      />
-                    )}
                     {startup.status === "approved" && (
                       <Link
                         href={`/startup/${startup.slug}`}
@@ -215,6 +206,15 @@ export default async function MySubmissionsPage() {
                         <span>View Live</span>
                         <ExternalLink className="w-3.5 h-3.5" />
                       </Link>
+                    )}
+                    {(startup.status === "pending" || startup.status === "awaiting_payment" || startup.status === "approved") && (
+                      <SubmissionActions
+                        startupId={startup.id}
+                        startupName={startup.name}
+                        slug={startup.slug}
+                        status={startup.status}
+                        plan={startup.plan}
+                      />
                     )}
                   </div>
                 </div>

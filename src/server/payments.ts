@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   payments,
@@ -14,7 +14,14 @@ import {
   isPaymentRequired,
   getRazorpayCredentials,
 } from "@/server/razorpay";
-import { PLANS, isPlanKey, type PlanKey, DEFAULT_PLAN } from "@/lib/plans";
+import {
+  PLANS,
+  isPlanKey,
+  type PlanKey,
+  DEFAULT_PLAN,
+  PLAN_RANK,
+  getUpgradePriceCents,
+} from "@/lib/plans";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/server/rate-limit";
 import {
   sendSubmissionReceivedEmail,
@@ -28,6 +35,11 @@ export interface StartupOrderResult {
   keyId: string;
   paymentRequired: boolean;
   plan: PlanKey;
+  kind?: "listing" | "upgrade";
+}
+
+export interface UpgradeOrderResult extends StartupOrderResult {
+  kind: "upgrade";
 }
 
 /**
@@ -83,6 +95,7 @@ export async function getOrCreateStartupOrder(
       .where(
         and(
           eq(payments.startupId, startup.id),
+          eq(payments.kind, "listing"),
           eq(payments.status, "created")
         )
       )
@@ -101,6 +114,7 @@ export async function getOrCreateStartupOrder(
         keyId: "mock_key_id",
         paymentRequired: false,
         plan: targetPlan,
+        kind: "listing",
       };
     }
 
@@ -108,7 +122,13 @@ export async function getOrCreateStartupOrder(
       await db
         .update(payments)
         .set({ status: "failed" })
-        .where(eq(payments.id, existing.id));
+        .where(
+          and(
+            eq(payments.id, existing.id),
+            eq(payments.kind, "listing"),
+            eq(payments.status, "created")
+          )
+        );
     }
 
     await db.insert(payments).values({
@@ -118,6 +138,7 @@ export async function getOrCreateStartupOrder(
       amountCents: targetPrice,
       currency: targetCurrency,
       plan: targetPlan,
+      kind: "listing",
       status: "created",
     });
 
@@ -128,16 +149,18 @@ export async function getOrCreateStartupOrder(
       keyId: "mock_key_id",
       paymentRequired: false,
       plan: targetPlan,
+      kind: "listing",
     };
   }
 
-  // 1. Check if an unpaid order already exists for this startup
+  // 1. Check if an unpaid listing order already exists for this startup
   const [existingOrder] = await db
     .select()
     .from(payments)
     .where(
       and(
         eq(payments.startupId, startupId),
+        eq(payments.kind, "listing"),
         eq(payments.status, "created")
       )
     )
@@ -200,6 +223,7 @@ export async function getOrCreateStartupOrder(
         keyId,
         paymentRequired: true,
         plan: targetPlan,
+        kind: "listing",
       };
     }
 
@@ -210,6 +234,7 @@ export async function getOrCreateStartupOrder(
       .where(
         and(
           eq(payments.id, existingOrder.id),
+          eq(payments.kind, "listing"),
           eq(payments.status, "created")
         )
       );
@@ -258,6 +283,7 @@ export async function getOrCreateStartupOrder(
     amountCents: targetPrice,
     currency: targetCurrency,
     plan: targetPlan,
+    kind: "listing",
     status: "created",
   });
 
@@ -268,6 +294,282 @@ export async function getOrCreateStartupOrder(
     keyId,
     paymentRequired: true,
     plan: targetPlan,
+    kind: "listing",
+  };
+}
+
+/**
+ * Gets an existing unpaid Razorpay order for a plan upgrade, or creates a new one.
+ * Enforces:
+ * - Startup must belong to the user
+ * - Startup must be in 'pending' or 'approved' status
+ * - Startup must have a paid listing
+ * - Target plan must have a strictly higher rank than current effective plan
+ * - Upgrade price is calculated authoritative on the server as difference in USD cents
+ * - Reuses existing unpaid kind='upgrade' order ONLY if amount, plan and currency match
+ * - Rate limit: max 10 order creations per hour per user
+ */
+export async function getOrCreateUpgradeOrder(
+  startupId: string,
+  userId: string,
+  targetPlan: PlanKey
+): Promise<UpgradeOrderResult> {
+  if (!isPlanKey(targetPlan)) {
+    throw new Error("Invalid plan selected.");
+  }
+
+  const [startup] = await db
+    .select({
+      id: startups.id,
+      name: startups.name,
+      ownerId: startups.ownerId,
+      status: startups.status,
+    })
+    .from(startups)
+    .where(eq(startups.id, startupId))
+    .limit(1);
+
+  if (!startup) {
+    throw new Error("Startup not found.");
+  }
+
+  if (startup.ownerId !== userId) {
+    throw new Error("Forbidden: You do not own this startup.");
+  }
+
+  if (startup.status !== "pending" && startup.status !== "approved") {
+    throw new Error(
+      "Startup is not eligible for upgrades. Upgrades are only allowed for submissions under review or approved."
+    );
+  }
+
+  // Compute effective plan from DB
+  const paidPayments = await db
+    .select({
+      plan: payments.plan,
+      kind: payments.kind,
+      status: payments.status,
+    })
+    .from(payments)
+    .where(
+      and(
+        eq(payments.startupId, startup.id),
+        inArray(payments.status, ["paid", "partially_refunded"])
+      )
+    );
+
+  const hasPaidListing = paidPayments.some((p) => p.kind === "listing");
+  if (!hasPaidListing || paidPayments.length === 0) {
+    throw new Error("No paid listing found.");
+  }
+
+  let currentEffectivePlan: PlanKey = "basic";
+  let currentMaxRank = 0;
+  for (const p of paidPayments) {
+    const pk = isPlanKey(p.plan) ? p.plan : "basic";
+    const rank = PLAN_RANK[pk] ?? 0;
+    if (rank > currentMaxRank) {
+      currentMaxRank = rank;
+      currentEffectivePlan = pk;
+    }
+  }
+
+  const targetRank = PLAN_RANK[targetPlan] ?? 0;
+  if (targetRank <= currentMaxRank) {
+    throw new Error("Choose a higher plan than your current one.");
+  }
+
+  const upgradePriceCents = getUpgradePriceCents(currentEffectivePlan, targetPlan);
+  if (typeof upgradePriceCents !== "number" || upgradePriceCents <= 0) {
+    throw new Error("Choose a higher plan than your current one.");
+  }
+  const targetCurrency = "USD";
+
+  // Rate limit: max 10 order creations per hour per user
+  const orderLimit = await checkRateLimit(`order:user:${userId}`, 10, 3600);
+  if (!orderLimit.allowed) {
+    throw new Error(RATE_LIMIT_MESSAGE);
+  }
+
+  // Mock mode when Razorpay credentials are not configured
+  if (!isPaymentRequired()) {
+    const mockOrderId = `mock_upgrade_${startup.id.slice(0, 8)}_${targetPlan}`;
+    const [existing] = await db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.startupId, startup.id),
+          eq(payments.kind, "upgrade"),
+          eq(payments.status, "created")
+        )
+      )
+      .limit(1);
+
+    if (
+      existing &&
+      existing.currency === targetCurrency &&
+      existing.amountCents === upgradePriceCents &&
+      existing.plan === targetPlan
+    ) {
+      return {
+        orderId: existing.razorpayOrderId,
+        amount: existing.amountCents,
+        currency: existing.currency,
+        keyId: "mock_key_id",
+        paymentRequired: false,
+        plan: targetPlan,
+        kind: "upgrade",
+      };
+    }
+
+    if (existing) {
+      await db
+        .update(payments)
+        .set({ status: "failed" })
+        .where(
+          and(
+            eq(payments.id, existing.id),
+            eq(payments.kind, "upgrade"),
+            eq(payments.status, "created")
+          )
+        );
+    }
+
+    await db.insert(payments).values({
+      startupId: startup.id,
+      userId,
+      razorpayOrderId: mockOrderId,
+      amountCents: upgradePriceCents,
+      currency: targetCurrency,
+      plan: targetPlan,
+      kind: "upgrade",
+      status: "created",
+    });
+
+    return {
+      orderId: mockOrderId,
+      amount: upgradePriceCents,
+      currency: targetCurrency,
+      keyId: "mock_key_id",
+      paymentRequired: false,
+      plan: targetPlan,
+      kind: "upgrade",
+    };
+  }
+
+  // Razorpay mode
+  const [existingOrder] = await db
+    .select()
+    .from(payments)
+    .where(
+      and(
+        eq(payments.startupId, startupId),
+        eq(payments.kind, "upgrade"),
+        eq(payments.status, "created")
+      )
+    )
+    .limit(1);
+
+  const { keyId } = getRazorpayCredentials();
+
+  if (existingOrder) {
+    let orderToReuse: Awaited<ReturnType<typeof fetchRazorpayOrder>> = null;
+    let isInvalidOrStale = false;
+
+    if (
+      existingOrder.currency !== targetCurrency ||
+      existingOrder.amountCents !== upgradePriceCents ||
+      existingOrder.plan !== targetPlan
+    ) {
+      isInvalidOrStale = true;
+    }
+
+    try {
+      const fetchedOrder = await fetchRazorpayOrder(existingOrder.razorpayOrderId);
+      if (!fetchedOrder) {
+        isInvalidOrStale = true;
+      } else if (
+        fetchedOrder.status === "paid" ||
+        (fetchedOrder.amount_paid ?? 0) > 0
+      ) {
+        const orderPayments = await fetchRazorpayOrderPayments(existingOrder.razorpayOrderId);
+        const capturedPayment = orderPayments.find((p) => p.status === "captured") || orderPayments[0];
+        await markPaymentPaid({
+          razorpayOrderId: existingOrder.razorpayOrderId,
+          razorpayPaymentId: capturedPayment?.id,
+        });
+        throw new Error(
+          "We've received your upgrade payment. Your plan has been updated."
+        );
+      } else if (
+        fetchedOrder.status === "expired" ||
+        fetchedOrder.status === "cancelled"
+      ) {
+        isInvalidOrStale = true;
+      } else if (!isInvalidOrStale) {
+        orderToReuse = fetchedOrder;
+      }
+    } catch (err: unknown) {
+      throw err;
+    }
+
+    if (!isInvalidOrStale && orderToReuse) {
+      return {
+        orderId: existingOrder.razorpayOrderId,
+        amount: existingOrder.amountCents,
+        currency: existingOrder.currency,
+        keyId,
+        paymentRequired: true,
+        plan: targetPlan,
+        kind: "upgrade",
+      };
+    }
+
+    await db
+      .update(payments)
+      .set({ status: "failed" })
+      .where(
+        and(
+          eq(payments.id, existingOrder.id),
+          eq(payments.kind, "upgrade"),
+          eq(payments.status, "created")
+        )
+      );
+  }
+
+  const order = await createRazorpayOrder({
+    amountCents: upgradePriceCents,
+    currency: targetCurrency,
+    receipt: startup.id,
+    notes: {
+      startup_id: startup.id,
+      user_id: userId,
+      plan: targetPlan,
+      kind: "upgrade",
+      from_plan: currentEffectivePlan,
+    } as { startup_id: string; user_id: string; plan?: string },
+  });
+
+  await db.insert(payments).values({
+    startupId: startup.id,
+    userId,
+    razorpayOrderId: order.id,
+    amountCents: upgradePriceCents,
+    currency: targetCurrency,
+    plan: targetPlan,
+    kind: "upgrade",
+    status: "created",
+  });
+
+  return {
+    orderId: order.id,
+    amount: upgradePriceCents,
+    currency: targetCurrency,
+    keyId,
+    paymentRequired: true,
+    plan: targetPlan,
+    kind: "upgrade",
   };
 }
 
@@ -378,6 +680,51 @@ export async function markPaymentPaid(params: {
       })
       .where(eq(payments.id, payment.id))
       .returning();
+
+    // If upgrade payment: do NOT touch startup status, do NOT send submission email
+    if (payment.kind === "upgrade") {
+      let fromPlan: string | undefined = undefined;
+      const otherPaid = await tx
+        .select({ plan: payments.plan })
+        .from(payments)
+        .where(
+          and(
+            eq(payments.startupId, payment.startupId),
+            inArray(payments.status, ["paid", "partially_refunded"]),
+            sql`${payments.id} != ${payment.id}`
+          )
+        );
+
+      let highestRank = 0;
+      for (const p of otherPaid) {
+        const pk = isPlanKey(p.plan) ? p.plan : "basic";
+        const rank = PLAN_RANK[pk] ?? 0;
+        if (rank > highestRank) {
+          highestRank = rank;
+          fromPlan = pk;
+        }
+      }
+
+      await tx.insert(auditLog).values({
+        actorId: payment.userId,
+        action: "payment.upgrade_paid",
+        targetType: "startup",
+        targetId: payment.startupId,
+        metadata: {
+          payment_id: updatedPayment.id,
+          razorpay_order_id: razorpayOrderId,
+          razorpay_payment_id: razorpayPaymentId || payment.razorpayPaymentId,
+          amount_cents: payment.amountCents,
+          currency: payment.currency,
+          webhook_event_id: webhookEventId,
+          plan: payment.plan,
+          from_plan: fromPlan || null,
+          kind: "upgrade",
+        },
+      });
+
+      return { success: true, startupId: payment.startupId, emailData: null };
+    }
 
     // 4. Move startup from awaiting_payment -> pending
     const [updatedStartup] = await tx
@@ -704,9 +1051,9 @@ export async function processPaymentRefund(params: {
 
     let startupRejected = false;
 
-    // 5. ONLY automatically reject the startup if it is a FULL refund!
-    // Never reject solely because a partial refund occurred.
-    if (isFullRefund) {
+    // 5. ONLY automatically reject the startup if it is a FULL refund of a LISTING payment!
+    // Never reject solely because a partial refund occurred or if the refunded payment was an upgrade.
+    if (isFullRefund && payment.kind !== "upgrade") {
       const [startup] = await tx
         .select({ id: startups.id, status: startups.status })
         .from(startups)
