@@ -170,7 +170,7 @@ describe("SubmitStartupForm feedback & error handling", () => {
 
     const submitBtn = screen.getByRole("button", { name: /Pay & Choose Plan|Choose Plan/i });
     fireEvent.click(submitBtn);
-    const selectPlanBtn = screen.getByRole("button", { name: /Choose Basic Listing plan/i });
+    const selectPlanBtn = screen.getByRole("button", { name: /Choose Startup Listing plan/i });
     fireEvent.click(selectPlanBtn);
 
     await waitFor(() => {
@@ -191,7 +191,7 @@ describe("SubmitStartupForm feedback & error handling", () => {
 
     const submitBtn = screen.getByRole("button", { name: /Pay & Choose Plan|Choose Plan/i });
     fireEvent.click(submitBtn);
-    const selectPlanBtn = screen.getByRole("button", { name: /Choose Basic Listing plan/i });
+    const selectPlanBtn = screen.getByRole("button", { name: /Choose Startup Listing plan/i });
     fireEvent.click(selectPlanBtn);
 
     await waitFor(() => {
@@ -225,7 +225,7 @@ describe("SubmitStartupForm feedback & error handling", () => {
 
     const submitBtn = screen.getByRole("button", { name: /Pay & Choose Plan|Choose Plan/i });
     fireEvent.click(submitBtn);
-    const selectPlanBtn = screen.getByRole("button", { name: /Choose Basic Listing plan/i });
+    const selectPlanBtn = screen.getByRole("button", { name: /Choose Startup Listing plan/i });
     fireEvent.click(selectPlanBtn);
 
     await waitFor(() => {

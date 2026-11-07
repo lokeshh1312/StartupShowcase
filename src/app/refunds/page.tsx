@@ -65,13 +65,13 @@ export default function RefundsPage() {
               1. Service and Price
             </h2>
             <p>
-              The standard fee is a <strong>one-time listing fee based on the plan you choose: Basic Listing ($9), Investor Connect ($199) or Investor Ready ($999), paid in USD by international card, as displayed on our pricing and checkout pages</strong>.
+              The standard fee is a <strong>one-time listing fee based on the plan you choose: Startup Listing ($9), Investor Connect ($199) or Investor Ready+Connect ($999), paid in USD by international card, as displayed on our pricing and checkout pages</strong>.
             </p>
             <p>
               The service includes the submission and review of one startup profile for potential publication. It is a digital service; no physical product is shipped.
             </p>
             <p>
-              Investor Connect and Investor Ready include additional services delivered by our team. If your submission is rejected, you receive a full refund. Once we have started delivering these additional services, the fee for them is non-refundable.
+              Investor Connect and Investor Ready+Connect include additional services delivered by our team. If your submission is rejected, you receive a full refund. Once we have started delivering these additional services, the fee for them is non-refundable.
             </p>
           </section>
 

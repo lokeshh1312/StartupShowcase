@@ -88,7 +88,7 @@ export default function TermsPage() {
               3. Startup Submissions
             </h2>
             <p>
-              The standard startup submission fee is a <strong>one-time listing fee based on the plan you choose: Basic Listing ($9), Investor Connect ($199) or Investor Ready ($999), paid in USD by international card, as displayed on our pricing and checkout pages</strong>.
+              The standard startup submission fee is a <strong>one-time listing fee based on the plan you choose: Startup Listing ($9), Investor Connect ($199) or Investor Ready+Connect ($999), paid in USD by international card, as displayed on our pricing and checkout pages</strong>.
             </p>
             <p>
               Each paid submission covers one startup profile and its review for potential publication.

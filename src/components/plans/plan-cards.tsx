@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Check, Sparkles, ArrowRight } from "lucide-react";
-import { PLANS, PLAN_KEYS, type PlanKey } from "@/lib/plans";
+import { PLANS, PLAN_DISPLAY_ORDER, type PlanKey } from "@/lib/plans";
 
 export interface PlanCardsProps {
   onSelect?: (planKey: PlanKey) => void;
@@ -24,7 +24,7 @@ export function PlanCards({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch w-full">
-      {PLAN_KEYS.map((key) => {
+      {PLAN_DISPLAY_ORDER.map((key) => {
         const plan = PLANS[key];
         const isHighlighted = Boolean(plan.highlighted);
         const isPending = pendingPlan === key;

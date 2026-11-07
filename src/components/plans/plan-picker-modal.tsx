@@ -35,7 +35,7 @@ export function PlanPickerModal({
       onClose={onClose}
       title={title}
       subtitle={subtitle}
-      maxWidth="max-w-4xl"
+      maxWidth="max-w-5xl"
       hideOkButton={true}
       showCloseButton={true}
       contentClassName="max-h-[90vh] overflow-y-auto"

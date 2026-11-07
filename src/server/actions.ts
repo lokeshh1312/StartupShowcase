@@ -233,7 +233,7 @@ export async function submitStartupAction(rawData: unknown, plan?: unknown) {
   if (rawPlan !== undefined) {
     const parsedPlan = planEnumSchema.safeParse(rawPlan);
     if (!parsedPlan.success) {
-      return { error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready." };
+      return { error: "Invalid listing plan selected. Please choose Startup Listing, Investor Connect, or Investor Ready+Connect." };
     }
     targetPlan = parsedPlan.data;
   }
@@ -306,7 +306,7 @@ export async function getStartupPaymentOrderAction(startupId: string, plan?: unk
   if (plan !== undefined) {
     const parsedPlan = planEnumSchema.safeParse(plan);
     if (!parsedPlan.success) {
-      return { error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready." };
+      return { error: "Invalid listing plan selected. Please choose Startup Listing, Investor Connect, or Investor Ready+Connect." };
     }
     targetPlan = parsedPlan.data;
   }

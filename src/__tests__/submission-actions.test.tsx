@@ -75,7 +75,7 @@ describe("SubmissionActions Component - Plan Selection & Payment Flow", () => {
 
     // Plan picker modal should appear
     expect(screen.getByText("Choose your listing plan")).toBeDefined();
-    const selectBasicBtn = screen.getByRole("button", { name: /Choose Basic Listing plan/i });
+    const selectBasicBtn = screen.getByRole("button", { name: /Choose Startup Listing plan/i });
     fireEvent.click(selectBasicBtn);
 
     expect(getOrderSpy).toHaveBeenCalledWith("draft-1", "basic");
@@ -97,7 +97,7 @@ describe("SubmissionActions Component - Plan Selection & Payment Flow", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /^Pay$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Choose Basic Listing plan/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Choose Startup Listing plan/i }));
 
     await waitFor(() => {
       const dialog = screen.getByRole("dialog");
@@ -135,7 +135,7 @@ describe("SubmissionActions Component - Plan Selection & Payment Flow", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /^Pay$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Choose Basic Listing plan/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Choose Startup Listing plan/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeDefined();
@@ -166,7 +166,7 @@ describe("SubmissionActions Component - Plan Selection & Payment Flow", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /^Pay$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Choose Basic Listing plan/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Choose Startup Listing plan/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeDefined();
@@ -234,7 +234,7 @@ describe("SubmissionActions Component - Plan Selection & Payment Flow", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /^Pay$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /Choose Basic Listing plan/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Choose Startup Listing plan/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeDefined();

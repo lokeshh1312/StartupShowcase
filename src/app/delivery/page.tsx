@@ -64,7 +64,7 @@ export default function DeliveryPage() {
               1. What We Deliver
             </h2>
             <p>
-              For a one-time listing fee based on the plan you choose: Basic Listing ($9), Investor Connect ($199) or Investor Ready ($999), paid in USD by international card, as displayed on our pricing and checkout pages, the service includes:
+              For a one-time listing fee based on the plan you choose: Startup Listing ($9), Investor Connect ($199) or Investor Ready+Connect ($999), paid in USD by international card, as displayed on our pricing and checkout pages, the service includes:
             </p>
             <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
               <li>Receipt of one startup submission.</li>
