@@ -4,6 +4,7 @@ import Image from "next/image";
 import { StartupLogo } from "@/components/common/startup-logo";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { VoteButton } from "@/components/startup/vote-button";
+import { CountryFlag } from "@/components/common/country-flag";
 import { MapPin, ChevronRight, Image as ImageIcon } from "lucide-react";
 import { getCountryName } from "@/lib/validation";
 import { isAllowedImageUrl } from "@/lib/images";
@@ -54,160 +55,253 @@ export function LeaderboardTable({
   }
 
   return (
-    <div className="w-full lg:rounded-3xl lg:border lg:border-slate-200/90 lg:dark:border-white/10 lg:bg-white/90 lg:dark:bg-white/[0.03] lg:shadow-xs lg:backdrop-blur-md overflow-hidden">
-      {/* Scrollable Container (harmless fallback wrapper; mobile renders stacked cards) */}
-      <div className="overflow-x-auto">
-        <table className="max-lg:block w-full max-lg:min-w-0 lg:min-w-[880px] border-collapse text-left">
-          <thead className="max-lg:sr-only">
-            <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/70 dark:bg-white/[0.02] text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase">
-              <th scope="col" className="py-3.5 px-2 w-24 text-center">
-                Logo
-              </th>
-              <th scope="col" className="py-3.5 px-2 w-24 text-center">
-                Image
-              </th>
-              <th scope="col" className="py-3.5 px-3 min-w-[200px]">
-                Startup Idea
-              </th>
-              <th scope="col" className="py-3.5 px-2.5 w-32">
-                Category
-              </th>
-              <th scope="col" className="py-3.5 px-2.5 w-32">
-                Country
-              </th>
-              <th scope="col" className="py-3.5 px-2.5 w-28">
-                Stage
-              </th>
-              <th scope="col" className="py-3.5 pl-2 pr-6 w-28 text-right">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="max-lg:flex max-lg:flex-col max-lg:gap-3.5 sm:max-lg:gap-4 max-lg:p-0 divide-y-0 lg:divide-y divide-slate-100 dark:divide-white/5 text-sm">
-            {startups.map((startup, index) => {
-              const rank = startup.rank || index + 1;
-              const country = getCountryName(startup.countryCode);
-              const rawImage = startup.coverImage || startup.thumbnail;
-              const hasImage = Boolean(rawImage && isAllowedImageUrl(rawImage));
-              const gradientClass =
-                fallbackGradients[index % fallbackGradients.length];
+    <>
+      {/* Mobile Layout (< lg): BetaList-style edge-to-edge cards */}
+      <ul className="lg:hidden -mx-4 sm:-mx-6 flex flex-col gap-2">
+        {startups.map((startup, index) => {
+          const rank = startup.rank || index + 1;
+          const rawImage = startup.coverImage || startup.thumbnail;
+          const hasImage = Boolean(rawImage && isAllowedImageUrl(rawImage));
+          const gradientClass =
+            fallbackGradients[index % fallbackGradients.length];
 
-              return (
-                <tr
-                  key={startup.id}
-                  className="group relative transition-colors max-lg:flex max-lg:flex-wrap max-lg:items-start max-lg:p-4 sm:max-lg:p-5 max-lg:rounded-2xl sm:max-lg:rounded-3xl max-lg:border max-lg:border-slate-200/90 max-lg:dark:border-white/10 max-lg:bg-white/90 max-lg:dark:bg-white/[0.03] max-lg:shadow-sm max-lg:dark:shadow-none max-lg:backdrop-blur-md hover:bg-slate-50/70 dark:hover:bg-white/[0.03]"
+          return (
+            <li
+              key={`m-${startup.id}`}
+              className="w-full py-3 px-4 border-y border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] backdrop-blur-md transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.05]"
+            >
+              <div className="grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-2 items-start">
+                {/* LEFT: Startup Image (w-12 h-12) */}
+                <Link
+                  href={`/startup/${startup.slug}`}
+                  className="col-start-1 row-start-1 relative w-12 h-12 rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  aria-label={`${startup.name} image`}
                 >
-                  {/* Logo + Name underneath ("<rank>. <name>") */}
-                  <td className="py-4 px-2 w-24 text-center align-top max-lg:order-1 max-lg:flex max-lg:items-center max-lg:flex-1 max-lg:p-0 max-lg:min-w-0 max-lg:border-0">
-                    <Link
-                      href={`/startup/${startup.slug}`}
-                      className="inline-flex max-lg:flex-row max-lg:items-center max-lg:gap-2.5 lg:flex-col lg:items-center lg:gap-1.5 group/logo focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-0.5 max-w-full"
-                    >
-                      <StartupLogo
-                        name={startup.name}
-                        category={startup.category}
-                        logoType={startup.logoType}
-                        logoColor={startup.logoColor}
-                        size="sm"
-                      />
-                      <span
-                        title={`${rank}. ${startup.name}`}
-                        className="text-xs sm:text-sm lg:text-[11px] font-bold lg:font-semibold text-slate-900 dark:text-white lg:text-slate-700 lg:dark:text-slate-300 line-clamp-2 break-words max-w-[180px] sm:max-w-[260px] lg:max-w-[96px] group-hover/logo:text-brand-600 dark:group-hover/logo:text-brand-400 transition-colors text-left lg:text-center"
-                      >
-                        {rank}. {startup.name}
-                      </span>
-                    </Link>
-                  </td>
-
-                  {/* Startup Image Thumbnail (w-20 h-14, sizes="80px") */}
-                  <td className="py-4 px-2 w-24 text-center align-top max-lg:order-2 max-lg:p-0 max-lg:shrink-0 max-lg:ml-auto max-lg:border-0">
-                    <Link
-                      href={`/startup/${startup.slug}`}
-                      className="inline-block relative w-20 h-14 rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs hover:scale-105 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                    >
-                      {hasImage ? (
-                        <Image
-                          src={rawImage!}
-                          alt={startup.name}
-                          fill
-                          className="object-cover"
-                          sizes="80px"
-                        />
-                      ) : (
-                        <div
-                          className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${gradientClass} text-white`}
-                        >
-                          <ImageIcon className="w-5 h-5 opacity-90" />
-                        </div>
-                      )}
-                    </Link>
-                  </td>
-
-                  {/* Startup Idea Title + Full Description */}
-                  <td className="py-4 px-3 align-top max-lg:order-3 max-lg:w-full max-lg:p-0 max-lg:mt-3 max-lg:border-0">
-                    <Link
-                      href={`/startup/${startup.slug}`}
-                      className="block group/idea focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg"
-                    >
-                      <h4 className="font-bold text-slate-900 dark:text-white group-hover/idea:text-brand-600 dark:group-hover/idea:text-brand-400 transition-colors text-sm sm:text-base lg:text-sm line-clamp-1">
-                        {startup.ideaTitle || startup.name}
-                      </h4>
-                      <p className="text-xs sm:text-sm lg:text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere] mt-1 sm:mt-1.5 leading-relaxed">
-                        {startup.description || startup.tagline}
-                      </p>
-                    </Link>
-                  </td>
-
-                  {/* Category Pill */}
-                  <td className="py-4 px-2.5 w-32 align-top max-lg:order-4 max-lg:p-0 max-lg:w-auto max-lg:mt-3 max-lg:mr-2 max-lg:border-0">
-                    <Badge variant="brand" size="sm">
-                      {startup.category}
-                    </Badge>
-                  </td>
-
-                  {/* Country with Pin Icon */}
-                  <td className="py-4 px-2.5 w-32 align-top text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap max-lg:order-5 max-lg:p-0 max-lg:w-auto max-lg:mt-3 max-lg:mr-2 max-lg:border-0">
+                  {hasImage ? (
+                    <Image
+                      src={rawImage!}
+                      alt={startup.name}
+                      fill
+                      className="object-cover"
+                      sizes="48px"
+                    />
+                  ) : (
                     <div
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 lg:bg-transparent lg:border-0 lg:p-0"
-                      title={country}
+                      className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${gradientClass} text-white`}
                     >
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate max-w-[140px] sm:max-w-none">
-                        {country}
-                      </span>
+                      <ImageIcon className="w-5 h-5 opacity-90" />
                     </div>
-                  </td>
+                  )}
+                </Link>
 
-                  {/* Stage Pill */}
-                  <td className="py-4 px-2.5 w-28 align-top max-lg:order-6 max-lg:p-0 max-lg:w-auto max-lg:mt-3 max-lg:border-0">
-                    <StageBadge stage={startup.stage} />
-                  </td>
+                {/* MIDDLE, Row 1: Startup Name + Flag */}
+                <div className="col-start-2 row-start-1 flex items-center min-w-0 self-center">
+                  <Link
+                    href={`/startup/${startup.slug}`}
+                    className="truncate min-w-0 text-sm font-semibold text-slate-900 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+                  >
+                    {rank}. {startup.name}
+                  </Link>
+                  <CountryFlag
+                    code={startup.countryCode}
+                    className="ml-1.5 shrink-0"
+                  />
+                </div>
 
-                  {/* Like Button + Chevron Link */}
-                  <td className="py-4 pl-2 pr-6 w-28 text-right align-top max-lg:order-7 max-lg:w-full max-lg:p-0 max-lg:pt-3 max-lg:mt-3.5 max-lg:border-t max-lg:border-slate-100 max-lg:dark:border-white/5 max-lg:border-x-0 max-lg:border-b-0">
-                    <div className="flex items-center justify-between lg:justify-end gap-2 relative z-20 w-full">
-                      <VoteButton
-                        startupIdOrSlug={startup.slug}
-                        initialLikes={startup.likes}
-                        initialLiked={startup.isLiked}
-                        startupName={startup.name}
-                        size="sm"
-                      />
+                {/* RIGHT COLUMN: Logo on top, VoteButton directly below, spanning both rows */}
+                <div className="col-start-3 row-span-2 flex flex-col items-end gap-1.5 shrink-0">
+                  <Link
+                    href={`/startup/${startup.slug}`}
+                    className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-0.5"
+                    aria-label={`${startup.name} logo`}
+                  >
+                    <StartupLogo
+                      name={startup.name}
+                      category={startup.category}
+                      logoType={startup.logoType}
+                      logoColor={startup.logoColor}
+                      size="sm"
+                    />
+                  </Link>
+                  <VoteButton
+                    startupIdOrSlug={startup.slug}
+                    initialLikes={startup.likes}
+                    initialLiked={startup.isLiked}
+                    startupName={startup.name}
+                    size="sm"
+                  />
+                </div>
+
+                {/* UNDER Row 1: Description spanning Image and Main columns (cols 1 & 2) */}
+                <Link
+                  href={`/startup/${startup.slug}`}
+                  className="col-start-1 col-span-2 block pr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+                >
+                  <p className="text-xs leading-snug text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                    {startup.description || startup.tagline}
+                  </p>
+                </Link>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* Desktop Layout (>= lg): Preserved <table> wrapped in About-style translucent card */}
+      <div className="hidden lg:block w-full rounded-3xl border border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] shadow-xs backdrop-blur-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[880px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/70 dark:bg-white/[0.02] text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase">
+                <th scope="col" className="py-3.5 px-2 w-24 text-center">
+                  Logo
+                </th>
+                <th scope="col" className="py-3.5 px-2 w-24 text-center">
+                  Image
+                </th>
+                <th scope="col" className="py-3.5 px-3 min-w-[200px]">
+                  Startup Idea
+                </th>
+                <th scope="col" className="py-3.5 px-2.5 w-32">
+                  Category
+                </th>
+                <th scope="col" className="py-3.5 px-2.5 w-32">
+                  Country
+                </th>
+                <th scope="col" className="py-3.5 px-2.5 w-28">
+                  Stage
+                </th>
+                <th scope="col" className="py-3.5 pl-2 pr-6 w-28 text-right">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-sm">
+              {startups.map((startup, index) => {
+                const rank = startup.rank || index + 1;
+                const country = getCountryName(startup.countryCode);
+                const rawImage = startup.coverImage || startup.thumbnail;
+                const hasImage = Boolean(rawImage && isAllowedImageUrl(rawImage));
+                const gradientClass =
+                  fallbackGradients[index % fallbackGradients.length];
+
+                return (
+                  <tr
+                    key={startup.id}
+                    className="group relative transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.03]"
+                  >
+                    {/* Logo + Name underneath ("<rank>. <name>") */}
+                    <td className="py-4 px-2 w-24 text-center align-top">
                       <Link
                         href={`/startup/${startup.slug}`}
-                        className="inline-flex items-center justify-center min-w-[36px] min-h-[36px] p-2 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 rounded-lg transition-colors group-hover:translate-x-0.5"
-                        aria-label={`View details for ${startup.name}`}
+                        className="inline-flex flex-col items-center gap-1.5 group/logo focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-0.5 max-w-full"
                       >
-                        <ChevronRight className="w-4 h-4" />
+                        <StartupLogo
+                          name={startup.name}
+                          category={startup.category}
+                          logoType={startup.logoType}
+                          logoColor={startup.logoColor}
+                          size="sm"
+                        />
+                        <span
+                          title={`${rank}. ${startup.name}`}
+                          className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 line-clamp-2 break-words max-w-[96px] group-hover/logo:text-brand-600 dark:group-hover/logo:text-brand-400 transition-colors text-center"
+                        >
+                          {rank}. {startup.name}
+                        </span>
                       </Link>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+
+                    {/* Startup Image Thumbnail (w-20 h-14, sizes="80px") */}
+                    <td className="py-4 px-2 w-24 text-center align-top">
+                      <Link
+                        href={`/startup/${startup.slug}`}
+                        className="inline-block relative w-20 h-14 rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs hover:scale-105 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      >
+                        {hasImage ? (
+                          <Image
+                            src={rawImage!}
+                            alt={startup.name}
+                            fill
+                            className="object-cover"
+                            sizes="80px"
+                          />
+                        ) : (
+                          <div
+                            className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${gradientClass} text-white`}
+                          >
+                            <ImageIcon className="w-5 h-5 opacity-90" />
+                          </div>
+                        )}
+                      </Link>
+                    </td>
+
+                    {/* Startup Idea Title + Full Description */}
+                    <td className="py-4 px-3 align-top">
+                      <Link
+                        href={`/startup/${startup.slug}`}
+                        className="block group/idea focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg"
+                      >
+                        <h4 className="font-bold text-slate-900 dark:text-white group-hover/idea:text-brand-600 dark:group-hover/idea:text-brand-400 transition-colors text-sm line-clamp-1">
+                          {startup.ideaTitle || startup.name}
+                        </h4>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere] mt-1.5 leading-relaxed">
+                          {startup.description || startup.tagline}
+                        </p>
+                      </Link>
+                    </td>
+
+                    {/* Category Pill */}
+                    <td className="py-4 px-2.5 w-32 align-top">
+                      <Badge variant="brand" size="sm">
+                        {startup.category}
+                      </Badge>
+                    </td>
+
+                    {/* Country with Pin Icon */}
+                    <td className="py-4 px-2.5 w-32 align-top text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                      <div
+                        className="inline-flex items-center gap-1.5"
+                        title={country}
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate">
+                          {country}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Stage Pill */}
+                    <td className="py-4 px-2.5 w-28 align-top">
+                      <StageBadge stage={startup.stage} />
+                    </td>
+
+                    {/* Like Button + Chevron Link */}
+                    <td className="py-4 pl-2 pr-6 w-28 text-right align-top">
+                      <div className="flex items-center justify-end gap-2 relative z-20">
+                        <VoteButton
+                          startupIdOrSlug={startup.slug}
+                          initialLikes={startup.likes}
+                          initialLiked={startup.isLiked}
+                          startupName={startup.name}
+                          size="sm"
+                        />
+                        <Link
+                          href={`/startup/${startup.slug}`}
+                          className="inline-flex items-center justify-center min-w-[36px] min-h-[36px] p-2 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 rounded-lg transition-colors group-hover:translate-x-0.5"
+                          aria-label={`View details for ${startup.name}`}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { ThumbsUp } from "lucide-react";
+import { Heart } from "lucide-react";
 import { voteAction } from "@/server/actions";
 import { useRouter } from "next/navigation";
 
@@ -74,34 +74,38 @@ export function VoteButton({
           : "flex-col gap-0.5 px-3.5 py-2 rounded-xl min-w-[58px] min-h-[36px] text-xs"
       } ${
         liked
-          ? "bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 border border-brand-300 dark:border-brand-700 shadow-xs"
+          ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800 shadow-xs"
           : "bg-white/90 dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 border border-slate-200/90 dark:border-white/10 shadow-2xs"
       } ${className}`}
       title={liked ? "Liked! Click to undo" : "Like this startup"}
       aria-label={`Like ${startupName}, currently ${likes} likes`}
     >
-      <ThumbsUp
+      <Heart
         className={`transition-colors duration-200 ${
           isLarge ? "w-5 h-5" : isSmall ? "w-3.5 h-3.5" : "w-4 h-4"
         } ${
           liked
-            ? "text-brand-600 dark:text-brand-400 fill-current"
+            ? "text-rose-500 dark:text-rose-400 fill-current"
             : "text-slate-400 dark:text-slate-500 fill-none group-hover/vote:text-slate-900 dark:group-hover/vote:text-white"
         }`}
       />
       <span
         className={`font-semibold font-mono tracking-tight ${
-          isLarge ? "text-base font-bold" : isSmall ? "text-[11px]" : "text-xs"
+          isLarge ? "text-sm font-bold" : isSmall ? "text-[10px]" : "text-[11px]"
         } ${
           liked
-            ? "text-brand-600 dark:text-brand-400"
+            ? "text-rose-600 dark:text-rose-400"
             : "text-slate-700 dark:text-slate-300 group-hover/vote:text-slate-900 dark:group-hover/vote:text-white"
         }`}
       >
         {likes}
       </span>
       {isLarge && (
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <span
+          className={`text-[10px] font-bold uppercase tracking-wider ${
+            liked ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"
+          }`}
+        >
           {liked ? "Liked" : "Like"}
         </span>
       )}
