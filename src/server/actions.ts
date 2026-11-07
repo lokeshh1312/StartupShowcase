@@ -39,8 +39,9 @@ import { profiles, auditLog, payments } from "@/db/schema";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrCreateStartupOrder, markPaymentPaid } from "@/server/payments";
 import { verifyPaymentSignature, fetchRazorpayPayment } from "@/server/razorpay";
+import { PLAN_KEYS, type PlanKey, DEFAULT_PLAN } from "@/lib/plans";
 
-const currencyEnumSchema = z.enum(["INR", "USD"]);
+const planEnumSchema = z.enum(PLAN_KEYS);
 
 /**
  * Vote on a startup (authenticated & verified only)
@@ -201,7 +202,7 @@ export async function uploadStartupImageAction(formData: FormData): Promise<
 /**
  * Submit a startup (authenticated verified founders only, protected by CAPTCHA)
  */
-export async function submitStartupAction(rawData: unknown, currency?: unknown) {
+export async function submitStartupAction(rawData: unknown, plan?: unknown) {
   const authData = await getCurrentUserProfile();
   if (!authData) {
     return { error: "unauthenticated" };
@@ -220,21 +221,21 @@ export async function submitStartupAction(rawData: unknown, currency?: unknown) 
     };
   }
 
-  // Validate currency choice (enum INR|USD, default USD)
-  let targetCurrency: "INR" | "USD" = "USD";
-  const rawCurrency =
-    currency !== undefined
-      ? currency
-      : typeof rawData === "object" && rawData !== null && "currency" in rawData
-      ? (rawData as { currency?: unknown }).currency
+  // Validate plan choice (enum basic|investor_connect|investor_ready, default basic)
+  let targetPlan: PlanKey = DEFAULT_PLAN;
+  const rawPlan =
+    plan !== undefined
+      ? plan
+      : typeof rawData === "object" && rawData !== null && "plan" in rawData
+      ? (rawData as { plan?: unknown }).plan
       : undefined;
 
-  if (rawCurrency !== undefined) {
-    const parsedCurrency = currencyEnumSchema.safeParse(rawCurrency);
-    if (!parsedCurrency.success) {
-      return { error: "Invalid payment currency. Please choose either USD or INR." };
+  if (rawPlan !== undefined) {
+    const parsedPlan = planEnumSchema.safeParse(rawPlan);
+    if (!parsedPlan.success) {
+      return { error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready." };
     }
-    targetCurrency = parsedCurrency.data;
+    targetPlan = parsedPlan.data;
   }
 
   try {
@@ -258,7 +259,7 @@ export async function submitStartupAction(rawData: unknown, currency?: unknown) 
     const created = await createStartup(validated, user.id);
 
     // Create or retrieve Razorpay order for this submission
-    const orderInfo = await getOrCreateStartupOrder(created.id, user.id, targetCurrency);
+    const orderInfo = await getOrCreateStartupOrder(created.id, user.id, targetPlan);
 
     // If payment is not required (development only when Razorpay keys are unset)
     if (!orderInfo.paymentRequired) {
@@ -284,6 +285,7 @@ export async function submitStartupAction(rawData: unknown, currency?: unknown) 
         amount: orderInfo.amount,
         currency: orderInfo.currency,
         keyId: orderInfo.keyId,
+        plan: orderInfo.plan,
       },
     };
   } catch (err: unknown) {
@@ -294,23 +296,23 @@ export async function submitStartupAction(rawData: unknown, currency?: unknown) 
 /**
  * Get or resume Razorpay order for an awaiting_payment startup
  */
-export async function getStartupPaymentOrderAction(startupId: string, currency?: unknown) {
+export async function getStartupPaymentOrderAction(startupId: string, plan?: unknown) {
   const authData = await getCurrentUserProfile();
   if (!authData) {
     return { error: "unauthenticated" };
   }
 
-  let targetCurrency: "INR" | "USD" = "USD";
-  if (currency !== undefined) {
-    const parsedCurrency = currencyEnumSchema.safeParse(currency);
-    if (!parsedCurrency.success) {
-      return { error: "Invalid payment currency. Please choose either USD or INR." };
+  let targetPlan: PlanKey = DEFAULT_PLAN;
+  if (plan !== undefined) {
+    const parsedPlan = planEnumSchema.safeParse(plan);
+    if (!parsedPlan.success) {
+      return { error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready." };
     }
-    targetCurrency = parsedCurrency.data;
+    targetPlan = parsedPlan.data;
   }
 
   try {
-    const orderInfo = await getOrCreateStartupOrder(startupId, authData.user.id, targetCurrency);
+    const orderInfo = await getOrCreateStartupOrder(startupId, authData.user.id, targetPlan);
     return { success: true, ...orderInfo };
   } catch (err: unknown) {
     return { error: formatActionError(err) };

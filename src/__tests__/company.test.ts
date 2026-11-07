@@ -1,22 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { legalName, gstin, address, phone, website, getContactEmail } from "@/lib/company";
-import { getSubmissionPriceCents } from "@/server/razorpay";
+import { PLANS } from "@/lib/plans";
 
 describe("Company Details and Pricing Consistency", () => {
-  const originalEnv = process.env.SUBMISSION_PRICE_USD_CENTS;
   const originalEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
 
   beforeEach(() => {
-    delete process.env.SUBMISSION_PRICE_USD_CENTS;
     delete process.env.NEXT_PUBLIC_CONTACT_EMAIL;
   });
 
   afterEach(() => {
-    if (originalEnv !== undefined) {
-      process.env.SUBMISSION_PRICE_USD_CENTS = originalEnv;
-    } else {
-      delete process.env.SUBMISSION_PRICE_USD_CENTS;
-    }
     if (originalEmail !== undefined) {
       process.env.NEXT_PUBLIC_CONTACT_EMAIL = originalEmail;
     } else {
@@ -43,11 +36,10 @@ describe("Company Details and Pricing Consistency", () => {
     expect(getContactEmail()).toBe("custom@example.com");
   });
 
-  it("ensures default SUBMISSION_PRICE_USD_CENTS is exactly 1000 cents (US$10) to match legal text", () => {
-    delete process.env.SUBMISSION_PRICE_USD_CENTS;
-    const priceCents = getSubmissionPriceCents();
-    // Must be exactly 1000 cents ($10.00 USD / US$10)
-    expect(priceCents).toBe(1000);
+  it("ensures fixed USD plans match legal text ($9, $199, $999)", () => {
+    expect(PLANS.basic.priceCents).toBe(900);
+    expect(PLANS.investor_connect.priceCents).toBe(19900);
+    expect(PLANS.investor_ready.priceCents).toBe(99900);
   });
 });
 

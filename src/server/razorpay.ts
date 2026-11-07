@@ -3,73 +3,6 @@ import crypto from "node:crypto";
 export { formatMoney, formatPriceButton, type PaymentCurrency } from "@/lib/money";
 
 /**
- * Returns the configured submission price in USD cents.
- * Authoritative on the server: defaults to 1000 ($10.00 USD).
- * The client never supplies an amount.
- */
-export function getSubmissionPriceCents(): number {
-  const envVal = process.env.SUBMISSION_PRICE_USD_CENTS?.trim();
-  if (envVal) {
-    const parsed = parseInt(envVal, 10);
-    if (!Number.isNaN(parsed) && parsed > 0) {
-      return parsed;
-    }
-  }
-  return 1000;
-}
-
-/**
- * Returns formatted submission price string (e.g. "$10.00 USD").
- */
-export function formatSubmissionPriceUsd(cents: number = getSubmissionPriceCents()): string {
-  return `$${(cents / 100).toFixed(2)} USD`;
-}
-
-/**
- * Returns the configured submission price in INR paise.
- * Authoritative on the server: defaults to 99900 (₹999.00).
- * The client never supplies an amount.
- */
-export function getSubmissionPriceInrPaise(): number {
-  const envVal = process.env.SUBMISSION_PRICE_INR_PAISE?.trim();
-  if (envVal) {
-    const parsed = parseInt(envVal, 10);
-    if (!Number.isNaN(parsed) && parsed > 0) {
-      return parsed;
-    }
-  }
-  return 99900;
-}
-
-/**
- * Returns formatted submission price string in INR (e.g. "₹999.00" using the rupee sign).
- */
-export function formatSubmissionPriceInr(paise: number = getSubmissionPriceInrPaise()): string {
-  return `₹${(paise / 100).toFixed(2)}`;
-}
-
-/**
- * Server-authoritative helper returning amount in minor units and validated currency.
- * Currency is strictly "INR" | "USD", defaulting to "USD".
- */
-export function getSubmissionPrice(currency?: string): {
-  amountMinor: number;
-  currency: "INR" | "USD";
-} {
-  const norm = currency?.toUpperCase();
-  if (norm === "INR") {
-    return {
-      amountMinor: getSubmissionPriceInrPaise(),
-      currency: "INR",
-    };
-  }
-  return {
-    amountMinor: getSubmissionPriceCents(),
-    currency: "USD",
-  };
-}
-
-/**
  * Returns whether Razorpay server credentials are configured.
  */
 export function isRazorpayConfigured(): boolean {
@@ -209,7 +142,7 @@ export interface RazorpayOrderResult {
 export async function createRazorpayOrder(options: {
   amountCents: number;
   receipt: string;
-  notes: { startup_id: string; user_id: string };
+  notes: { startup_id: string; user_id: string; plan?: string };
   currency?: "INR" | "USD" | string;
 }): Promise<RazorpayOrderResult> {
   const { keyId, keySecret } = getRazorpayCredentials();

@@ -25,7 +25,6 @@ describe("Production Environment Validator", () => {
     RAZORPAY_KEY_SECRET: "secret1234567890abcdef",
     RAZORPAY_WEBHOOK_SECRET: "webhooksecret1234567890",
     NEXT_PUBLIC_RAZORPAY_KEY_ID: "rzp_live_1234567890abcd",
-    SUBMISSION_PRICE_USD_CENTS: "1000",
   };
 
   it("passes when all required variables are present", () => {
@@ -63,49 +62,16 @@ describe("Production Environment Validator", () => {
     expect(result.missing).toContain("VIEW_HASH_SECRET");
   });
 
-  it("rejects invalid SUBMISSION_PRICE_USD_CENTS", () => {
-    const invalidPriceEnv = {
+  it("ignores leftover legacy price environment variables gracefully", () => {
+    const leftoverPriceEnv = {
       ...completeEnv,
-      SUBMISSION_PRICE_USD_CENTS: "invalid",
-    };
-
-    const result = validateProductionEnv(invalidPriceEnv);
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain(
-      "SUBMISSION_PRICE_USD_CENTS must be a positive integer (e.g. 1000 for $10.00)"
-    );
-  });
-
-  it("validates optional SUBMISSION_PRICE_INR_PAISE", () => {
-    // Valid positive integer
-    const validInrEnv = {
-      ...completeEnv,
+      SUBMISSION_PRICE_USD_CENTS: "1000",
       SUBMISSION_PRICE_INR_PAISE: "99900",
     };
-    const validResult = validateProductionEnv(validInrEnv);
-    expect(validResult.valid).toBe(true);
 
-    // Invalid string
-    const invalidInrEnv = {
-      ...completeEnv,
-      SUBMISSION_PRICE_INR_PAISE: "abc",
-    };
-    const invalidResult = validateProductionEnv(invalidInrEnv);
-    expect(invalidResult.valid).toBe(false);
-    expect(invalidResult.errors).toContain(
-      "SUBMISSION_PRICE_INR_PAISE must be a positive integer (e.g. 99900 for ₹999.00)"
-    );
-
-    // Non-positive
-    const negativeInrEnv = {
-      ...completeEnv,
-      SUBMISSION_PRICE_INR_PAISE: "0",
-    };
-    const negResult = validateProductionEnv(negativeInrEnv);
-    expect(negResult.valid).toBe(false);
-    expect(negResult.errors).toContain(
-      "SUBMISSION_PRICE_INR_PAISE must be a positive integer (e.g. 99900 for ₹999.00)"
-    );
+    const result = validateProductionEnv(leftoverPriceEnv);
+    expect(result.valid).toBe(true);
+    expect(result.missing).toEqual([]);
   });
 
   it("refuses test keys in production mode unless ALLOW_RAZORPAY_TEST_IN_PRODUCTION is true", () => {
@@ -137,7 +103,7 @@ describe("Production Environment Validator", () => {
     expect(REQUIRED_PRODUCTION_ENV_VARS).toContain("RAZORPAY_KEY_SECRET");
     expect(REQUIRED_PRODUCTION_ENV_VARS).toContain("RAZORPAY_WEBHOOK_SECRET");
     expect(REQUIRED_PRODUCTION_ENV_VARS).toContain("NEXT_PUBLIC_RAZORPAY_KEY_ID");
-    expect(REQUIRED_PRODUCTION_ENV_VARS).toContain("SUBMISSION_PRICE_USD_CENTS");
-    expect(REQUIRED_PRODUCTION_ENV_VARS.length).toBe(19);
+    expect(REQUIRED_PRODUCTION_ENV_VARS).not.toContain("SUBMISSION_PRICE_USD_CENTS");
+    expect(REQUIRED_PRODUCTION_ENV_VARS.length).toBe(18);
   });
 });

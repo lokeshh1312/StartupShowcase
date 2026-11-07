@@ -91,7 +91,7 @@ export default function AboutPage() {
               Startup Submission
             </h2>
             <p>
-              Founders, entrepreneurs, and authorized representatives can submit their startups through our website for a <strong>one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards)</strong>.
+              Founders, entrepreneurs, and authorized representatives can submit their startups through our website for a <strong>one-time listing fee based on the plan you choose: Basic Listing ($9), Investor Connect ($199) or Investor Ready ($999), paid in USD by international card, as displayed on our pricing and checkout pages</strong>.
             </p>
             <p>
               Each submission is subject to our review process. Payment does not automatically guarantee approval or publication.

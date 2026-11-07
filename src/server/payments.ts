@@ -8,13 +8,13 @@ import {
   auditLog,
 } from "@/db/schema";
 import {
-  getSubmissionPrice,
   createRazorpayOrder,
   fetchRazorpayOrder,
   fetchRazorpayOrderPayments,
   isPaymentRequired,
   getRazorpayCredentials,
 } from "@/server/razorpay";
+import { PLANS, isPlanKey, type PlanKey, DEFAULT_PLAN } from "@/lib/plans";
 import { checkRateLimit, RATE_LIMIT_MESSAGE } from "@/server/rate-limit";
 import {
   sendSubmissionReceivedEmail,
@@ -27,6 +27,7 @@ export interface StartupOrderResult {
   currency: string;
   keyId: string;
   paymentRequired: boolean;
+  plan: PlanKey;
 }
 
 /**
@@ -35,17 +36,20 @@ export interface StartupOrderResult {
  * - Startup must be in 'awaiting_payment'
  * - Startup must belong to the user
  * - Max 3 awaiting_payment startups per user
- * - Reuses existing unpaid order for the same startup ONLY if stored currency and amount match current price
- * - Otherwise marks existing unpaid order failed and creates a new one in the requested currency
+ * - Currency is always "USD"
+ * - Amount is authoritative server-side from PLANS[plan].priceCents
+ * - Reuses existing unpaid order for the same startup ONLY if stored currency === "USD", amount === plan price AND stored plan === plan
+ * - Otherwise marks existing unpaid order failed and creates a new one for the requested plan
  * - Rate limit: max 10 order creations per hour per user
  */
 export async function getOrCreateStartupOrder(
   startupId: string,
   userId: string,
-  currency: "INR" | "USD" = "USD"
+  plan: PlanKey = DEFAULT_PLAN
 ): Promise<StartupOrderResult> {
-  const targetCurrency: "INR" | "USD" = currency === "INR" ? "INR" : "USD";
-  const { amountMinor: targetPrice } = getSubmissionPrice(targetCurrency);
+  const targetPlan: PlanKey = isPlanKey(plan) ? plan : DEFAULT_PLAN;
+  const targetPrice = PLANS[targetPlan].priceCents;
+  const targetCurrency = "USD";
 
   const [startup] = await db
     .select({
@@ -72,7 +76,7 @@ export async function getOrCreateStartupOrder(
 
   // If in dev and Razorpay credentials are not configured, payment can be skipped
   if (!isPaymentRequired()) {
-    const mockOrderId = `mock_order_${startup.id.slice(0, 8)}_${targetCurrency.toLowerCase()}`;
+    const mockOrderId = `mock_order_${startup.id.slice(0, 8)}_${targetPlan}`;
     const [existing] = await db
       .select()
       .from(payments)
@@ -84,13 +88,19 @@ export async function getOrCreateStartupOrder(
       )
       .limit(1);
 
-    if (existing && existing.currency === targetCurrency && existing.amountCents === targetPrice) {
+    if (
+      existing &&
+      existing.currency === targetCurrency &&
+      existing.amountCents === targetPrice &&
+      existing.plan === targetPlan
+    ) {
       return {
         orderId: existing.razorpayOrderId,
         amount: existing.amountCents,
         currency: existing.currency,
         keyId: "mock_key_id",
         paymentRequired: false,
+        plan: targetPlan,
       };
     }
 
@@ -107,6 +117,7 @@ export async function getOrCreateStartupOrder(
       razorpayOrderId: mockOrderId,
       amountCents: targetPrice,
       currency: targetCurrency,
+      plan: targetPlan,
       status: "created",
     });
 
@@ -116,6 +127,7 @@ export async function getOrCreateStartupOrder(
       currency: targetCurrency,
       keyId: "mock_key_id",
       paymentRequired: false,
+      plan: targetPlan,
     };
   }
 
@@ -137,8 +149,12 @@ export async function getOrCreateStartupOrder(
     let orderToReuse: Awaited<ReturnType<typeof fetchRazorpayOrder>> = null;
     let isInvalidOrStale = false;
 
-    // Reuse existing unpaid order ONLY if its stored currency and amount match current price
-    if (existingOrder.currency !== targetCurrency || existingOrder.amountCents !== targetPrice) {
+    // Reuse existing unpaid order ONLY if its stored currency, amount, and plan match
+    if (
+      existingOrder.currency !== targetCurrency ||
+      existingOrder.amountCents !== targetPrice ||
+      existingOrder.plan !== targetPlan
+    ) {
       isInvalidOrStale = true;
     }
 
@@ -183,6 +199,7 @@ export async function getOrCreateStartupOrder(
         currency: existingOrder.currency,
         keyId,
         paymentRequired: true,
+        plan: targetPlan,
       };
     }
 
@@ -229,6 +246,7 @@ export async function getOrCreateStartupOrder(
     notes: {
       startup_id: startup.id,
       user_id: userId,
+      plan: targetPlan,
     },
   });
 
@@ -239,6 +257,7 @@ export async function getOrCreateStartupOrder(
     razorpayOrderId: order.id,
     amountCents: targetPrice,
     currency: targetCurrency,
+    plan: targetPlan,
     status: "created",
   });
 
@@ -248,7 +267,51 @@ export async function getOrCreateStartupOrder(
     currency: targetCurrency,
     keyId,
     paymentRequired: true,
+    plan: targetPlan,
   };
+}
+
+/**
+ * Resolves the effective plan for startups in batch.
+ * Definition:
+ * A startup's plan = the plan of its latest payment with status in ('created' for awaiting) / 'paid','partially_refunded','refunded' for history.
+ * For display use: latest payments row for that startup that is paid or partially_refunded; if none, latest 'created' row; else latest refunded; else none.
+ */
+export async function getStartupsPlansMap(
+  startupIds: string[]
+): Promise<Map<string, PlanKey>> {
+  if (!startupIds || startupIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = await db.execute<{
+    startup_id: string;
+    plan: string;
+  }>(sql`
+    SELECT DISTINCT ON (startup_id)
+      startup_id,
+      plan
+    FROM public.payments
+    WHERE startup_id = ANY(${startupIds}::uuid[])
+      AND status IN ('paid', 'partially_refunded', 'created', 'refunded')
+    ORDER BY
+      startup_id,
+      CASE
+        WHEN status IN ('paid', 'partially_refunded') THEN 1
+        WHEN status = 'created' THEN 2
+        WHEN status = 'refunded' THEN 3
+        ELSE 4
+      END ASC,
+      created_at DESC
+  `);
+
+  const map = new Map<string, PlanKey>();
+  for (const row of rows) {
+    if (row.startup_id && isPlanKey(row.plan)) {
+      map.set(row.startup_id, row.plan);
+    }
+  }
+  return map;
 }
 
 /**

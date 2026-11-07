@@ -2,11 +2,13 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, X, ShieldCheck, ExternalLink, Info } from "lucide-react";
+import { Check, X, ShieldCheck, ExternalLink, Info, Sparkles, CheckCircle2 } from "lucide-react";
 import { moderateStartupAction } from "@/server/actions";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { getCountryName } from "@/lib/validation";
 import { formatMoney } from "@/lib/money";
+import { Modal } from "@/components/ui/modal";
+import { getPlan, type PlanKey } from "@/lib/plans";
 
 interface AdminStartupItem {
   id: string;
@@ -26,10 +28,12 @@ interface AdminStartupItem {
   rejectionReason?: string | null;
   monthLabel: string;
   founder?: unknown;
+  founderJson?: unknown;
   paymentAmountCents?: number | null;
   paymentCurrency?: string | null;
   razorpayPaymentId?: string | null;
   paidAt?: Date | null;
+  plan?: PlanKey | null;
   duplicateWarning?: {
     id: string;
     name: string;
@@ -37,6 +41,34 @@ interface AdminStartupItem {
     reason: "domain" | "name_similarity";
     score?: number;
   } | null;
+}
+
+function PlanBadge({ plan, currency }: { plan?: PlanKey | null; currency?: string | null }) {
+  const planKey = plan || "basic";
+  const isHistoricalInr = currency === "INR";
+
+  if (planKey === "investor_ready") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+        <Sparkles className="w-3 h-3 text-amber-500" />
+        <span>Investor Ready $999</span>
+      </span>
+    );
+  }
+
+  if (planKey === "investor_connect") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+        <span>Investor Connect $199</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+      <span>{isHistoricalInr ? "Basic (₹999)" : "Basic $9"}</span>
+    </span>
+  );
 }
 
 interface AuditLogItem {
@@ -68,6 +100,7 @@ export function AdminPanel({
   const [rejectedItems, setRejectedItems] = useState<AdminStartupItem[]>(initialRejected);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectingStartup, setRejectingStartup] = useState<AdminStartupItem | null>(null);
+  const [inspectingStartup, setInspectingStartup] = useState<AdminStartupItem | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -206,6 +239,7 @@ export function AdminPanel({
                       </h3>
                       <StageBadge stage={startup.stage} />
                       <Badge variant="blue">{startup.category}</Badge>
+                      <PlanBadge plan={startup.plan} currency={startup.paymentCurrency} />
                     </div>
                     <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
                       {startup.tagline}
@@ -219,7 +253,7 @@ export function AdminPanel({
                       <span>Cohort: {startup.monthLabel}</span>
                       <span>•</span>
                       <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                        Paid: {formatMoney(startup.paymentAmountCents ?? 1000, startup.paymentCurrency || "USD")}
+                        Paid: {formatMoney(startup.paymentAmountCents ?? 1000, startup.paymentCurrency || "USD")} ({getPlan(startup.plan || "basic").name})
                         {startup.razorpayPaymentId ? ` (ID: ${startup.razorpayPaymentId})` : ""}
                       </span>
                       {startup.websiteUrl && (
@@ -259,6 +293,14 @@ export function AdminPanel({
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setInspectingStartup(startup)}
+                      className="px-3 py-2 rounded-xl border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                    >
+                      <Info className="w-3.5 h-3.5" />
+                      <span>Plan Details</span>
+                    </button>
                     <button
                       onClick={() => setRejectingStartup(startup)}
                       disabled={busyId === startup.id || isPending}
@@ -302,6 +344,7 @@ export function AdminPanel({
                       {startup.name}
                     </h3>
                     <Badge variant="blue">{startup.category}</Badge>
+                    <PlanBadge plan={startup.plan} currency={startup.paymentCurrency} />
                     <span className="text-xs text-slate-400">({startup.monthLabel})</span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
@@ -309,6 +352,14 @@ export function AdminPanel({
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setInspectingStartup(startup)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                  >
+                    <Info className="w-3 h-3" />
+                    <span>Plan Details</span>
+                  </button>
                   <Link
                     href={`/startup/${startup.slug}`}
                     className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
@@ -350,6 +401,7 @@ export function AdminPanel({
                       {startup.name}
                     </h3>
                     <Badge variant="blue">{startup.category}</Badge>
+                    <PlanBadge plan={startup.plan} currency={startup.paymentCurrency} />
                   </div>
                   <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
                     Rejected
@@ -471,6 +523,118 @@ export function AdminPanel({
           </div>
         </div>
       )}
+
+      {/* Plan & Review Detail Modal */}
+      {inspectingStartup && (() => {
+        const planKey = inspectingStartup.plan || "basic";
+        const planMeta = getPlan(planKey);
+        const founderObj = (inspectingStartup.founderJson || inspectingStartup.founder || {}) as {
+          name?: string;
+          role?: string;
+          quote?: string;
+          email?: string;
+        };
+
+        return (
+          <Modal
+            isOpen={Boolean(inspectingStartup)}
+            onClose={() => setInspectingStartup(null)}
+            title={`Review Details: ${inspectingStartup.name}`}
+            subtitle={inspectingStartup.tagline}
+            maxWidth="max-w-2xl"
+          >
+            <div className="space-y-6 pt-2 text-xs">
+              {/* Plan & Fulfilment Section */}
+              <div className="p-4 rounded-2xl bg-brand-50/60 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-900/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
+                      Selected Plan
+                    </span>
+                    <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
+                      {planMeta.name} — ${planMeta.priceCents / 100}
+                    </h4>
+                  </div>
+                  <PlanBadge plan={inspectingStartup.plan} currency={inspectingStartup.paymentCurrency} />
+                </div>
+
+                <div className="space-y-1.5 pt-1">
+                  <p className="font-bold text-slate-800 dark:text-slate-200">
+                    Customer Entitlements / Services:
+                  </p>
+                  <ul className="space-y-1 pl-1">
+                    {planMeta.features.map((feat) => (
+                      <li key={feat} className="flex items-start gap-2 text-slate-700 dark:text-slate-300">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <p className="text-[11px] text-brand-900 dark:text-brand-300 bg-brand-100/60 dark:bg-brand-900/40 p-2.5 rounded-xl border border-brand-200 dark:border-brand-800/60">
+                  Fulfilment of investor services is manual by email. Use the founder email above to reach out.
+                </p>
+              </div>
+
+              {/* Founder Information */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-2">
+                <h5 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider font-mono">
+                  Founder Information
+                </h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700 dark:text-slate-300">
+                  <div>
+                    <span className="text-slate-400">Name:</span> {founderObj.name || "N/A"}
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Role:</span> {founderObj.role || "Founder"}
+                  </div>
+                  {founderObj.email && (
+                    <div className="sm:col-span-2">
+                      <span className="text-slate-400">Email:</span>{" "}
+                      <a href={`mailto:${founderObj.email}`} className="text-brand-600 dark:text-brand-400 underline">
+                        {founderObj.email}
+                      </a>
+                    </div>
+                  )}
+                  {founderObj.quote && (
+                    <div className="sm:col-span-2 italic text-slate-500">
+                      &quot;{founderObj.quote}&quot;
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Payment Info Section */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-2">
+                <h5 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider font-mono">
+                  Payment Verification Record
+                </h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700 dark:text-slate-300">
+                  <div>
+                    <span className="text-slate-400">Plan:</span>{" "}
+                    <span className="font-semibold">{planMeta.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Amount:</span>{" "}
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      {formatMoney(inspectingStartup.paymentAmountCents ?? planMeta.priceCents, inspectingStartup.paymentCurrency || "USD")}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Razorpay Payment ID:</span>{" "}
+                    <span className="font-mono text-[11px]">{inspectingStartup.razorpayPaymentId || "None / N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400">Status:</span>{" "}
+                    <span className="font-semibold capitalize">{inspectingStartup.status}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

@@ -24,7 +24,6 @@ export const REQUIRED_PRODUCTION_ENV_VARS = [
   "RAZORPAY_KEY_SECRET",
   "RAZORPAY_WEBHOOK_SECRET",
   "NEXT_PUBLIC_RAZORPAY_KEY_ID",
-  "SUBMISSION_PRICE_USD_CENTS",
 ] as const;
 
 export type RequiredEnvVar = (typeof REQUIRED_PRODUCTION_ENV_VARS)[number];
@@ -49,18 +48,6 @@ export function validateProductionEnv(
     if (val === undefined || val === null || val.trim() === "") {
       missing.push(varName);
     }
-  }
-
-  // Validate SUBMISSION_PRICE_USD_CENTS is a positive integer
-  const priceVal = env.SUBMISSION_PRICE_USD_CENTS?.trim();
-  if (priceVal && (!/^\d+$/.test(priceVal) || parseInt(priceVal, 10) <= 0)) {
-    errors.push("SUBMISSION_PRICE_USD_CENTS must be a positive integer (e.g. 1000 for $10.00)");
-  }
-
-  // Validate SUBMISSION_PRICE_INR_PAISE is a positive integer if provided
-  const priceInrVal = env.SUBMISSION_PRICE_INR_PAISE?.trim();
-  if (priceInrVal && (!/^\d+$/.test(priceInrVal) || parseInt(priceInrVal, 10) <= 0)) {
-    errors.push("SUBMISSION_PRICE_INR_PAISE must be a positive integer (e.g. 99900 for ₹999.00)");
   }
 
   // Check test key in production

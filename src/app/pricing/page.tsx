@@ -5,11 +5,12 @@ import type { Metadata } from "next";
 import { createMetadata } from "@/lib/seo";
 import { legalName } from "@/lib/company";
 import { CloudBackground } from "@/components/ui/cloud-background";
+import { PlanCards } from "@/components/plans/plan-cards";
 
 export const metadata: Metadata = createMetadata({
-  title: "Pricing & Services | Startup Showcase",
+  title: "Pricing & Plans | Startup Showcase",
   description:
-    "Startup Showcase offers paid startup submission services for founders, entrepreneurs, and authorized representatives worldwide.",
+    "Transparent, founder-friendly listing plans for early-stage startups worldwide. Basic Listing, Investor Connect, and Investor Ready.",
   path: "/pricing",
 });
 
@@ -18,7 +19,7 @@ export default function PricingPage() {
     <div className="relative isolate min-h-screen">
       <CloudBackground height="h-[340px] sm:h-[400px]" />
 
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
         {/* Back button */}
         <div>
           <Link
@@ -31,51 +32,54 @@ export default function PricingPage() {
         </div>
 
         {/* Header */}
-        <div className="space-y-3 pt-2">
-          <div className="flex justify-start">
+        <div className="space-y-3 pt-2 text-center max-w-2xl mx-auto">
+          <div className="flex justify-center">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold tracking-widest uppercase border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 text-slate-700 dark:text-slate-300 shadow-2xs dark:shadow-none">
               <Tag className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-              <span>Services & Rates</span>
+              <span>Transparent Pricing</span>
             </div>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Pricing &amp;{" "}
+            Transparent, founder-friendly{" "}
             <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              Services
+              listing plans
             </em>
           </h1>
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
+            Choose the plan that fits your launch goals. One-time payment, no subscriptions, no hidden fees.
+          </p>
         </div>
 
-        {/* Content */}
+        {/* Three Plan Cards */}
+        <div className="pt-2">
+          <PlanCards mode="pricing" />
+        </div>
+
+        {/* Services & Terms Detail Card */}
         <div className="relative bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 rounded-3xl p-6 sm:p-10 shadow-xs backdrop-blur-md space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
           <section className="space-y-3">
-            <p>
-              Startup Showcase offers paid startup submission services to founders, entrepreneurs, and authorized representatives who want to present their businesses on our platform.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Startup Submission
+              Listing Services &amp; Fulfilment
             </h2>
-            <p className="font-semibold text-slate-900 dark:text-white">
-              Price: one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards) per startup submission
-            </p>
             <p>
-              The fee covers the submission and review of one startup profile for potential publication on Startup Showcase.
+              Startup Showcase offers paid startup submission and investor enablement services to founders, entrepreneurs, and authorized representatives worldwide.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              What&apos;s Included?
+              Our Three Plans
             </h2>
             <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
-              <li>Submission of one startup profile.</li>
-              <li>Review of the information provided.</li>
-              <li>Publication on Startup Showcase if the submission is approved.</li>
-              <li>A startup profile that visitors can discover on our platform.</li>
-              <li>An opportunity to include relevant business information and an official website link, subject to our submission guidelines.</li>
+              <li>
+                <strong>Basic Listing ($9 USD, one time):</strong> Global startup listing, company profile showcase, and global audience visibility on the platform.
+              </li>
+              <li>
+                <strong>Investor Connect ($199 USD, one time):</strong> Everything in Basic, plus investor networking support and 3 investor meetings curated by our team.
+              </li>
+              <li>
+                <strong>Investor Ready ($999 USD, one time):</strong> Everything in Investor Connect, plus investor readiness support, pitch deck, financials &amp; fundraising preparation, and 5 investor meetings.
+              </li>
             </ul>
           </section>
 
@@ -84,38 +88,12 @@ export default function PricingPage() {
               How It Works
             </h2>
             <ol className="list-decimal pl-5 space-y-2 text-slate-700 dark:text-slate-300">
-              <li>Complete the startup submission form.</li>
-              <li>Provide accurate startup and contact information.</li>
-              <li>Pay the one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards).</li>
-              <li>Our team reviews your submission.</li>
-              <li>If approved, your startup profile is published on the platform.</li>
+              <li>Complete the startup submission form with your venture details.</li>
+              <li>Choose your listing plan (Basic, Investor Connect, or Investor Ready).</li>
+              <li>Pay the one-time fee securely in USD via international card through Razorpay.</li>
+              <li>Our team reviews your submission for platform standards.</li>
+              <li>Once approved, your startup is published live. For Investor Connect and Investor Ready tiers, our team reaches out directly by email to coordinate your investor readiness and meetings.</li>
             </ol>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Pricing Details
-            </h2>
-            <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
-              <li>
-                <strong>Price:</strong> one-time listing fee of Rs 999 (INR, via UPI/QR/cards/netbanking) or $10 USD (international cards) per submission.
-              </li>
-              <li>
-                <strong>Currency:</strong> Indian Rupees (INR) or US dollars (USD), as selected on the checkout page.
-              </li>
-              <li>
-                <strong>Service type:</strong> Digital startup submission and review.
-              </li>
-              <li>
-                <strong>Delivery:</strong> Online.
-              </li>
-              <li>
-                <strong>Physical shipping:</strong> Not applicable.
-              </li>
-            </ul>
-            <p>
-              Any applicable taxes or additional charges will be disclosed at checkout before payment.
-            </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
@@ -126,17 +104,14 @@ export default function PricingPage() {
               Payment does not guarantee acceptance, publication, a particular ranking, or any specific level of visibility.
             </p>
             <p>
-              The submission fee does not guarantee investment, fundraising, customer leads, website traffic, sales, or revenue.
-            </p>
-            <p>
-              If a submission is rejected, refund eligibility will be handled according to our{" "}
+              If a submission is rejected by our moderation team, you will receive a full refund in accordance with our{" "}
               <Link
                 href="/refunds"
                 className="text-brand-600 dark:text-brand-400 hover:underline font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
               >
                 Refund &amp; Cancellation Policy
-              </Link>{" "}
-              (refunds are returned to the original payment method in the same currency) and applicable law.
+              </Link>
+              . For higher tiers, once our team has started delivering investor services, that portion is non-refundable.
             </p>
           </section>
 
@@ -145,10 +120,10 @@ export default function PricingPage() {
               Payment Methods
             </h2>
             <p>
-              Payments are accepted through the payment methods displayed at checkout, including Razorpay where available. Transactions are subject to payment-provider verification and processing.
+              Payments are processed securely in USD via international credit/debit card powered by Razorpay. Transactions are subject to payment-provider fraud checks and verification.
             </p>
             <p>
-              For assistance, visit our{" "}
+              For assistance or questions regarding our plans, visit our{" "}
               <Link
                 href="/contact"
                 className="text-brand-600 dark:text-brand-400 hover:underline font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"

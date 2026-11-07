@@ -1,14 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import crypto from "crypto";
 import {
-  getSubmissionPriceCents,
-  getSubmissionPriceInrPaise,
-  formatSubmissionPriceInr,
-  getSubmissionPrice,
   verifyPaymentSignature,
   verifyWebhookSignature,
 } from "@/server/razorpay";
-import { markPaymentPaid, processPaymentRefund, getOrCreateStartupOrder } from "@/server/payments";
+import { markPaymentPaid, processPaymentRefund, getOrCreateStartupOrder, getStartupsPlansMap } from "@/server/payments";
 import { POST as webhookPost } from "@/app/api/webhooks/razorpay/route";
 import { db } from "@/db";
 import { payments, paymentEvents, startups } from "@/db/schema";
@@ -20,42 +16,42 @@ import { deleteStartup } from "@/server/startups";
 import * as razorpayServer from "@/server/razorpay";
 import * as authServer from "@/lib/supabase/server";
 import * as startupsServer from "@/server/startups";
+import { PLANS, PLAN_KEYS, getPlan, isPlanKey, formatPlanPrice, type PlanKey } from "@/lib/plans";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   revalidateTag: vi.fn(),
 }));
 
-describe("Payments - Server-side price enforcement", () => {
-  const originalEnv = process.env.SUBMISSION_PRICE_USD_CENTS;
-
-  afterEach(() => {
-    if (originalEnv !== undefined) {
-      process.env.SUBMISSION_PRICE_USD_CENTS = originalEnv;
-    } else {
-      delete process.env.SUBMISSION_PRICE_USD_CENTS;
-    }
+describe("Payments - Pricing Plans Constants and Helpers", () => {
+  it("defines exact three listing plans with fixed USD cent prices", () => {
+    expect(PLAN_KEYS).toEqual(["basic", "investor_connect", "investor_ready"]);
+    expect(PLANS.basic.priceCents).toBe(900); // $9
+    expect(PLANS.investor_connect.priceCents).toBe(19900); // $199
+    expect(PLANS.investor_ready.priceCents).toBe(99900); // $999
   });
 
-  it("defaults to 1000 cents ($10.00 USD) when SUBMISSION_PRICE_USD_CENTS is unset", () => {
-    delete process.env.SUBMISSION_PRICE_USD_CENTS;
-    expect(getSubmissionPriceCents()).toBe(1000);
+  it("getPlan returns plan metadata and safely defaults to basic for unknown keys", () => {
+    expect(getPlan("basic").name).toBe("Basic Listing");
+    expect(getPlan("investor_connect").name).toBe("Investor Connect");
+    expect(getPlan("investor_ready").name).toBe("Investor Ready");
+    expect(getPlan("unknown" as PlanKey).name).toBe("Basic Listing");
+    expect(getPlan(undefined as unknown as PlanKey).name).toBe("Basic Listing");
   });
 
-  it("reads positive integer amount from SUBMISSION_PRICE_USD_CENTS", () => {
-    process.env.SUBMISSION_PRICE_USD_CENTS = "1500";
-    expect(getSubmissionPriceCents()).toBe(1500);
+  it("isPlanKey validates plan keys correctly", () => {
+    expect(isPlanKey("basic")).toBe(true);
+    expect(isPlanKey("investor_connect")).toBe(true);
+    expect(isPlanKey("investor_ready")).toBe(true);
+    expect(isPlanKey("pro")).toBe(false);
+    expect(isPlanKey("INR")).toBe(false);
+    expect(isPlanKey(null)).toBe(false);
   });
 
-  it("falls back to 1000 if SUBMISSION_PRICE_USD_CENTS is invalid or non-positive", () => {
-    process.env.SUBMISSION_PRICE_USD_CENTS = "invalid";
-    expect(getSubmissionPriceCents()).toBe(1000);
-
-    process.env.SUBMISSION_PRICE_USD_CENTS = "-500";
-    expect(getSubmissionPriceCents()).toBe(1000);
-
-    process.env.SUBMISSION_PRICE_USD_CENTS = "0";
-    expect(getSubmissionPriceCents()).toBe(1000);
+  it("formatPlanPrice formats plan price in USD", () => {
+    expect(formatPlanPrice(PLANS.basic)).toBe("$9");
+    expect(formatPlanPrice(PLANS.investor_connect)).toBe("$199");
+    expect(formatPlanPrice(PLANS.investor_ready)).toBe("$999");
   });
 });
 
@@ -299,6 +295,7 @@ interface MockPaymentRecord {
   amountCents: number;
   amountRefundedCents: number;
   currency: string;
+  plan?: string;
   status: "created" | "paid" | "failed" | "refunded" | "partially_refunded";
   webhookEventId: string | null;
   paidAt?: Date | null;
@@ -1235,6 +1232,7 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
     amountCents: number;
     amountRefundedCents: number;
     currency: string;
+    plan?: string;
     status: string;
     razorpayOrderId: string;
     razorpayPaymentId: string | null;
@@ -1254,9 +1252,10 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
         id: "pay_row_1",
         startupId: "startup_test_1",
         userId: "user_test_1",
-        amountCents: 1000,
+        amountCents: 900,
         amountRefundedCents: 0,
         currency: "USD",
+        plan: "basic",
         status: "created",
         razorpayOrderId: "order_existing_123",
         razorpayPaymentId: null,
@@ -1368,6 +1367,7 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
           amountCents: vals.amountCents as number,
           amountRefundedCents: 0,
           currency: (vals.currency as string) || "USD",
+          plan: (vals.plan as string) || "basic",
           status: (vals.status as string) || "created",
           razorpayOrderId: vals.razorpayOrderId as string,
           razorpayPaymentId: null,
@@ -1389,7 +1389,7 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
   it("reuses existing unpaid order if fetchRazorpayOrder returns valid open order", async () => {
     vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
       id: "order_existing_123",
-      amount: 1000,
+      amount: 900,
       currency: "USD",
       status: "created",
       amount_paid: 0,
@@ -1400,7 +1400,7 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
     const result = await getOrCreateStartupOrder("startup_test_1", "user_test_1");
 
     expect(result.orderId).toBe("order_existing_123");
-    expect(result.amount).toBe(1000);
+    expect(result.amount).toBe(900);
     expect(result.currency).toBe("USD");
     expect(createSpy).not.toHaveBeenCalled();
     expect(mockPaymentRows[0]?.status).toBe("created");
@@ -1411,7 +1411,7 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
 
     const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
       id: "order_new_456",
-      amount: 1000,
+      amount: 900,
       currency: "USD",
       status: "created",
     });
@@ -1423,12 +1423,13 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
 
     // New order created via Razorpay with USD and server-set amount
     expect(createSpy).toHaveBeenCalledWith({
-      amountCents: 1000,
+      amountCents: 900,
       currency: "USD",
       receipt: "startup_test_1",
       notes: {
         startup_id: "startup_test_1",
         user_id: "user_test_1",
+        plan: "basic",
       },
     });
 
@@ -1440,7 +1441,7 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
   it("replaces expired or cancelled order: marks old payment failed and creates brand new order", async () => {
     vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
       id: "order_existing_123",
-      amount: 1000,
+      amount: 900,
       currency: "USD",
       status: "expired",
       amount_paid: 0,
@@ -1448,7 +1449,7 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
 
     vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
       id: "order_new_789",
-      amount: 1000,
+      amount: 900,
       currency: "USD",
       status: "created",
     });
@@ -1462,10 +1463,10 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
   it("when fetchRazorpayOrder returns status 'paid', calls markPaymentPaid, does not create new order, and throws friendly message", async () => {
     vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue({
       id: "order_existing_123",
-      amount: 1000,
+      amount: 900,
       currency: "USD",
       status: "paid",
-      amount_paid: 1000,
+      amount_paid: 900,
     });
 
     const fetchPaymentsSpy = vi.spyOn(razorpayServer, "fetchRazorpayOrderPayments").mockResolvedValue([
@@ -1639,60 +1640,7 @@ describe("Payments - Order Reuse, Replacement, and Failed Row Transitions", () =
 
 
 
-describe("Payments - INR Price helpers, formatMoney, and getSubmissionPrice", () => {
-  const originalInrEnv = process.env.SUBMISSION_PRICE_INR_PAISE;
-  const originalUsdEnv = process.env.SUBMISSION_PRICE_USD_CENTS;
-
-  afterEach(() => {
-    if (originalInrEnv !== undefined) {
-      process.env.SUBMISSION_PRICE_INR_PAISE = originalInrEnv;
-    } else {
-      delete process.env.SUBMISSION_PRICE_INR_PAISE;
-    }
-    if (originalUsdEnv !== undefined) {
-      process.env.SUBMISSION_PRICE_USD_CENTS = originalUsdEnv;
-    } else {
-      delete process.env.SUBMISSION_PRICE_USD_CENTS;
-    }
-  });
-
-  it("defaults to 99900 paise (₹999.00) when SUBMISSION_PRICE_INR_PAISE is unset", () => {
-    delete process.env.SUBMISSION_PRICE_INR_PAISE;
-    expect(getSubmissionPriceInrPaise()).toBe(99900);
-  });
-
-  it("reads positive integer amount from SUBMISSION_PRICE_INR_PAISE", () => {
-    process.env.SUBMISSION_PRICE_INR_PAISE = "149900";
-    expect(getSubmissionPriceInrPaise()).toBe(149900);
-  });
-
-  it("falls back to 99900 if SUBMISSION_PRICE_INR_PAISE is invalid or non-positive", () => {
-    process.env.SUBMISSION_PRICE_INR_PAISE = "invalid";
-    expect(getSubmissionPriceInrPaise()).toBe(99900);
-
-    process.env.SUBMISSION_PRICE_INR_PAISE = "-500";
-    expect(getSubmissionPriceInrPaise()).toBe(99900);
-
-    process.env.SUBMISSION_PRICE_INR_PAISE = "0";
-    expect(getSubmissionPriceInrPaise()).toBe(99900);
-  });
-
-  it("formats submission price using the rupee sign in formatSubmissionPriceInr", () => {
-    delete process.env.SUBMISSION_PRICE_INR_PAISE;
-    expect(formatSubmissionPriceInr()).toBe("₹999.00");
-    expect(formatSubmissionPriceInr(150000)).toBe("₹1500.00");
-  });
-
-  it("getSubmissionPrice returns server-computed minor amount and validated currency", () => {
-    delete process.env.SUBMISSION_PRICE_INR_PAISE;
-    delete process.env.SUBMISSION_PRICE_USD_CENTS;
-
-    expect(getSubmissionPrice("INR")).toEqual({ amountMinor: 99900, currency: "INR" });
-    expect(getSubmissionPrice("USD")).toEqual({ amountMinor: 1000, currency: "USD" });
-    // Defaults to USD
-    expect(getSubmissionPrice()).toEqual({ amountMinor: 1000, currency: "USD" });
-  });
-
+describe("Payments - formatMoney and Currency Handling", () => {
   it("formatMoney formats minor units and never prints '$' for INR payments", () => {
     const inrFormatted = formatMoney(99900, "INR");
     expect(inrFormatted).toBe("₹999.00");
@@ -1725,24 +1673,24 @@ describe("Payments - Currency Enum Validation in Server Actions", () => {
     vi.restoreAllMocks();
   });
 
-  it("getStartupPaymentOrderAction rejects non-enum currency ('EUR', numbers, objects)", async () => {
-    const resEur = await getStartupPaymentOrderAction("startup_1", "EUR");
+  it("getStartupPaymentOrderAction rejects non-enum plan ('EUR', 'pro', numbers, objects)", async () => {
+    const resEur = await getStartupPaymentOrderAction("startup_1", "EUR" as unknown as PlanKey);
     expect(resEur).toEqual({
-      error: "Invalid payment currency. Please choose either USD or INR.",
+      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
     });
 
-    const resNum = await getStartupPaymentOrderAction("startup_1", 123);
+    const resNum = await getStartupPaymentOrderAction("startup_1", 123 as unknown as PlanKey);
     expect(resNum).toEqual({
-      error: "Invalid payment currency. Please choose either USD or INR.",
+      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
     });
 
-    const resObj = await getStartupPaymentOrderAction("startup_1", { evil: true });
+    const resObj = await getStartupPaymentOrderAction("startup_1", { evil: true } as unknown as PlanKey);
     expect(resObj).toEqual({
-      error: "Invalid payment currency. Please choose either USD or INR.",
+      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
     });
   });
 
-  it("submitStartupAction rejects non-enum currency ('EUR', numbers, objects)", async () => {
+  it("submitStartupAction rejects non-enum plan ('EUR', 'pro', numbers, objects)", async () => {
     const dummyPayload = {
       name: "Test Startup",
       tagline: "Test Tagline",
@@ -1752,24 +1700,24 @@ describe("Payments - Currency Enum Validation in Server Actions", () => {
       countryCode: "US",
     };
 
-    const resEur = await submitStartupAction(dummyPayload, "EUR");
+    const resEur = await submitStartupAction(dummyPayload, "EUR" as unknown as PlanKey);
     expect(resEur).toEqual({
-      error: "Invalid payment currency. Please choose either USD or INR.",
+      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
     });
 
-    const resNum = await submitStartupAction(dummyPayload, 999);
+    const resNum = await submitStartupAction(dummyPayload, 999 as unknown as PlanKey);
     expect(resNum).toEqual({
-      error: "Invalid payment currency. Please choose either USD or INR.",
+      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
     });
 
-    const resObj = await submitStartupAction(dummyPayload, ["USD"]);
+    const resObj = await submitStartupAction(dummyPayload, ["USD"] as unknown as PlanKey);
     expect(resObj).toEqual({
-      error: "Invalid payment currency. Please choose either USD or INR.",
+      error: "Invalid listing plan selected. Please choose Basic Listing, Investor Connect, or Investor Ready.",
     });
   });
 });
 
-describe("Payments - INR Order Creation and Stale Order Replacement", () => {
+describe("Payments - Plan Order Creation and Stale Order Replacement", () => {
   let mockPaymentRows: MockPaymentRecord[];
   const mockStartup = {
     id: "startup_test_1",
@@ -1784,9 +1732,10 @@ describe("Payments - INR Order Creation and Stale Order Replacement", () => {
         id: "pay_usd_existing",
         startupId: "startup_test_1",
         userId: "user_test_1",
-        amountCents: 1000,
+        amountCents: 900,
         amountRefundedCents: 0,
         currency: "USD",
+        plan: "basic",
         status: "created",
         razorpayOrderId: "order_usd_old",
         razorpayPaymentId: null,
@@ -1852,6 +1801,7 @@ describe("Payments - INR Order Creation and Stale Order Replacement", () => {
           amountCents: vals.amountCents as number,
           amountRefundedCents: 0,
           currency: (vals.currency as string) || "USD",
+          plan: (vals.plan as string) || "basic",
           status: (vals.status as "created" | "paid" | "failed" | "refunded" | "partially_refunded") || "created",
           razorpayOrderId: vals.razorpayOrderId as string,
           razorpayPaymentId: null,
@@ -1870,64 +1820,98 @@ describe("Payments - INR Order Creation and Stale Order Replacement", () => {
     vi.restoreAllMocks();
   });
 
-  it("creates a new INR order when requested and no prior unpaid order exists", async () => {
+  it("creates a new USD order for chosen plan (e.g. investor_connect $199 = 19900 cents) when requested and no prior unpaid order exists", async () => {
     mockPaymentRows = [];
 
     const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
-      id: "order_inr_123",
-      amount: 99900,
-      currency: "INR",
+      id: "order_connect_123",
+      amount: 19900,
+      currency: "USD",
       status: "created",
     });
 
-    const res = await getOrCreateStartupOrder("startup_test_1", "user_test_1", "INR");
+    const res = await getOrCreateStartupOrder("startup_test_1", "user_test_1", "investor_connect");
 
     expect(createSpy).toHaveBeenCalledWith({
-      amountCents: 99900,
-      currency: "INR",
+      amountCents: 19900,
+      currency: "USD",
       receipt: "startup_test_1",
       notes: {
         startup_id: "startup_test_1",
         user_id: "user_test_1",
+        plan: "investor_connect",
       },
     });
 
-    expect(res.orderId).toBe("order_inr_123");
-    expect(res.amount).toBe(99900);
-    expect(res.currency).toBe("INR");
+    expect(res.orderId).toBe("order_connect_123");
+    expect(res.amount).toBe(19900);
+    expect(res.currency).toBe("USD");
   });
 
-  it("replaces existing USD order when user switches to INR (marks USD failed, creates INR)", async () => {
-    // Return null from fetchRazorpayOrder to trigger stale order replacement
+  it("replaces existing Basic order when user switches to Investor Connect (marks Basic failed, creates Investor Connect)", async () => {
     vi.spyOn(razorpayServer, "fetchRazorpayOrder").mockResolvedValue(null);
 
     const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
-      id: "order_inr_new_789",
-      amount: 99900,
-      currency: "INR",
+      id: "order_connect_new_789",
+      amount: 19900,
+      currency: "USD",
       status: "created",
     });
 
-    const res = await getOrCreateStartupOrder("startup_test_1", "user_test_1", "INR");
+    const res = await getOrCreateStartupOrder("startup_test_1", "user_test_1", "investor_connect");
 
-    // Old USD payment must be marked failed
+    // Old Basic payment must be marked failed
     expect(mockPaymentRows[0]?.status).toBe("failed");
-    expect(mockPaymentRows[0]?.currency).toBe("USD");
+    expect(mockPaymentRows[0]?.plan).toBe("basic");
 
-    // New INR order created and returned
+    // New Investor Connect order created and returned
     expect(createSpy).toHaveBeenCalledWith({
-      amountCents: 99900,
-      currency: "INR",
+      amountCents: 19900,
+      currency: "USD",
       receipt: "startup_test_1",
       notes: {
         startup_id: "startup_test_1",
         user_id: "user_test_1",
+        plan: "investor_connect",
       },
     });
 
-    expect(res.orderId).toBe("order_inr_new_789");
+    expect(res.orderId).toBe("order_connect_new_789");
+    expect(res.amount).toBe(19900);
+    expect(res.currency).toBe("USD");
+  });
+
+  it("creates an Investor Ready order with 99900 cents and notes.plan = investor_ready", async () => {
+    mockPaymentRows = [];
+
+    const createSpy = vi.spyOn(razorpayServer, "createRazorpayOrder").mockResolvedValue({
+      id: "order_ready_999",
+      amount: 99900,
+      currency: "USD",
+      status: "created",
+    });
+
+    const res = await getOrCreateStartupOrder("startup_test_1", "user_test_1", "investor_ready");
+
+    expect(createSpy).toHaveBeenCalledWith({
+      amountCents: 99900,
+      currency: "USD",
+      receipt: "startup_test_1",
+      notes: {
+        startup_id: "startup_test_1",
+        user_id: "user_test_1",
+        plan: "investor_ready",
+      },
+    });
+
+    expect(res.orderId).toBe("order_ready_999");
     expect(res.amount).toBe(99900);
-    expect(res.currency).toBe("INR");
+    expect(res.currency).toBe("USD");
+  });
+
+  it("getStartupsPlansMap returns empty map for empty array", async () => {
+    const map = await getStartupsPlansMap([]);
+    expect(map.size).toBe(0);
   });
 });
 

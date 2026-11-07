@@ -37,6 +37,8 @@ import {
   sendSubmissionRejectedEmail,
   fireAndForgetEmail,
 } from "@/server/email";
+import type { PlanKey } from "@/lib/plans";
+import { getStartupsPlansMap } from "@/server/payments";
 
 // Re-export for existing consumers
 export { buildSafePrefixTsQuery } from "@/lib/search";
@@ -64,6 +66,7 @@ export type FormattedStartup = Startup & {
   paymentCurrency?: string | null;
   razorpayPaymentId?: string | null;
   razorpayOrderId?: string | null;
+  plan?: PlanKey | null;
 };
 
 export type PaginatedResult<T> = {
@@ -126,6 +129,7 @@ export function formatStartupRow(row: Record<string, unknown>): FormattedStartup
     paymentCurrency: (row.paymentCurrency ?? row.payment_currency ?? null) as string | null,
     razorpayPaymentId: (row.razorpayPaymentId ?? row.razorpay_payment_id ?? null) as string | null,
     razorpayOrderId: (row.razorpayOrderId ?? row.razorpay_order_id ?? null) as string | null,
+    plan: ((row.plan ?? row.payment_plan) as PlanKey | undefined) ?? null,
   };
 }
 
@@ -1297,6 +1301,7 @@ export async function getMySubmissions(
       payment_currency: string | null;
       razorpay_order_id: string | null;
       razorpay_payment_id: string | null;
+      payment_plan: string | null;
     }
   >(sql`
     SELECT
@@ -1307,7 +1312,8 @@ export async function getMySubmissions(
       p.amount_refunded_cents AS payment_amount_refunded_cents,
       p.currency AS payment_currency,
       p.razorpay_order_id,
-      p.razorpay_payment_id
+      p.razorpay_payment_id,
+      p.plan AS payment_plan
     FROM public.startups
     LEFT JOIN (
       SELECT startup_id, count(*)::int AS count
@@ -1315,10 +1321,18 @@ export async function getMySubmissions(
       GROUP BY startup_id
     ) vote_agg ON vote_agg.startup_id = startups.id
     LEFT JOIN LATERAL (
-      SELECT status, amount_cents, amount_refunded_cents, currency, razorpay_order_id, razorpay_payment_id
+      SELECT status, amount_cents, amount_refunded_cents, currency, razorpay_order_id, razorpay_payment_id, plan
       FROM public.payments
       WHERE public.payments.startup_id = startups.id
-      ORDER BY created_at DESC
+        AND status IN ('paid', 'partially_refunded', 'created', 'refunded')
+      ORDER BY
+        CASE
+          WHEN status IN ('paid', 'partially_refunded') THEN 1
+          WHEN status = 'created' THEN 2
+          WHEN status = 'refunded' THEN 3
+          ELSE 4
+        END ASC,
+        created_at DESC
       LIMIT 1
     ) p ON true
     WHERE startups.owner_id = ${userId}::uuid
@@ -1371,6 +1385,7 @@ export type AdminStartupItem = Startup & {
   paymentCurrency?: string | null;
   razorpayPaymentId?: string | null;
   paidAt?: Date | null;
+  plan?: PlanKey | null;
 };
 
 /**
@@ -1427,6 +1442,9 @@ export async function listAdminStartups(
     .limit(pageSize)
     .offset(offset);
 
+  const startupIds = rows.map(({ startup }) => startup.id);
+  const planMap = await getStartupsPlansMap(startupIds);
+
   const itemsToReturn: AdminStartupItem[] = await Promise.all(
     rows.map(async ({ startup, payment }) => {
       const warning =
@@ -1440,6 +1458,7 @@ export async function listAdminStartups(
         paymentCurrency: payment?.currency ?? null,
         razorpayPaymentId: payment?.razorpayPaymentId ?? null,
         paidAt: payment?.paidAt ? new Date(payment.paidAt) : null,
+        plan: planMap.get(startup.id) ?? null,
       };
     })
   );

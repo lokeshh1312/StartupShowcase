@@ -7,14 +7,15 @@ import { Edit2, Trash2, CreditCard, Sparkles } from "lucide-react";
 import { deleteStartupAction, getStartupPaymentOrderAction, confirmPaymentAction } from "@/server/actions";
 import { openRazorpayCheckout } from "@/lib/razorpay-client";
 import { Modal } from "@/components/ui/modal";
+import { PlanPickerModal } from "@/components/plans/plan-picker-modal";
+import { DEFAULT_PLAN, type PlanKey } from "@/lib/plans";
 
 interface SubmissionActionsProps {
   startupId: string;
   startupName: string;
   slug: string;
   status: string;
-  priceInr?: string;
-  priceUsd?: string;
+  plan?: PlanKey | null;
 }
 
 export function SubmissionActions({
@@ -22,20 +23,20 @@ export function SubmissionActions({
   startupName,
   slug,
   status,
-  priceInr = "Rs 999",
-  priceUsd = "$10",
+  plan,
 }: SubmissionActionsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [isPlanPickerOpen, setIsPlanPickerOpen] = useState(false);
   const [errorModal, setErrorModal] = useState<{ title: string; message: string } | null>(null);
 
-  const handleResumePayment = async (currency: "INR" | "USD" = "USD") => {
+  const handleResumePayment = async (selectedPlan: PlanKey = plan || DEFAULT_PLAN) => {
     setErrorModal(null);
     setPaying(true);
     try {
-      const res = await getStartupPaymentOrderAction(startupId, currency);
+      const res = await getStartupPaymentOrderAction(startupId, selectedPlan);
       if (!res || "error" in res) {
         setErrorModal({
           title: "Payment couldn't start",
@@ -127,26 +128,15 @@ export function SubmissionActions({
     <>
       <div className="flex flex-wrap items-center gap-2">
         {status === "awaiting_payment" && (
-          <>
-            <button
-              type="button"
-              onClick={() => handleResumePayment("INR")}
-              disabled={paying}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
-            >
-              {paying ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
-              <span>{paying ? "Opening Checkout..." : `Pay ${priceInr} (UPI / QR / cards)`}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleResumePayment("USD")}
-              disabled={paying}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
-            >
-              {paying ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
-              <span>{paying ? "Opening Checkout..." : `Pay ${priceUsd} (international card)`}</span>
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => setIsPlanPickerOpen(true)}
+            disabled={paying}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            {paying ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
+            <span>{paying ? "Opening Checkout..." : "Pay"}</span>
+          </button>
         )}
 
         {(status === "pending" || status === "awaiting_payment") && (
@@ -196,6 +186,19 @@ export function SubmissionActions({
         >
           <p>{errorModal.message}</p>
         </Modal>
+      )}
+
+      {status === "awaiting_payment" && (
+        <PlanPickerModal
+          isOpen={isPlanPickerOpen}
+          onClose={() => setIsPlanPickerOpen(false)}
+          selectedPlan={plan || DEFAULT_PLAN}
+          onSelect={(selectedPlanKey) => {
+            setIsPlanPickerOpen(false);
+            handleResumePayment(selectedPlanKey);
+          }}
+          disabled={paying}
+        />
       )}
     </>
   );
