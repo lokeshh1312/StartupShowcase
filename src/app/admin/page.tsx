@@ -4,7 +4,6 @@ import { ShieldCheck } from "lucide-react";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { listAdminStartups, getAdminAuditLog } from "@/server/startups";
 import { AdminPanel } from "@/components/admin/admin-panel";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -35,7 +34,6 @@ export default async function AdminPage() {
 
   return (
     <div className="relative isolate min-h-screen">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         {/* Header */}

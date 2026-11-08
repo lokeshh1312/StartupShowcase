@@ -6,7 +6,6 @@ import { listStartups, getApprovedNonSampleStats } from "@/server/startups";
 import { getCountryName } from "@/lib/validation";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { StartupCard } from "@/components/startup/startup-card";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import {
   createMetadata,
   buildItemListJsonLd,
@@ -69,7 +68,6 @@ export default async function CountryDetailPage({ params }: CountryPageProps) {
   return (
     <div className="relative isolate min-h-screen">
       {/* Decorative Cloud Background */}
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       {/* Structured Data: ItemList & BreadcrumbList */}
       <JsonLd data={itemListJsonLd} />

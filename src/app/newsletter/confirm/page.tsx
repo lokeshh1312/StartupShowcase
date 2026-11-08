@@ -3,7 +3,6 @@ import Link from "next/link";
 import { AlertCircle, Mail, ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import { ConfirmButton } from "./confirm-button";
-import { CloudBackground } from "@/components/ui/cloud-background";
 
 export const metadata: Metadata = {
   title: "Confirm Newsletter Subscription | Startup Showcase",
@@ -24,7 +23,6 @@ export default async function NewsletterConfirmPage({ searchParams }: ConfirmPag
   if (!token || !token.trim()) {
     return (
       <div className="relative isolate min-h-[85vh] flex items-center justify-center px-4 py-12 text-center">
-        <CloudBackground height="h-[340px] sm:h-[400px]" />
 
         <div className="relative w-full max-w-lg p-8 sm:p-10 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 shadow-xs space-y-6 backdrop-blur-md">
           <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400">
@@ -54,7 +52,6 @@ export default async function NewsletterConfirmPage({ searchParams }: ConfirmPag
 
   return (
     <div className="relative isolate min-h-[85vh] flex items-center justify-center px-4 py-12 text-center">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative w-full max-w-lg p-8 sm:p-10 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 shadow-xs space-y-6 backdrop-blur-md">
         <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 text-brand-600 dark:text-brand-400">

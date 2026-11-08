@@ -6,7 +6,6 @@ import { getLeaderboard, listMonths, getApprovedNonSampleStats } from "@/server/
 import { normalizeMonthToDate, formatMonthLabel } from "@/lib/validation";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
 import { MonthSelector } from "@/components/discovery/month-selector";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import {
   createMetadata,
   buildItemListJsonLd,
@@ -83,7 +82,6 @@ export default async function MonthLeaderboardPage({ params }: MonthPageProps) {
   return (
     <div className="relative isolate min-h-screen">
       {/* Decorative Cloud Background */}
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       {/* Structured Data: ItemList & BreadcrumbList */}
       <JsonLd data={itemListJsonLd} />

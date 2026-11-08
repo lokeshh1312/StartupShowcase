@@ -4,7 +4,6 @@ import { ArrowLeft, Tag } from "lucide-react";
 import type { Metadata } from "next";
 import { createMetadata } from "@/lib/seo";
 import { legalName } from "@/lib/company";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import { PlanCards } from "@/components/plans/plan-cards";
 
 export const metadata: Metadata = createMetadata({
@@ -17,7 +16,6 @@ export const metadata: Metadata = createMetadata({
 export default function PricingPage() {
   return (
     <div className="relative isolate min-h-screen">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
         {/* Back button */}

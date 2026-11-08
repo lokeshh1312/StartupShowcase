@@ -78,7 +78,7 @@ export function Footer() {
 
         {/* Bottom Bar: Copyright + Links + Back to top */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-          <p>© {new Date().getFullYear()} Startup Showcase. Built for founders worldwide.</p>
+          <p>© {new Date().getFullYear()} Startup Showcase Global. Built for founders worldwide.</p>
           
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs">
             <Link href="/about" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">

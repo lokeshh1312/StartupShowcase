@@ -6,7 +6,6 @@ import { listStartups, listCategories, listCountries } from "@/server/startups";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { StartupCard } from "@/components/startup/startup-card";
 import { FilterBar } from "@/components/discovery/filter-bar";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import { type Category, type Stage, type SortOption } from "@/lib/validation";
 import { absoluteUrl } from "@/lib/urls";
 import type { Metadata } from "next";
@@ -68,7 +67,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <div className="relative isolate min-h-screen">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         {/* Search Header */}

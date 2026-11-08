@@ -5,7 +5,6 @@ import { Bookmark, ArrowRight } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { getSaved } from "@/server/startups";
 import { StartupCard } from "@/components/startup/startup-card";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -28,7 +27,6 @@ export default async function SavedStartupsPage() {
 
   return (
     <div className="relative isolate min-h-screen">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         {/* Header */}

@@ -26,7 +26,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     >
       <div className="relative w-5 h-5 flex items-center justify-center">
         {/* Moon — visible in light mode, hidden in dark mode */}
-        <Moon className="absolute inset-0 m-auto w-4 h-4 text-cyan-600 transition-transform duration-300 hover:-rotate-12 dark:hidden" />
+        <Moon className="absolute inset-0 m-auto w-4 h-4 text-slate-600 transition-transform duration-300 hover:-rotate-12 dark:hidden" />
         {/* Sun — hidden in light mode, visible in dark mode */}
         <Sun className="absolute inset-0 m-auto w-4 h-4 text-amber-300 transition-transform duration-300 hover:rotate-45 hidden dark:block" />
       </div>
