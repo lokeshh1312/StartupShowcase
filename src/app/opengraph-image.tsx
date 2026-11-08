@@ -1,13 +1,20 @@
 import { ImageResponse } from "next/og";
+import fs from "node:fs/promises";
+import path from "node:path";
 
-export const alt = "Startup Showcase - Discover Emerging Startups";
+export const alt = "Startup Showcase Global - Discover Emerging Startups";
 export const size = {
   width: 1200,
   height: 630,
 };
 export const contentType = "image/png";
 
-export default function Image() {
+export default async function Image() {
+  const logoBuffer = await fs.readFile(
+    path.join(process.cwd(), "public", "logo-mark.png")
+  );
+  const logoDataUri = `data:image/png;base64,${logoBuffer.toString("base64")}`;
+
   return new ImageResponse(
     (
       <div
@@ -18,7 +25,7 @@ export default function Image() {
           flexDirection: "column",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          backgroundColor: "#090d16",
+          backgroundColor: "#ffffff",
           padding: "80px",
           fontFamily: "sans-serif",
         }}
@@ -27,34 +34,28 @@ export default function Image() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "16px",
+            gap: "20px",
           }}
         >
-          <div
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={logoDataUri}
+            alt=""
+            width={68}
+            height={90}
             style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "14px",
-              backgroundColor: "#2563eb",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              fontWeight: 800,
-              fontSize: "26px",
+              objectFit: "contain",
             }}
-          >
-            S
-          </div>
+          />
           <div
             style={{
-              fontSize: "28px",
+              fontSize: "32px",
               fontWeight: 800,
-              color: "#ffffff",
+              color: "#171717",
               letterSpacing: "-0.5px",
             }}
           >
-            Startup Showcase
+            Startup Showcase Global
           </div>
         </div>
 
@@ -63,7 +64,7 @@ export default function Image() {
             style={{
               fontSize: "56px",
               fontWeight: 900,
-              color: "#ffffff",
+              color: "#171717",
               lineHeight: 1.1,
               maxWidth: "1000px",
               letterSpacing: "-1px",
@@ -74,8 +75,8 @@ export default function Image() {
           <div
             style={{
               fontSize: "24px",
-              color: "#94a3b8",
-              maxWidth: "900px",
+              color: "#6b6b6b",
+              maxWidth: "920px",
               lineHeight: 1.4,
             }}
           >
@@ -96,11 +97,12 @@ export default function Image() {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              backgroundColor: "rgba(37, 99, 235, 0.2)",
-              color: "#60a5fa",
-              padding: "8px 18px",
+              backgroundColor: "#fff1ef",
+              color: "#d73e2d",
+              padding: "8px 20px",
               borderRadius: "999px",
               fontWeight: 600,
+              border: "1px solid rgba(255, 97, 84, 0.25)",
             }}
           >
             Global Early-Stage Discovery

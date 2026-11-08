@@ -76,10 +76,10 @@ export default function PricingPage() {
                 <strong>Startup Listing ($9 USD, one time):</strong> Global startup listing, company profile showcase, and global audience visibility on the platform.
               </li>
               <li>
-                <strong>Investor Connect ($199 USD, one time):</strong> Everything in Startup Listing, plus investor networking support and 3 investor meetings.
+                <strong>Investor Connect ($199 USD, one time):</strong> Everything in Startup Listing, plus investor networking support and 3 investor meetings (subject to investor availability).
               </li>
               <li>
-                <strong>Investor Ready+Connect ($999 USD, one time):</strong> Everything in Investor Connect, plus investor readiness support, pitch deck, financials &amp; fundraising preparation, and 5 investor meetings.
+                <strong>Investor Ready+Connect ($999 USD, one time):</strong> Everything in Investor Connect, plus investor readiness support, pitch deck, financials &amp; fundraising preparation, and 5 investor meetings (subject to investor availability).
               </li>
             </ul>
           </section>
