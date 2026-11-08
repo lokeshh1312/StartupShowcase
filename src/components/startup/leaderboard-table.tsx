@@ -17,10 +17,10 @@ interface LeaderboardTableProps {
 }
 
 const fallbackGradients = [
-  "from-brand-500 to-brand-700",
+  "from-brand-400 to-brand-500",
   "from-emerald-500 to-teal-600",
   "from-rose-500 to-pink-600",
-  "from-brand-600 to-brand-800",
+  "from-brand-500 to-brand-600",
   "from-amber-500 to-orange-600",
 ];
 

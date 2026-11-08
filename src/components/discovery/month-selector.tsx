@@ -81,7 +81,7 @@ export function MonthSelector({
                 href={href}
                 className={`flex flex-col items-center justify-center min-w-[130px] sm:min-w-[150px] px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl transition-all select-none text-center shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-95 ${
                   isActive
-                    ? "bg-brand-600 text-white shadow-md shadow-brand-500/20"
+                    ? "bg-brand-500 dark:bg-brand-600 text-white shadow-md shadow-brand-500/20"
                     : "bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.06] shadow-2xs dark:shadow-none"
                 }`}
               >
