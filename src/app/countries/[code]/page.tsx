@@ -67,8 +67,6 @@ export default async function CountryDetailPage({ params }: CountryPageProps) {
 
   return (
     <div className="relative isolate min-h-screen">
-      {/* Decorative Cloud Background */}
-
       {/* Structured Data: ItemList & BreadcrumbList */}
       <JsonLd data={itemListJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />

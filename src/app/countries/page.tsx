@@ -17,8 +17,6 @@ export default async function CountriesPage() {
 
   return (
     <div className="relative isolate min-h-screen">
-      {/* Decorative Cloud Background */}
-
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         {/* Header */}
         <div className="space-y-3 max-w-3xl pt-2">

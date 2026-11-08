@@ -109,8 +109,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
   return (
     <div className="relative isolate min-h-screen">
-      {/* Decorative Cloud Background */}
-
       {/* Structured Data */}
       <JsonLd data={itemListJsonLd} />
 

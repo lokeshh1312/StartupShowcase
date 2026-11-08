@@ -81,8 +81,6 @@ export default async function MonthLeaderboardPage({ params }: MonthPageProps) {
 
   return (
     <div className="relative isolate min-h-screen">
-      {/* Decorative Cloud Background */}
-
       {/* Structured Data: ItemList & BreadcrumbList */}
       <JsonLd data={itemListJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />

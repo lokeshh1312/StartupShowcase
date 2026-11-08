@@ -69,8 +69,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <div className="relative isolate min-h-screen">
-      {/* Decorative Cloud Background Layer */}
-
       {/* Structured Data */}
       <JsonLd data={orgJsonLd} />
       <JsonLd data={siteJsonLd} />
