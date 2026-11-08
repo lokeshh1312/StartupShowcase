@@ -49,7 +49,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     features: [
       "Everything in Startup Listing",
       "Investor networking support",
-      "3 investor meetings",
+      "3 investor meetings (subject to investor availability)",
     ],
   },
   investor_ready: {
@@ -64,7 +64,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
       "Everything in Investor Connect",
       "Investor readiness support",
       "Pitch deck, Financials & fundraising preparation",
-      "5 investor meetings",
+      "5 investor meetings (subject to investor availability)",
     ],
   },
 };

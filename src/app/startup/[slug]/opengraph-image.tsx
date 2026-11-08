@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { getStartupBySlug } from "@/server/startups";
 
 export const size = {
@@ -23,7 +25,12 @@ export default async function Image({ params }: Props) {
   const category = result?.startup?.category || "Technology";
   const stage = result?.startup?.stage || "MVP";
   const monthLabel = result?.startup?.monthLabel || "";
-  const logoColor = result?.startup?.logoColor || "#2563EB";
+  const logoColor = result?.startup?.logoColor || "#ff6154";
+
+  const logoBuffer = await fs.readFile(
+    path.join(process.cwd(), "public", "logo-mark.png")
+  );
+  const logoDataUri = `data:image/png;base64,${logoBuffer.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -35,12 +42,12 @@ export default async function Image({ params }: Props) {
           flexDirection: "column",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          backgroundColor: "#090d16",
+          backgroundColor: "#ffffff",
           padding: "70px 80px",
           fontFamily: "sans-serif",
         }}
       >
-        {/* Top bar with site branding */}
+        {/* Top bar with site branding & chips */}
         <div
           style={{
             display: "flex",
@@ -50,51 +57,47 @@ export default async function Image({ params }: Props) {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logoDataUri}
+              alt=""
+              width={30}
+              height={40}
               style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "10px",
-                backgroundColor: "#2563eb",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-                fontWeight: 800,
-                fontSize: "22px",
+                objectFit: "contain",
               }}
-            >
-              S
-            </div>
+            />
             <div
               style={{
                 fontSize: "22px",
                 fontWeight: 700,
-                color: "#94a3b8",
+                color: "#171717",
                 letterSpacing: "-0.5px",
               }}
             >
-              Startup Showcase
+              Startup Showcase Global
             </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div
               style={{
-                backgroundColor: "rgba(37, 99, 235, 0.2)",
-                color: "#60a5fa",
+                backgroundColor: "#fff1ef",
+                color: "#d73e2d",
                 padding: "6px 14px",
                 borderRadius: "999px",
                 fontSize: "16px",
                 fontWeight: 600,
+                border: "1px solid rgba(255, 97, 84, 0.2)",
               }}
             >
               {category}
             </div>
             <div
               style={{
-                backgroundColor: "rgba(148, 163, 184, 0.15)",
-                color: "#cbd5e1",
+                backgroundColor: "#f5f5f5",
+                color: "#525252",
+                border: "1px solid #e5e5e5",
                 padding: "6px 14px",
                 borderRadius: "999px",
                 fontSize: "16px",
@@ -128,7 +131,7 @@ export default async function Image({ params }: Props) {
                 color: "white",
                 fontSize: "42px",
                 fontWeight: 800,
-                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.3)",
+                boxShadow: "0 6px 18px rgba(0, 0, 0, 0.08)",
               }}
             >
               {name.charAt(0).toUpperCase()}
@@ -137,7 +140,7 @@ export default async function Image({ params }: Props) {
               style={{
                 fontSize: "64px",
                 fontWeight: 900,
-                color: "#ffffff",
+                color: "#171717",
                 letterSpacing: "-1.5px",
                 lineHeight: 1.1,
               }}
@@ -149,7 +152,7 @@ export default async function Image({ params }: Props) {
           <div
             style={{
               fontSize: "28px",
-              color: "#cbd5e1",
+              color: "#6b6b6b",
               lineHeight: 1.35,
               fontWeight: 400,
               maxWidth: "1000px",
@@ -159,7 +162,7 @@ export default async function Image({ params }: Props) {
           </div>
         </div>
 
-        {/* Footer info */}
+        {/* Footer line */}
         <div
           style={{
             display: "flex",
@@ -167,19 +170,37 @@ export default async function Image({ params }: Props) {
             justifyContent: "space-between",
             width: "100%",
             fontSize: "18px",
-            color: "#64748b",
-            borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+            color: "#6b6b6b",
+            borderTop: "1px solid #e5e5e5",
             paddingTop: "24px",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <span>Cohort:</span>
-            <span style={{ color: "#e2e8f0", fontWeight: 600 }}>
+            <span style={{ color: "#171717", fontWeight: 600 }}>
               {monthLabel || "Global Showcase"}
             </span>
           </div>
-          <div style={{ color: "#3b82f6", fontWeight: 600 }}>
-            Vote & support on Startup Showcase
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "#d73e2d",
+              fontWeight: 600,
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logoDataUri}
+              alt=""
+              width={18}
+              height={24}
+              style={{
+                objectFit: "contain",
+              }}
+            />
+            <span>Startup Showcase Global</span>
           </div>
         </div>
       </div>
