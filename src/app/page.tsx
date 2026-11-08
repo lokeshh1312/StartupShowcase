@@ -74,7 +74,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <JsonLd data={siteJsonLd} />
       <JsonLd data={leaderboardJsonLd} />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-20 sm:pb-24">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-16 sm:pb-20">
         {/* Main Flow: Heading -> Month Tabs -> Category Chips -> Ranked List */}
         <div className="space-y-3 sm:space-y-4">
           {/* Section Header */}
@@ -109,7 +109,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
               <Link
                 href="/categories"
-                className="bg-brand-500 hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-700 text-white rounded-full px-4 py-2 text-xs font-semibold shadow-xs whitespace-nowrap shrink-0 transition-colors"
+                className="bg-brand-500 hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-700 text-white dark:text-[#0e0d0d] rounded-full px-4 py-2 text-xs font-semibold shadow-xs whitespace-nowrap shrink-0 transition-colors"
               >
                 All
               </Link>
@@ -146,26 +146,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             />
           </section>
         </div>
-
-        {/* Closing Call-to-Action Band */}
-        <section aria-label="Call to action" className="pt-8 sm:pt-12">
-          <div className="relative rounded-3xl bg-brand-500 dark:bg-gradient-to-r dark:from-brand-900 dark:via-brand-950 dark:to-slate-950 border border-brand-400/30 dark:border-white/10 p-8 sm:p-12 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
-            <div className="space-y-3 max-w-2xl">
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Building something? Put it in front of the community.
-              </h2>
-              <p className="text-xs sm:text-sm text-brand-100 dark:text-slate-300 leading-relaxed">
-                One-time listing fee, reviewed by our team, published for everyone to discover and vote on.
-              </p>
-            </div>
-            <Link
-              href="/submit"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white text-slate-950 hover:bg-slate-100 font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95 shrink-0"
-            >
-              <span>Submit your startup</span>
-            </Link>
-          </div>
-        </section>
       </div>
     </div>
   );

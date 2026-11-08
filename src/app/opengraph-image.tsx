@@ -97,12 +97,12 @@ export default async function Image() {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              backgroundColor: "#fff1ef",
-              color: "#d73e2d",
+              backgroundColor: "#fff4eb",
+              color: "#e65c00",
               padding: "8px 20px",
               borderRadius: "999px",
               fontWeight: 600,
-              border: "1px solid rgba(255, 97, 84, 0.25)",
+              border: "1px solid rgba(255, 102, 0, 0.25)",
             }}
           >
             Global Early-Stage Discovery

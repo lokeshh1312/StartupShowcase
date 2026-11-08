@@ -200,7 +200,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
                     href={startup.websiteUrl}
                     target="_blank"
                     rel="ugc nofollow noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                    className="inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] text-xs font-bold transition-all shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                   >
                     <span>Visit Website</span>
                     <ExternalLink className="w-3.5 h-3.5" />

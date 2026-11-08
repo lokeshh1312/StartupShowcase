@@ -150,7 +150,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <div className="pt-2">
               <Link
                 href="/search"
-                className="inline-block px-5 py-2.5 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white transition-colors shadow-xs"
+                className="inline-block px-5 py-2.5 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white dark:text-[#0e0d0d] transition-colors shadow-xs"
               >
                 Reset Filters
               </Link>

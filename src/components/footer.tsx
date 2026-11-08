@@ -117,7 +117,7 @@ export function Footer() {
           <a
             href="#top"
             aria-label="Back to top"
-            className="w-10 h-10 rounded-full bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center transition-all duration-200 shadow-md hover:scale-105 active:scale-95 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="w-10 h-10 rounded-full bg-brand-600 hover:bg-brand-700 text-white dark:text-[#0e0d0d] flex items-center justify-center transition-all duration-200 shadow-md hover:scale-105 active:scale-95 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <ArrowUp className="w-4 h-4" />
           </a>

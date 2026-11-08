@@ -120,7 +120,7 @@ export default function NewsletterPage() {
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="px-6 py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-bold text-xs transition-colors shadow-xs shrink-0 flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                  className="px-6 py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white dark:text-[#0e0d0d] font-bold text-xs transition-colors shadow-xs shrink-0 flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                   <span>{isPending ? "Subscribing…" : "Subscribe Free"}</span>
                   <Send className="w-3.5 h-3.5" />
