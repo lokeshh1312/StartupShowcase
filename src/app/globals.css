@@ -34,34 +34,34 @@
 @layer base {
   :root {
     color-scheme: light;
-    --brand-primary: #ff6154;
-    --brand-50: #fff1ef;
-    --brand-100: #ffe2dd;
-    --brand-200: #ffc9c1;
-    --brand-300: #ffa79b;
-    --brand-400: #ff8374;
-    --brand-500: #ff6154;
-    --brand-600: #d73e2d;
-    --brand-700: #b83223;
-    --brand-800: #93291e;
-    --brand-900: #6f211a;
-    --brand-950: #3f120d;
+    --brand-primary: #ff6600;
+    --brand-50: #fff4eb;
+    --brand-100: #ffe6d1;
+    --brand-200: #ffcca3;
+    --brand-300: #ffad70;
+    --brand-400: #ff8a3d;
+    --brand-500: #ff6600;
+    --brand-600: #e65c00;
+    --brand-700: #c24e00;
+    --brand-800: #993d00;
+    --brand-900: #702e00;
+    --brand-950: #401a00;
   }
 
   .dark {
     color-scheme: dark;
-    --brand-primary: #14b8a6;
-    --brand-50: #effefb;
-    --brand-100: #cbfbf1;
-    --brand-200: #96f7e4;
-    --brand-300: #5eead4;
-    --brand-400: #2dd4bf;
-    --brand-500: #14b8a6;
-    --brand-600: #0c847b;
-    --brand-700: #0f766e;
-    --brand-800: #115e59;
-    --brand-900: #134e4a;
-    --brand-950: #042f2e;
+    --brand-primary: #ededed;
+    --brand-50: #fafafa;
+    --brand-100: #f0f0f0;
+    --brand-200: #e0e0e0;
+    --brand-300: #c8c8c8;
+    --brand-400: #a8a8a8;
+    --brand-500: #ededed;
+    --brand-600: #d4d4d4;
+    --brand-700: #a3a3a3;
+    --brand-800: #737373;
+    --brand-900: #404040;
+    --brand-950: #262626;
   }
 
   .dark select,
@@ -78,6 +78,27 @@
 
   .dark select option:checked {
     background-color: var(--brand-600);
+    color: #0e0d0d;
+  }
+
+  /* In dark mode, ensure readable dark text on light-grey brand backgrounds */
+  .dark .bg-brand-500,
+  .dark .bg-brand-600,
+  .dark .dark\:bg-brand-500,
+  .dark .dark\:bg-brand-600 {
+    color: #0e0d0d;
+  }
+
+  .dark .bg-brand-500 svg,
+  .dark .bg-brand-600 svg,
+  .dark .dark\:bg-brand-500 svg,
+  .dark .dark\:bg-brand-600 svg {
+    color: #0e0d0d;
+  }
+
+  /* Brand links & buttons on dark page -> light grey hover to white */
+  .dark a:where([class*="text-brand-"]):hover,
+  .dark button:where([class*="text-brand-"]):hover {
     color: #ffffff;
   }
 

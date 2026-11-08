@@ -161,7 +161,7 @@ export function AdminPanel({
           onClick={() => setActiveTab("pending")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
             activeTab === "pending"
-              ? "bg-brand-600 text-white shadow-xs"
+              ? "bg-brand-600 text-white dark:text-[#0e0d0d] shadow-xs"
               : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
@@ -171,7 +171,7 @@ export function AdminPanel({
           onClick={() => setActiveTab("approved")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
             activeTab === "approved"
-              ? "bg-brand-600 text-white shadow-xs"
+              ? "bg-brand-600 text-white dark:text-[#0e0d0d] shadow-xs"
               : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
@@ -181,7 +181,7 @@ export function AdminPanel({
           onClick={() => setActiveTab("rejected")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
             activeTab === "rejected"
-              ? "bg-brand-600 text-white shadow-xs"
+              ? "bg-brand-600 text-white dark:text-[#0e0d0d] shadow-xs"
               : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
@@ -191,7 +191,7 @@ export function AdminPanel({
           onClick={() => setActiveTab("audit")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
             activeTab === "audit"
-              ? "bg-brand-600 text-white shadow-xs"
+              ? "bg-brand-600 text-white dark:text-[#0e0d0d] shadow-xs"
               : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >

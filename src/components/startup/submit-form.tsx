@@ -417,7 +417,7 @@ export function SubmitStartupForm({
             <button
               type="button"
               onClick={() => setIsPlanPickerOpen(true)}
-              className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <CreditCard className="w-4 h-4" />
               <span>Choose Plan &amp; Pay</span>
@@ -465,7 +465,7 @@ export function SubmitStartupForm({
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <Link
             href="/me/submissions"
-            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-bold text-xs transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Go to My Submissions
           </Link>
@@ -928,7 +928,7 @@ export function SubmitStartupForm({
           <button
             type="submit"
             disabled={isPending || logoUploading || coverUploading}
-            className="px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             {isPending ? (
               <span>Saving Changes...</span>
@@ -944,7 +944,7 @@ export function SubmitStartupForm({
             type="button"
             onClick={handleChoosePlanClick}
             disabled={isPending || logoUploading || coverUploading}
-            className="px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             {isPending ? (
               <span>Processing Order...</span>

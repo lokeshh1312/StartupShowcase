@@ -156,7 +156,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <div className="pt-2">
               <Link
                 href="/browse"
-                className="inline-block px-5 py-2.5 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white transition-colors shadow-xs"
+                className="inline-block px-5 py-2.5 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white dark:text-[#0e0d0d] transition-colors shadow-xs"
               >
                 Reset All Filters
               </Link>

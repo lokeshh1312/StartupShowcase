@@ -25,7 +25,7 @@ export default async function Image({ params }: Props) {
   const category = result?.startup?.category || "Technology";
   const stage = result?.startup?.stage || "MVP";
   const monthLabel = result?.startup?.monthLabel || "";
-  const logoColor = result?.startup?.logoColor || "#ff6154";
+  const logoColor = result?.startup?.logoColor || "#ff6600";
 
   const logoBuffer = await fs.readFile(
     path.join(process.cwd(), "public", "logo-mark.png")
@@ -82,13 +82,13 @@ export default async function Image({ params }: Props) {
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div
               style={{
-                backgroundColor: "#fff1ef",
-                color: "#d73e2d",
+                backgroundColor: "#fff4eb",
+                color: "#e65c00",
                 padding: "6px 14px",
                 borderRadius: "999px",
                 fontSize: "16px",
                 fontWeight: 600,
-                border: "1px solid rgba(255, 97, 84, 0.2)",
+                border: "1px solid rgba(255, 102, 0, 0.2)",
               }}
             >
               {category}
@@ -186,7 +186,7 @@ export default async function Image({ params }: Props) {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              color: "#d73e2d",
+              color: "#e65c00",
               fontWeight: 600,
             }}
           >

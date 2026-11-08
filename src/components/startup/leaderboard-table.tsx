@@ -18,7 +18,7 @@ interface LeaderboardTableProps {
 
 const fallbackGradients = [
   "from-brand-400 to-brand-500",
-  "from-emerald-500 to-teal-600",
+  "from-slate-700 to-slate-800",
   "from-rose-500 to-pink-600",
   "from-brand-500 to-brand-600",
   "from-amber-500 to-orange-600",
@@ -44,7 +44,7 @@ export function LeaderboardTable({
           <div className="pt-2">
             <Link
               href="/submit"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs transition-colors shadow-xs"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white dark:text-[#0e0d0d] font-semibold text-xs transition-colors shadow-xs"
             >
               <span>Submit your startup</span>
             </Link>

@@ -134,7 +134,7 @@ export function PlanCards({
                   href="/submit"
                   className={`w-full py-3 px-4 rounded-xl text-center text-xs sm:text-sm font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
                     isHighlighted
-                      ? "bg-brand-600 hover:bg-brand-500 text-white shadow-md hover:shadow-lg"
+                      ? "bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] shadow-md hover:shadow-lg"
                       : "bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
                   }`}
                 >
@@ -149,7 +149,7 @@ export function PlanCards({
                   aria-label={`Choose ${plan.name} plan, ${displayedPrice}`}
                   className={`w-full py-3 px-4 rounded-xl text-center text-xs sm:text-sm font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
                     isHighlighted
-                      ? "bg-brand-600 hover:bg-brand-500 text-white shadow-md hover:shadow-lg"
+                      ? "bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] shadow-md hover:shadow-lg"
                       : "bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"
                   }`}
                 >

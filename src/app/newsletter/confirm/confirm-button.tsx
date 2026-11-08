@@ -38,7 +38,7 @@ export function ConfirmButton({ token }: { token: string }) {
         </div>
         <Link
           href="/browse"
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-bold text-xs transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           <span>Explore Startups</span>
           <ArrowRight className="w-3.5 h-3.5" />
@@ -59,7 +59,7 @@ export function ConfirmButton({ token }: { token: string }) {
       <button
         onClick={handleConfirm}
         disabled={isPending}
-        className="w-full py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white font-bold text-xs transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+        className="w-full py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white dark:text-[#0e0d0d] font-bold text-xs transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
       >
         {isPending ? (
           <>

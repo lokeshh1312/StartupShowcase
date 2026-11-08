@@ -69,7 +69,7 @@ export function ShareModal({ startupName, tagline }: ShareModalProps) {
               />
               <button
                 onClick={handleCopy}
-                className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-500 text-white flex items-center gap-1.5 transition-colors shrink-0 shadow-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] flex items-center gap-1.5 transition-colors shrink-0 shadow-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copied ? "Copied" : "Copy"}</span>

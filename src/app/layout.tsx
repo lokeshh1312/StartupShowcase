@@ -92,7 +92,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body
-        className={`${poppins.variable} font-sans antialiased selection:bg-brand-500/20 selection:text-brand-700 min-h-screen`}
+        className={`${poppins.variable} font-sans antialiased selection:bg-brand-500/20 selection:text-brand-700 dark:selection:bg-white/20 dark:selection:text-white min-h-screen`}
       >
         <ThemeProvider>
           <div className="min-h-screen flex flex-col" id="top">

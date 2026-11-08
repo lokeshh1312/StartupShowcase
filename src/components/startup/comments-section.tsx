@@ -116,7 +116,7 @@ export function CommentsSection({
             <button
               type="submit"
               disabled={isPending || !content.trim()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white text-xs font-semibold transition-all cursor-pointer shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white dark:text-[#0e0d0d] text-xs font-semibold transition-all cursor-pointer shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{isPending ? "Posting…" : "Post Comment"}</span>
@@ -130,7 +130,7 @@ export function CommentsSection({
           </p>
           <Link
             href={`/login?redirect=/startup/${startupSlug}`}
-            className="inline-block px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-500 text-white transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="inline-block px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Sign in to comment
           </Link>
