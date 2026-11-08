@@ -11,7 +11,6 @@ import { getCurrentUser } from "@/lib/supabase/server";
 import { type SortOption } from "@/lib/validation";
 import { FilterBar } from "@/components/discovery/filter-bar";
 import { StartupCard } from "@/components/startup/startup-card";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import { createMetadata, buildItemListJsonLd } from "@/lib/seo";
 import { JsonLd } from "@/components/common/json-ld";
 import type { Metadata } from "next";
@@ -110,9 +109,6 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
   return (
     <div className="relative isolate min-h-screen">
-      {/* Decorative Cloud Background */}
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
-
       {/* Structured Data */}
       <JsonLd data={itemListJsonLd} />
 

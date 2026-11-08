@@ -2,7 +2,6 @@ import React from "react";
 import { Layers } from "lucide-react";
 import { listCategories } from "@/server/startups";
 import { CategoryCard } from "@/components/discovery/category-card";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import { createMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
@@ -18,9 +17,6 @@ export default async function CategoriesPage() {
 
   return (
     <div className="relative isolate min-h-screen">
-      {/* Decorative Cloud Background */}
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
-
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         {/* Header */}
         <div className="space-y-3 max-w-3xl pt-2">

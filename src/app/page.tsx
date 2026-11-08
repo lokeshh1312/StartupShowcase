@@ -8,7 +8,6 @@ import {
 } from "@/server/startups";
 import { MonthSelector } from "@/components/discovery/month-selector";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import {
   createMetadata,
   buildOrganizationJsonLd,
@@ -70,9 +69,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <div className="relative isolate min-h-screen">
-      {/* Decorative Cloud Background Layer */}
-      <CloudBackground />
-
       {/* Structured Data */}
       <JsonLd data={orgJsonLd} />
       <JsonLd data={siteJsonLd} />
@@ -113,7 +109,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
               <Link
                 href="/categories"
-                className="bg-brand-600 text-white rounded-full px-4 py-2 text-xs font-semibold shadow-xs whitespace-nowrap shrink-0 hover:bg-brand-700 transition-colors"
+                className="bg-brand-500 hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-700 text-white rounded-full px-4 py-2 text-xs font-semibold shadow-xs whitespace-nowrap shrink-0 transition-colors"
               >
                 All
               </Link>
@@ -153,7 +149,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
         {/* Closing Call-to-Action Band */}
         <section aria-label="Call to action" className="pt-8 sm:pt-12">
-          <div className="relative rounded-3xl bg-brand-600 dark:bg-gradient-to-r dark:from-brand-900 dark:via-indigo-950 dark:to-slate-950 border border-brand-500/20 dark:border-white/10 p-8 sm:p-12 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
+          <div className="relative rounded-3xl bg-brand-500 dark:bg-gradient-to-r dark:from-brand-900 dark:via-brand-950 dark:to-slate-950 border border-brand-400/30 dark:border-white/10 p-8 sm:p-12 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
             <div className="space-y-3 max-w-2xl">
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 Building something? Put it in front of the community.

@@ -2,30 +2,66 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
-  --color-brand-950: #1e1b4b;
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f5f5f5;
+  --color-slate-200: #e5e5e5;
+  --color-slate-300: #d4d4d4;
+  --color-slate-400: #a3a3a3;
+  --color-slate-500: #737373;
+  --color-slate-600: #525252;
+  --color-slate-700: #404040;
+  --color-slate-800: #262626;
+  --color-slate-900: #171717;
+  --color-slate-950: #0a0a0a;
+}
 
-  --font-serif-italic: var(--font-serif-italic), Georgia, Cambria, "Times New Roman", Times, serif;
+@theme inline {
+  --font-sans: var(--font-poppins), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
 }
 
 @layer base {
   :root {
     color-scheme: light;
-    --brand-primary: #4f46e5;
+    --brand-primary: #ff6154;
+    --brand-50: #fff1ef;
+    --brand-100: #ffe2dd;
+    --brand-200: #ffc9c1;
+    --brand-300: #ffa79b;
+    --brand-400: #ff8374;
+    --brand-500: #ff6154;
+    --brand-600: #d73e2d;
+    --brand-700: #b83223;
+    --brand-800: #93291e;
+    --brand-900: #6f211a;
+    --brand-950: #3f120d;
   }
 
   .dark {
     color-scheme: dark;
-    --brand-primary: #6366f1;
+    --brand-primary: #14b8a6;
+    --brand-50: #effefb;
+    --brand-100: #cbfbf1;
+    --brand-200: #96f7e4;
+    --brand-300: #5eead4;
+    --brand-400: #2dd4bf;
+    --brand-500: #14b8a6;
+    --brand-600: #0c847b;
+    --brand-700: #0f766e;
+    --brand-800: #115e59;
+    --brand-900: #134e4a;
+    --brand-950: #042f2e;
   }
 
   .dark select,
@@ -36,18 +72,17 @@
 
   .dark select option,
   .dark select optgroup {
-    background-color: #0f172a;
-    color: #e2e8f0;
+    background-color: #171717;
+    color: #e5e5e5;
   }
 
   .dark select option:checked {
-    background-color: #4f46e5;
+    background-color: var(--brand-600);
     color: #ffffff;
   }
 
   html {
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-      Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     scroll-behavior: smooth;
   }
 
@@ -65,22 +100,27 @@
 
   /* ---- Light mode (default) ---- */
   body {
-    background-color: #f8fafc;
-    color: #0f172a;
+    background-color: #ffffff;
+    color: #171717;
   }
 
   /* ---- Dark mode ---- */
   .dark body {
-    background-color: #080b14;
-    color: #e2e8f0;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-color: #0e0d0d;
+    color: #ededed;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
   }
 }
 
 .font-serif-italic {
-  font-family: var(--font-serif-italic), Georgia, Cambria, "Times New Roman", Times, serif;
-  font-style: italic;
+  font-family: inherit;
+  font-style: normal;
 }
 
 /* Custom subtle scrollbars */
@@ -105,38 +145,4 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-/* Cloud drift animations */
-@keyframes cloud-drift-left {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(36px);
-  }
-}
-
-@keyframes cloud-drift-right {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-30px);
-  }
-}
-
-.animate-cloud-left {
-  animation: cloud-drift-left 20s ease-in-out infinite alternate;
-}
-
-.animate-cloud-right {
-  animation: cloud-drift-right 24s ease-in-out infinite alternate;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-cloud-left,
-  .animate-cloud-right {
-    animation: none;
-  }
 }

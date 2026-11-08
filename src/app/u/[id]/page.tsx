@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Calendar, Rocket, ArrowLeft } from "lucide-react";
 import { getUserPublicProfile } from "@/server/startups";
 import { StartupCard } from "@/components/startup/startup-card";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import type { Metadata } from "next";
 
 interface UserProfilePageProps {
@@ -39,7 +38,6 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
 
   return (
     <div className="relative isolate min-h-screen">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         {/* Back link */}

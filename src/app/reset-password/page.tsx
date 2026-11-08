@@ -7,7 +7,6 @@ import { Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { resetPasswordAction } from "@/server/actions";
 import { safeRedirectPath } from "@/lib/redirect";
 import { TurnstileWidget } from "@/components/common/turnstile";
-import { CloudBackground } from "@/components/ui/cloud-background";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -61,7 +60,6 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="relative isolate min-h-[85vh] flex items-center justify-center px-4 py-12">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative w-full max-w-md space-y-6 p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 shadow-xs backdrop-blur-md">
         <div className="space-y-2 text-center">

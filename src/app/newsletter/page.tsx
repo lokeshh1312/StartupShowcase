@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Mail, CheckCircle2, Send, ArrowLeft, ShieldCheck } from "lucide-react";
 import { subscribeNewsletterAction } from "@/server/actions";
 import { TurnstileWidget } from "@/components/common/turnstile";
-import { CloudBackground } from "@/components/ui/cloud-background";
 
 export default function NewsletterPage() {
   const [email, setEmail] = useState("");
@@ -54,7 +53,6 @@ export default function NewsletterPage() {
 
   return (
     <div className="relative isolate min-h-screen">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
         {/* Back */}

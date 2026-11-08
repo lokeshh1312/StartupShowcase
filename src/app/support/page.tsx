@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { LifeBuoy, Send, CheckCircle2, ArrowLeft } from "lucide-react";
-import { CloudBackground } from "@/components/ui/cloud-background";
 
 export default function SupportPage() {
   const [formData, setFormData] = useState({
@@ -24,7 +23,6 @@ export default function SupportPage() {
 
   return (
     <div className="relative isolate min-h-screen">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         {/* Back */}

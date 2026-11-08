@@ -27,7 +27,6 @@ import { SaveButton } from "@/components/startup/save-button";
 import { ShareButton } from "@/components/startup/share-modal";
 import { CommentsSection } from "@/components/startup/comments-section";
 import { StartupCard } from "@/components/startup/startup-card";
-import { CloudBackground } from "@/components/ui/cloud-background";
 import {
   createMetadata,
   buildStartupJsonLd,
@@ -120,7 +119,6 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
 
   return (
     <div className="relative isolate min-h-screen">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
         {/* Structured Data: SoftwareApplication & BreadcrumbList */}

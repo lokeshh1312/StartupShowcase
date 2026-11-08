@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Lightbulb } from "lucide-react";
+import Image from "next/image";
 
 type LogoSize = "sm" | "default" | "md" | "lg";
 
@@ -8,15 +8,14 @@ interface LogoProps {
   className?: string;
 }
 
-const sizeMap: Record<LogoSize, { box: string; icon: string; text: string }> = {
-  sm: { box: "w-8 h-8", icon: "w-4 h-4", text: "text-lg" },
+const sizeMap: Record<LogoSize, { image: string; text: string }> = {
+  sm: { image: "h-8 w-auto", text: "text-sm min-[360px]:text-base" },
   default: {
-    box: "w-8 h-8 min-[420px]:w-9 min-[420px]:h-9",
-    icon: "w-4 h-4 min-[420px]:w-5 min-[420px]:h-5",
-    text: "text-sm min-[420px]:text-base sm:text-xl",
+    image: "h-9 w-auto",
+    text: "text-sm min-[360px]:text-base sm:text-xl",
   },
-  md: { box: "w-9 h-9", icon: "w-5 h-5", text: "text-xl" },
-  lg: { box: "w-11 h-11", icon: "w-6 h-6", text: "text-2xl" },
+  md: { image: "h-10 w-auto", text: "text-base min-[360px]:text-lg sm:text-xl" },
+  lg: { image: "h-12 w-auto", text: "text-lg min-[360px]:text-xl sm:text-2xl" },
 };
 
 export function Logo({ size = "default", className = "" }: LogoProps) {
@@ -25,34 +24,25 @@ export function Logo({ size = "default", className = "" }: LogoProps) {
   return (
     <Link
       href="/"
-      className={`group flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg py-1 transition-transform duration-200 active:scale-95 ${className}`}
+      className={`group inline-flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg py-1 transition-transform duration-200 active:scale-95 ${className}`}
       aria-label="Startup Showcase Global Home"
     >
-      {/* Lightbulb icon */}
-      <div
-        className={`relative flex items-center justify-center rounded-xl bg-brand-50/80 dark:bg-brand-950/40 border border-brand-100 dark:border-brand-900/60 group-hover:bg-brand-100/80 dark:group-hover:bg-brand-900/40 transition-colors ${s.box}`}
-      >
-        <Lightbulb
-          className={`text-brand-600 dark:text-brand-400 transition-transform duration-300 group-hover:rotate-6 ${s.icon}`}
-        />
-      </div>
+      <Image
+        src="/logo-mark.png"
+        alt=""
+        width={389}
+        height={512}
+        className={`${s.image} object-contain shrink-0`}
+        priority
+      />
 
       {/* Brand name */}
-      <div className="flex items-center tracking-tight font-bold">
-        <span
-          className={`text-slate-900 dark:text-white ${s.text}`}
-        >
+      <div className="flex flex-wrap items-baseline tracking-tight font-bold">
+        <span className={`text-slate-900 dark:text-white ${s.text}`}>
           Startup
         </span>
-        <span
-          className={`text-brand-600 dark:text-brand-400 ml-1.5 ${s.text}`}
-        >
-          Showcase
-        </span>
-        <span
-          className={`text-brand-600 dark:text-brand-400 ml-1.5 ${s.text} max-[380px]:hidden`}
-        >
-          Global
+        <span className={`text-brand-600 dark:text-brand-400 ml-1.5 ${s.text}`}>
+          Showcase Global
         </span>
       </div>
     </Link>

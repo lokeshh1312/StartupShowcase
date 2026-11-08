@@ -4,7 +4,6 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 import type { Metadata } from "next";
 import { createMetadata } from "@/lib/seo";
 import { legalName, gstin, address, getContactEmail } from "@/lib/company";
-import { CloudBackground } from "@/components/ui/cloud-background";
 
 export const metadata: Metadata = createMetadata({
   title: "Refund & Cancellation Policy | Startup Showcase",
@@ -18,7 +17,6 @@ export default function RefundsPage() {
 
   return (
     <div className="relative isolate min-h-screen">
-      <CloudBackground height="h-[340px] sm:h-[400px]" />
 
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         {/* Back button */}
