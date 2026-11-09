@@ -11,6 +11,7 @@ import {
   customType,
   index,
   uniqueIndex,
+  char,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -303,6 +304,22 @@ export const paymentEvents = pgTable(
   }
 );
 
+// 12. Investor Regions Table
+export const investorRegions = pgTable(
+  "investor_regions",
+  {
+    countryCode: char("country_code", { length: 2 }).primaryKey(),
+    countryName: text("country_name").notNull(),
+    investors: integer("investors").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_investor_regions_investors").on(table.investors),
+  ]
+);
+
 // Relations
 export const profilesRelations = relations(profiles, ({ many }) => ({
   startups: many(startups),
@@ -392,3 +409,5 @@ export type StartupView = typeof startupViews.$inferSelect;
 export type RateLimit = typeof rateLimits.$inferSelect;
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type AuditLogEntry = typeof auditLog.$inferSelect;
+export type InvestorRegion = typeof investorRegions.$inferSelect;
+export type NewInvestorRegion = typeof investorRegions.$inferInsert;

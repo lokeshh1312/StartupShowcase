@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { listAdminStartups, getAdminAuditLog } from "@/server/startups";
+import { getAdminInvestorRegions } from "@/server/investor-network";
 import { AdminPanel } from "@/components/admin/admin-panel";
 import type { Metadata } from "next";
 
@@ -24,12 +25,13 @@ export default async function AdminPage() {
 
   const { user } = authData;
 
-  const [pendingResult, approvedResult, rejectedResult, auditLogsResult] =
+  const [pendingResult, approvedResult, rejectedResult, auditLogsResult, investorsResult] =
     await Promise.all([
       listAdminStartups("pending", user.id, 1, 50),
       listAdminStartups("approved", user.id, 1, 50),
       listAdminStartups("rejected", user.id, 1, 50),
       getAdminAuditLog(user.id, 1, 100),
+      getAdminInvestorRegions(),
     ]);
 
   return (
@@ -59,6 +61,7 @@ export default async function AdminPage() {
           initialApproved={approvedResult.items}
           initialRejected={rejectedResult.items}
           auditLogs={auditLogsResult.items}
+          initialInvestors={investorsResult}
         />
       </div>
     </div>
