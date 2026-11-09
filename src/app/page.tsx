@@ -81,7 +81,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           {/* Section Header */}
           <section
             aria-label="Page introduction"
-            className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+            className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4"
           >
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15] md:whitespace-nowrap min-w-0">
               Showcase Your Startup to a Global{" "}
