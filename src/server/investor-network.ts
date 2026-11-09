@@ -185,17 +185,9 @@ export async function fetchInvestorNetworkData(): Promise<InvestorNetworkRespons
       "fetchInvestorNetworkData: investor_regions table unavailable or query failed; degrading gracefully",
       err
     );
-    const totalStartups = startupRows.reduce((acc, curr) => acc + curr.count, 0);
-    return {
-      countries: [],
-      investors: [],
-      totals: {
-        investors: 0,
-        startups: totalStartups,
-      },
-      asOf: null,
-      degraded: true,
-    };
+    const degradedResult = aggregateInvestorNetworkData([], startupRows, null);
+    degradedResult.degraded = true;
+    return degradedResult;
   }
 
   return aggregateInvestorNetworkData(investorRows, startupRows, maxUpdatedAt);

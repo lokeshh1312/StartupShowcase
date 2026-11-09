@@ -439,7 +439,7 @@ export function InvestorWorldMap({
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-slate-400">Startups:</span>
-                <span className="font-mono font-semibold text-emerald-400">
+                <span className="font-mono font-semibold text-slate-200">
                   {tooltip.startups.toLocaleString("en-US")}
                 </span>
               </div>

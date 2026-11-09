@@ -228,6 +228,80 @@ async function run() {
     await page.click('button[aria-label="Open Investor Network"]', { force: true });
     await page.waitForSelector('text="Unable to Load Network Data"');
     await page.screenshot({ path: `${SCREENSHOT_DIR}/g-empty-error-state-with-retry.png` });
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(400);
+
+    // (h) Window with Empty Investor Table (countries with approved startups, 0 investors)
+    console.log("Capturing (h) window with empty investor table...");
+    const emptyInvestorData = {
+      countries: [
+        { code: "US", name: "United States", investors: 0, startups: 142 },
+        { code: "IN", name: "India", investors: 0, startups: 98 },
+        { code: "GB", name: "United Kingdom", investors: 0, startups: 64 },
+        { code: "DE", name: "Germany", investors: 0, startups: 52 },
+      ],
+      investors: [],
+      totals: {
+        investors: 0,
+        startups: 356,
+      },
+      asOf: null,
+      degraded: true,
+    };
+    await page.unroute("**/api/investor-network");
+    await page.route("**/api/investor-network", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(emptyInvestorData),
+      });
+    });
+    await page.reload({ waitUntil: "networkidle" });
+    await page.click('button[aria-label="Open Investor Network"]', { force: true });
+    await page.waitForSelector('[role="dialog"]');
+    await page.waitForSelector('text="Investor figures are not available yet"');
+    await page.waitForSelector('[role="dialog"] button:has-text("United States")');
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/window-with-empty-investors-light.png` });
+
+    console.log("Capturing (h) window with empty investor table dark...");
+    await page.evaluate(() => document.documentElement.classList.add("dark"));
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/window-with-empty-investors-dark.png` });
+
+    // Test search filter when empty
+    const searchInput = page.locator('input[placeholder="Search country…"]');
+    await searchInput.fill("xyznonexistent");
+    await page.waitForSelector('text=No countries found matching');
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/window-empty-search-no-match.png` });
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(400);
+
+    // (i) Measure Bubble Sizes
+    console.log("Measuring bubble sizes...");
+    // Desktop >= 1280px
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.reload({ waitUntil: "networkidle" });
+    const desktopBubbleBox = await page.locator('button[aria-label="Open Investor Network"]').boundingBox();
+    console.log(`Desktop bubble box: width=${desktopBubbleBox?.width}, height=${desktopBubbleBox?.height}`);
+    if (desktopBubbleBox) {
+      if (Math.round(desktopBubbleBox.width) !== 64 || Math.round(desktopBubbleBox.height) !== 64) {
+        throw new Error(`Expected desktop bubble to be 64x64 (w-16 h-16), got ${desktopBubbleBox.width}x${desktopBubbleBox.height}`);
+      }
+    }
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/bubble-size-desktop.png` });
+
+    // Mobile < 1280px (e.g. 375px)
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.reload({ waitUntil: "networkidle" });
+    const mobileBubbleBox = await page.locator('button[aria-label="Open Investor Network"]').boundingBox();
+    console.log(`Mobile bubble box: width=${mobileBubbleBox?.width}, height=${mobileBubbleBox?.height}`);
+    if (mobileBubbleBox) {
+      if (Math.round(mobileBubbleBox.width) !== 48 || Math.round(mobileBubbleBox.height) !== 48) {
+        throw new Error(`Expected mobile bubble to be 48x48 (w-12 h-12), got ${mobileBubbleBox.width}x${mobileBubbleBox.height}`);
+      }
+    }
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/bubble-size-mobile.png` });
 
     // (h) Keyboard Tab test
     console.log("Capturing (h) keyboard tab navigation...");

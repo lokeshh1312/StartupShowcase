@@ -161,6 +161,9 @@ export function InvestorNetworkModal({
 
   const totalInvestors = data?.totals?.investors ?? 0;
   const totalStartups = data?.totals?.startups ?? 0;
+  const hasInvestorRows =
+    totalInvestors > 0 ||
+    Boolean(data?.countries && data.countries.some((c) => c.investors > 0));
 
   return createPortal(
     <div
@@ -252,9 +255,9 @@ export function InvestorNetworkModal({
               <div className="p-4 sm:p-5 border-b border-slate-200/90 dark:border-white/10 shrink-0 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   {/* Total Investors */}
-                  <div className="p-3.5 rounded-2xl bg-brand-50/70 dark:bg-brand-950/20 border border-brand-200/80 dark:border-brand-800/40 space-y-1">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-900 dark:text-brand-300">
-                      <Users className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+                  <div className="p-3.5 rounded-2xl bg-brand-50/70 dark:bg-white/5 border border-brand-200/80 dark:border-white/10 space-y-1">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-900 dark:text-slate-300">
+                      <Users className="w-3.5 h-3.5 text-brand-600 dark:text-slate-400" />
                       <span>Total Investors</span>
                     </div>
                     <div className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
@@ -263,9 +266,9 @@ export function InvestorNetworkModal({
                   </div>
 
                   {/* Total Startups */}
-                  <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 space-y-1">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-900 dark:text-emerald-300">
-                      <Rocket className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <div className="p-3.5 rounded-2xl bg-brand-50/70 dark:bg-white/5 border border-brand-200/80 dark:border-white/10 space-y-1">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-900 dark:text-slate-300">
+                      <Rocket className="w-3.5 h-3.5 text-brand-600 dark:text-slate-400" />
                       <span>Startups Listed</span>
                     </div>
                     <div className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
@@ -297,11 +300,22 @@ export function InvestorNetworkModal({
                 </div>
               </div>
 
+              {/* Small notice when investor figures are not available yet */}
+              {!hasInvestorRows && (
+                <div className="mx-4 sm:mx-5 mt-3 p-2.5 rounded-xl bg-slate-100/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-center text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Investor figures are not available yet
+                </div>
+              )}
+
               {/* Scrollable Country List */}
               <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-1.5">
                 {filteredCountries.length === 0 ? (
                   <div className="p-8 text-center text-xs text-slate-500 dark:text-slate-400">
-                    No countries found matching &quot;{searchQuery}&quot;
+                    {searchQuery.trim() ? (
+                      <>No countries found matching &quot;{searchQuery}&quot;</>
+                    ) : (
+                      <>No countries listed yet.</>
+                    )}
                   </div>
                 ) : (
                   filteredCountries.map((c) => {

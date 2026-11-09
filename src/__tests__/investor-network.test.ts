@@ -139,6 +139,44 @@ describe("Investor Network Feature", () => {
       expect(res.countries[0].code).toBe("BR"); // 5000 inv, 20 st
       expect(res.countries[1].code).toBe("CA"); // 5000 inv, 10 st
     });
+
+    it("handles empty or degraded investor data by returning startup countries with investors = 0", () => {
+      const emptyInvestorRows: Array<{
+        country_code: string;
+        country_name: string;
+        investors: number;
+      }> = [];
+
+      const startupRows = [
+        { country_code: "US", count: 120 },
+        { country_code: "IN", count: 85 },
+        { country_code: "GB", count: 40 },
+      ];
+
+      const res = aggregateInvestorNetworkData(emptyInvestorRows, startupRows, null);
+      expect(res.totals.investors).toBe(0);
+      expect(res.totals.startups).toBe(245);
+      expect(res.countries.length).toBe(3);
+
+      expect(res.countries[0]).toEqual({
+        code: "US",
+        name: "United States of America",
+        investors: 0,
+        startups: 120,
+      });
+      expect(res.countries[1]).toEqual({
+        code: "IN",
+        name: "India",
+        investors: 0,
+        startups: 85,
+      });
+      expect(res.countries[2]).toEqual({
+        code: "GB",
+        name: "United Kingdom",
+        investors: 0,
+        startups: 40,
+      });
+    });
   });
 
   describe("3. Zod Schemas for Admin Edits", () => {
