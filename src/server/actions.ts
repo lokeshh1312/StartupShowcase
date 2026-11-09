@@ -26,7 +26,12 @@ import {
   confirmNewsletter,
   unsubscribeNewsletter,
 } from "@/server/newsletter";
-import { createStartupSchema, newsletterSubscribeSchema } from "@/lib/validation";
+import { createStartupSchema, newsletterSubscribeSchema, investorRegionSchema } from "@/lib/validation";
+import {
+  upsertInvestorRegion,
+  deleteInvestorRegion,
+  getAdminInvestorRegions,
+} from "@/server/investor-network";
 import { formatActionError } from "@/server/errors";
 import {
   checkRateLimit,
@@ -555,6 +560,72 @@ export async function hideCommentAction(commentId: string) {
     const updated = await hideComment(commentId, authData.user.id);
     revalidatePath("/admin");
     return { success: true, comment: updated };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
+  }
+}
+
+/**
+ * Upsert/update investor region count (admin only)
+ */
+export async function upsertInvestorRegionAction(input: unknown) {
+  const authData = await getCurrentUserProfile();
+  if (!authData || authData.profile.role !== "admin") {
+    return { error: "Forbidden: Admin privileges required." };
+  }
+
+  const parsed = investorRegionSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message || "Invalid input." };
+  }
+
+  try {
+    await upsertInvestorRegion(
+      parsed.data.countryCode,
+      parsed.data.investors,
+      parsed.data.countryName
+    );
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
+  }
+}
+
+/**
+ * Delete investor region (admin only)
+ */
+export async function deleteInvestorRegionAction(countryCode: string) {
+  const authData = await getCurrentUserProfile();
+  if (!authData || authData.profile.role !== "admin") {
+    return { error: "Forbidden: Admin privileges required." };
+  }
+
+  if (typeof countryCode !== "string" || !countryCode.trim()) {
+    return { error: "Invalid country code." };
+  }
+
+  try {
+    await deleteInvestorRegion(countryCode);
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
+  }
+}
+
+/**
+ * List investor regions for admin panel
+ */
+export async function getAdminInvestorRegionsAction() {
+  const authData = await getCurrentUserProfile();
+  if (!authData || authData.profile.role !== "admin") {
+    return { error: "Forbidden: Admin privileges required." };
+  }
+
+  try {
+    const regions = await getAdminInvestorRegions();
+    return { success: true, regions };
   } catch (err: unknown) {
     return { error: formatActionError(err) };
   }

@@ -315,5 +315,21 @@ export const passwordSchema = z
   .string()
   .min(10, "Password must be at least 10 characters long.");
 
+// Investor Region Validation Schema (server-side zod: integer 0..10,000,000, valid ISO code)
+export const investorRegionSchema = z.object({
+  countryCode: countryCodeSchema,
+  investors: z
+    .coerce
+    .number({
+      message: "Investors must be a number",
+    })
+    .int("Investors must be an integer")
+    .min(0, "Investors must be at least 0")
+    .max(10_000_000, "Investors cannot exceed 10,000,000"),
+  countryName: z.string().trim().min(1).max(100).optional(),
+});
+
+export type InvestorRegionInput = z.infer<typeof investorRegionSchema>;
+
 export { safeRedirectPath } from "./redirect";
 

@@ -8,6 +8,7 @@ import {
 } from "@/server/startups";
 import { MonthSelector } from "@/components/discovery/month-selector";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
+import { InvestorNetworkBubble } from "@/components/investor-network/investor-network-bubble";
 import {
   createMetadata,
   buildOrganizationJsonLd,
@@ -78,13 +79,17 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         {/* Main Flow: Heading -> Month Tabs -> Category Chips -> Ranked List */}
         <div className="space-y-3 sm:space-y-4">
           {/* Section Header */}
-          <section aria-label="Page introduction">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15] md:whitespace-nowrap">
+          <section
+            aria-label="Page introduction"
+            className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+          >
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15] md:whitespace-nowrap min-w-0">
               Showcase Your Startup to a Global{" "}
               <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
                 Audience
               </em>
             </h1>
+            <InvestorNetworkBubble />
           </section>
 
           {/* Month Selector Carousel / Tabs */}

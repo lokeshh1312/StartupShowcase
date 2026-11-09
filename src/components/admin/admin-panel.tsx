@@ -2,10 +2,15 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, X, ShieldCheck, ExternalLink, Info, Sparkles, CheckCircle2 } from "lucide-react";
-import { moderateStartupAction } from "@/server/actions";
+import { Check, X, ShieldCheck, ExternalLink, Info, Sparkles, CheckCircle2, Globe, Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  moderateStartupAction,
+  upsertInvestorRegionAction,
+  deleteInvestorRegionAction,
+} from "@/server/actions";
 import { Badge, StageBadge } from "@/components/common/badge";
-import { getCountryName } from "@/lib/validation";
+import { getCountryName, getAvailableCountries } from "@/lib/validation";
+import { CountryFlag } from "@/components/common/country-flag";
 import { formatMoney } from "@/lib/money";
 import { Modal } from "@/components/ui/modal";
 import { getPlan, type PlanKey } from "@/lib/plans";
@@ -82,11 +87,19 @@ interface AuditLogItem {
   createdAt: Date;
 }
 
+interface AdminInvestorItem {
+  countryCode: string;
+  countryName: string;
+  investors: number;
+  updatedAt: string;
+}
+
 interface AdminPanelProps {
   initialPending: AdminStartupItem[];
   initialApproved: AdminStartupItem[];
   initialRejected: AdminStartupItem[];
   auditLogs: AuditLogItem[];
+  initialInvestors?: AdminInvestorItem[];
 }
 
 export function AdminPanel({
@@ -94,11 +107,19 @@ export function AdminPanel({
   initialApproved,
   initialRejected,
   auditLogs,
+  initialInvestors = [],
 }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<"pending" | "approved" | "rejected" | "audit">("pending");
+  const [activeTab, setActiveTab] = useState<"pending" | "approved" | "rejected" | "audit" | "investors">("pending");
   const [pendingItems, setPendingItems] = useState<AdminStartupItem[]>(initialPending);
   const [approvedItems, setApprovedItems] = useState<AdminStartupItem[]>(initialApproved);
   const [rejectedItems, setRejectedItems] = useState<AdminStartupItem[]>(initialRejected);
+  const [investorItems, setInvestorItems] = useState<AdminInvestorItem[]>(initialInvestors);
+  const [editingInvestor, setEditingInvestor] = useState<AdminInvestorItem | null>(null);
+  const [editingCount, setEditingCount] = useState<string>("");
+  const [isAddingInvestor, setIsAddingInvestor] = useState(false);
+  const [newCountryCode, setNewCountryCode] = useState("");
+  const [newInvestorCount, setNewInvestorCount] = useState("");
+  const [investorError, setInvestorError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectingStartup, setRejectingStartup] = useState<AdminStartupItem | null>(null);
   const [inspectingStartup, setInspectingStartup] = useState<AdminStartupItem | null>(null);
@@ -153,6 +174,105 @@ export function AdminPanel({
     });
   };
 
+  const totalInvestors = investorItems.reduce((acc, curr) => acc + curr.investors, 0);
+
+  const handleSaveEditInvestor = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingInvestor) return;
+    setInvestorError("");
+
+    const countNum = parseInt(editingCount, 10);
+    if (isNaN(countNum) || countNum < 0 || countNum > 10_000_000) {
+      setInvestorError("Investors must be an integer between 0 and 10,000,000.");
+      return;
+    }
+
+    startTransition(async () => {
+      const res = await upsertInvestorRegionAction({
+        countryCode: editingInvestor.countryCode,
+        investors: countNum,
+        countryName: editingInvestor.countryName,
+      });
+
+      if (res?.error) {
+        setInvestorError(res.error);
+      } else {
+        setInvestorItems((prev) =>
+          prev
+            .map((item) =>
+              item.countryCode === editingInvestor.countryCode
+                ? { ...item, investors: countNum, updatedAt: new Date().toISOString() }
+                : item
+            )
+            .sort((a, b) => b.investors - a.investors)
+        );
+        setEditingInvestor(null);
+        setEditingCount("");
+      }
+    });
+  };
+
+  const handleAddInvestor = (e: React.FormEvent) => {
+    e.preventDefault();
+    setInvestorError("");
+
+    if (!newCountryCode) {
+      setInvestorError("Please select a country.");
+      return;
+    }
+
+    const countNum = parseInt(newInvestorCount, 10);
+    if (isNaN(countNum) || countNum < 0 || countNum > 10_000_000) {
+      setInvestorError("Investors must be an integer between 0 and 10,000,000.");
+      return;
+    }
+
+    const countryName = getCountryName(newCountryCode);
+
+    startTransition(async () => {
+      const res = await upsertInvestorRegionAction({
+        countryCode: newCountryCode,
+        investors: countNum,
+        countryName,
+      });
+
+      if (res?.error) {
+        setInvestorError(res.error);
+      } else {
+        setInvestorItems((prev) =>
+          [
+            ...prev.filter((i) => i.countryCode !== newCountryCode),
+            {
+              countryCode: newCountryCode,
+              countryName,
+              investors: countNum,
+              updatedAt: new Date().toISOString(),
+            },
+          ].sort((a, b) => b.investors - a.investors)
+        );
+        setIsAddingInvestor(false);
+        setNewCountryCode("");
+        setNewInvestorCount("");
+      }
+    });
+  };
+
+  const handleDeleteInvestor = (countryCode: string) => {
+    if (!window.confirm(`Delete investor entry for ${getCountryName(countryCode)} (${countryCode})?`)) {
+      return;
+    }
+    setInvestorError("");
+
+    startTransition(async () => {
+      const res = await deleteInvestorRegionAction(countryCode);
+      if (res?.error) {
+        setInvestorError(res.error);
+      } else {
+        setInvestorItems((prev) => prev.filter((i) => i.countryCode !== countryCode));
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Tabs */}
@@ -196,6 +316,16 @@ export function AdminPanel({
           }`}
         >
           Audit Log ({auditLogs.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("investors")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
+            activeTab === "investors"
+              ? "bg-brand-600 text-white dark:text-[#0e0d0d] shadow-xs"
+              : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          }`}
+        >
+          Investors ({investorItems.length})
         </button>
       </div>
 
@@ -517,6 +647,282 @@ export function AdminPanel({
           )}
         </div>
       )}
+
+      {/* Tab: Investors */}
+      {activeTab === "investors" && (
+        <div className="space-y-6">
+          {/* Summary & Add Country Bar */}
+          <div className="p-6 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-md shadow-xs">
+            <div className="space-y-1">
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-mono">
+                Global Investor Registry
+              </div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+                  {totalInvestors.toLocaleString("en-US")}
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Total registered investors across {investorItems.length} countries
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setInvestorError("");
+                setIsAddingInvestor(true);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0 self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Country</span>
+            </button>
+          </div>
+
+          {investorError && (
+            <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-xs text-rose-600 dark:text-rose-400 font-medium">
+              {investorError}
+            </div>
+          )}
+
+          {/* Investor Regions Table / List */}
+          {investorItems.length === 0 ? (
+            <div className="p-12 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 text-center space-y-2 backdrop-blur-md shadow-xs">
+              <Globe className="w-10 h-10 text-slate-400 mx-auto" />
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                No investor regions configured
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Click &quot;Add Country&quot; to seed or record registered investor numbers.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] overflow-hidden backdrop-blur-md shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50/70 dark:bg-white/5 border-b border-slate-200/90 dark:border-white/10 text-slate-500 dark:text-slate-400 font-medium font-mono text-[11px] uppercase tracking-wider">
+                    <tr>
+                      <th scope="col" className="py-3 px-4 sm:px-6">Country</th>
+                      <th scope="col" className="py-3 px-4 sm:px-6">ISO</th>
+                      <th scope="col" className="py-3 px-4 sm:px-6 text-right">Investors</th>
+                      <th scope="col" className="py-3 px-4 sm:px-6 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200/60 dark:divide-white/5 text-slate-700 dark:text-slate-300">
+                    {investorItems.map((item) => (
+                      <tr key={item.countryCode} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3.5 px-4 sm:px-6 font-semibold text-slate-900 dark:text-white flex items-center gap-2.5">
+                          <CountryFlag code={item.countryCode} className="text-lg" />
+                          <span>{item.countryName || getCountryName(item.countryCode)}</span>
+                        </td>
+                        <td className="py-3.5 px-4 sm:px-6 font-mono font-semibold text-slate-500 dark:text-slate-400">
+                          {item.countryCode}
+                        </td>
+                        <td className="py-3.5 px-4 sm:px-6 text-right font-mono font-bold text-slate-900 dark:text-white text-sm">
+                          {item.investors.toLocaleString("en-US")}
+                        </td>
+                        <td className="py-3.5 px-4 sm:px-6 text-right">
+                          <div className="inline-flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingInvestor(item);
+                                setEditingCount(String(item.investors));
+                                setInvestorError("");
+                              }}
+                              className="p-1.5 rounded-lg text-slate-600 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                              title="Edit investor count"
+                              aria-label={`Edit ${item.countryName} investors`}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteInvestor(item.countryCode)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-rose-500"
+                              title="Delete country"
+                              aria-label={`Delete ${item.countryName}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit Investor Count Modal */}
+      {editingInvestor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 space-y-4 border border-slate-200/90 dark:border-white/10 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <CountryFlag code={editingInvestor.countryCode} className="text-2xl" />
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Edit Investors: {editingInvestor.countryName}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                  ISO Code: {editingInvestor.countryCode}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveEditInvestor} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="edit-investor-count"
+                  className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Number of Investors
+                </label>
+                <input
+                  id="edit-investor-count"
+                  type="number"
+                  required
+                  min={0}
+                  max={10000000}
+                  step={1}
+                  value={editingCount}
+                  onChange={(e) => setEditingCount(e.target.value)}
+                  className="w-full p-3 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-mono"
+                />
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  Allowed range: 0 to 10,000,000
+                </span>
+              </div>
+
+              {investorError && (
+                <div className="p-3 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-xs text-rose-600 dark:text-rose-400">
+                  {investorError}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingInvestor(null);
+                    setEditingCount("");
+                    setInvestorError("");
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 shadow-xs"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Investor Country Modal */}
+      {isAddingInvestor && (() => {
+        const existingCodes = new Set(investorItems.map((i) => i.countryCode));
+        const availableList = getAvailableCountries().filter((c) => !existingCodes.has(c.code));
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+            <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 space-y-4 border border-slate-200/90 dark:border-white/10 shadow-2xl">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Add Country to Investor Network
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Select a country and enter the verified investor community count.
+                </p>
+              </div>
+
+              <form onSubmit={handleAddInvestor} className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="add-investor-country"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    Select Country
+                  </label>
+                  <select
+                    id="add-investor-country"
+                    required
+                    value={newCountryCode}
+                    onChange={(e) => setNewCountryCode(e.target.value)}
+                    className="w-full p-3 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                  >
+                    <option value="">-- Choose Country --</option>
+                    {availableList.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.name} ({c.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="add-investor-count"
+                    className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    Number of Investors
+                  </label>
+                  <input
+                    id="add-investor-count"
+                    type="number"
+                    required
+                    min={0}
+                    max={10000000}
+                    step={1}
+                    value={newInvestorCount}
+                    onChange={(e) => setNewInvestorCount(e.target.value)}
+                    placeholder="e.g. 5000"
+                    className="w-full p-3 rounded-xl bg-slate-50/70 dark:bg-white/5 border border-slate-200/90 dark:border-white/10 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 font-mono"
+                  />
+                </div>
+
+                {investorError && (
+                  <div className="p-3 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-xs text-rose-600 dark:text-rose-400">
+                    {investorError}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingInvestor(false);
+                      setNewCountryCode("");
+                      setNewInvestorCount("");
+                      setInvestorError("");
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isPending}
+                    className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 shadow-xs"
+                  >
+                    Add Region
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Rejection Modal */}
       {rejectingStartup && (
