@@ -58,7 +58,7 @@ export function LeaderboardTable({
 
   return (
     <>
-      {/* Mobile/Tablet Card List (< lg): BetaList-style edge-to-edge cards */}
+      {/* Mobile/Tablet Card List (< lg): BetaList-style edge-to-edge cards with whole-card click */}
       <ul className="lg:hidden flex flex-col gap-2">
         {startups.map((startup, index) => {
           const rank = startup.rank || index + 1;
@@ -70,13 +70,19 @@ export function LeaderboardTable({
           return (
             <li
               key={`m-${startup.id}`}
-              className="w-full py-3 px-4 border-y border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] backdrop-blur-md transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.05]"
+              className="relative w-full py-3 px-4 border-y border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] backdrop-blur-md transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.05] cursor-pointer group"
             >
+              {/* Stretched Link overlay */}
+              <Link
+                href={`/startup/${startup.slug}`}
+                className="absolute inset-0 z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                aria-label={`View ${startup.name}`}
+              />
+
               <div className="grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-2 items-start">
                 {/* LEFT: Startup Image (w-20 h-12) */}
-                <Link
-                  href={`/startup/${startup.slug}`}
-                  className="col-start-1 row-start-1 relative w-20 h-12 rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                <div
+                  className="col-start-1 row-start-1 relative w-20 h-12 rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs"
                   aria-label={`${startup.name} image`}
                 >
                   {hasImage ? (
@@ -94,17 +100,14 @@ export function LeaderboardTable({
                       <ImageIcon className="w-5 h-5 opacity-90" />
                     </div>
                   )}
-                </Link>
+                </div>
 
                 {/* MIDDLE, Row 1: Startup Name + Flag & Badges */}
                 <div className="col-start-2 row-start-1 flex flex-col justify-center gap-1 min-w-0 self-stretch">
                   <div className="flex items-center min-w-0">
-                    <Link
-                      href={`/startup/${startup.slug}`}
-                      className="truncate min-w-0 text-sm font-semibold text-slate-900 dark:text-white hover:text-brand-600 dark:hover:text-brand-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
-                    >
+                    <span className="truncate min-w-0 text-sm font-semibold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                       {rank}. {startup.name}
-                    </Link>
+                    </span>
                     <CountryFlag
                       code={startup.countryCode}
                       className="ml-1.5 shrink-0"
@@ -126,11 +129,7 @@ export function LeaderboardTable({
 
                 {/* RIGHT COLUMN: Logo on top, VoteButton directly below, spanning both rows */}
                 <div className="col-start-3 row-span-2 flex flex-col items-end gap-1.5 shrink-0">
-                  <Link
-                    href={`/startup/${startup.slug}`}
-                    className="focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-0.5"
-                    aria-label={`${startup.name} logo`}
-                  >
+                  <div className="p-0.5">
                     <StartupLogo
                       name={startup.name}
                       category={startup.category}
@@ -138,7 +137,131 @@ export function LeaderboardTable({
                       logoColor={startup.logoColor}
                       size="md"
                     />
-                  </Link>
+                  </div>
+                  <div className="relative z-20">
+                    <VoteButton
+                      startupIdOrSlug={startup.slug}
+                      initialLikes={startup.likes}
+                      initialLiked={startup.isLiked}
+                      startupName={startup.name}
+                      size="sm"
+                    />
+                  </div>
+                </div>
+
+                {/* UNDER Row 1: Description spanning Image and Main columns (cols 1 & 2) */}
+                <div className="col-start-1 col-span-2 block pr-2">
+                  <p className="text-xs leading-snug text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                    {startup.description || startup.tagline}
+                  </p>
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* Desktop Layout (>= lg): Individual rounded-3xl containers per startup */}
+      <div className="hidden lg:flex lg:flex-col gap-[12px]">
+        {startups.map((startup, index) => {
+          const rank = startup.rank || index + 1;
+          const country = getCountryName(startup.countryCode);
+          const rawImage = startup.coverImage || startup.thumbnail;
+          const hasImage = Boolean(rawImage && isAllowedImageUrl(rawImage));
+          const gradientClass =
+            fallbackGradients[index % fallbackGradients.length];
+
+          return (
+            <div
+              key={startup.id}
+              className="relative w-[calc(100%-32px)] max-w-[1510px] mx-auto rounded-3xl bg-white dark:bg-[#161616] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-[#1c1c1c] hover:border-slate-300 dark:hover:border-white/20 transition-colors duration-150 cursor-pointer group"
+            >
+              {/* Stretched Link overlay: Whole container clickable */}
+              <Link
+                href={`/startup/${startup.slug}`}
+                className="absolute inset-0 z-10 rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                aria-label={`View ${startup.name}`}
+              />
+
+              <div className="py-[28px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[96px_100px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[128px_120px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
+                {/* Col 1: Logo tile + name */}
+                <div className="flex flex-col items-center justify-center gap-1.5 min-w-0 text-center">
+                  <StartupLogo
+                    name={startup.name}
+                    category={startup.category}
+                    logoType={startup.logoType}
+                    logoColor={startup.logoColor}
+                    className="!w-12 !h-12 xl:!w-[54px] xl:!h-[54px] p-2 xl:p-2.5 rounded-xl text-base"
+                  />
+                  <span
+                    title={`${rank}. ${startup.name}`}
+                    className="text-[11px] font-bold text-slate-700 dark:text-slate-300 line-clamp-2 break-words max-w-full text-center leading-tight group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors"
+                  >
+                    {rank}. {startup.name}
+                  </span>
+                </div>
+
+                {/* Col 2: Startup Image Thumbnail (100x70 at lg, 120x83 at xl) */}
+                <div className="flex justify-center min-w-0">
+                  <div
+                    className="relative w-[100px] h-[70px] xl:w-[120px] xl:h-[83px] rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs"
+                    aria-label={`${startup.name} image`}
+                  >
+                    {hasImage ? (
+                      <Image
+                        src={rawImage!}
+                        alt={startup.name}
+                        fill
+                        className="object-cover"
+                        sizes="(min-width: 1280px) 120px, 100px"
+                      />
+                    ) : (
+                      <div
+                        className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${gradientClass} text-white`}
+                      >
+                        <ImageIcon className="w-5 h-5 opacity-90" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Col 3: Startup Idea Title + FULL Description */}
+                <div className="min-w-0 pr-2">
+                  <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors text-base line-clamp-1">
+                    {startup.ideaTitle || startup.name}
+                  </h4>
+                  <p className="text-sm leading-snug text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere] mt-1">
+                    {startup.description || startup.tagline}
+                  </p>
+                </div>
+
+                {/* Col 4: Category Pill */}
+                <div className="min-w-0">
+                  <Badge variant="brand" size="sm" className="max-w-full truncate">
+                    {startup.category}
+                  </Badge>
+                </div>
+
+                {/* Col 5: Country with Pin Icon, NO flag, no truncation, may wrap */}
+                <div className="min-w-0">
+                  <div
+                    className="inline-flex items-start gap-1.5 min-w-0 max-w-full text-xs text-slate-600 dark:text-slate-300"
+                    title={country}
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                    <span className="leading-snug whitespace-normal break-words">
+                      {country}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Col 6: Stage Pill */}
+                <div className="min-w-0">
+                  <StageBadge stage={startup.stage} />
+                </div>
+
+                {/* Col 7: Like (heart + count) button right-aligned flush to right padding */}
+                <div className="flex items-center justify-end relative z-20">
                   <VoteButton
                     startupIdOrSlug={startup.slug}
                     initialLikes={startup.likes}
@@ -147,159 +270,10 @@ export function LeaderboardTable({
                     size="sm"
                   />
                 </div>
-
-                {/* UNDER Row 1: Description spanning Image and Main columns (cols 1 & 2) */}
-                <Link
-                  href={`/startup/${startup.slug}`}
-                  className="col-start-1 col-span-2 block pr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
-                >
-                  <p className="text-xs leading-snug text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere]">
-                    {startup.description || startup.tagline}
-                  </p>
-                </Link>
               </div>
-            </li>
+            </div>
           );
         })}
-      </ul>
-
-      {/* Desktop Layout (>= lg): Full-width bands per startup */}
-      <div className="hidden lg:flex lg:flex-col">
-        {/* Full-width Column Header Row */}
-        <div className="w-full h-[55px] border-y border-slate-200/80 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] mb-[2px] flex items-center">
-          <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="grid grid-cols-[80px_100px_minmax(0,1fr)_100px_190px_100px_64px] xl:grid-cols-[88px_108px_minmax(0,1fr)_110px_240px_110px_64px] gap-3 xl:gap-4 items-center text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase">
-              <div className="text-center">Logo</div>
-              <div className="text-center">Image</div>
-              <div>Startup Idea</div>
-              <div>Category</div>
-              <div>Country</div>
-              <div>Stage</div>
-              <div className="text-right sr-only">Vote</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Startup Rows: Each startup is its own full-width band */}
-        <div className="flex flex-col">
-          {startups.map((startup, index) => {
-            const rank = startup.rank || index + 1;
-            const country = getCountryName(startup.countryCode);
-            const rawImage = startup.coverImage || startup.thumbnail;
-            const hasImage = Boolean(rawImage && isAllowedImageUrl(rawImage));
-            const gradientClass =
-              fallbackGradients[index % fallbackGradients.length];
-
-            return (
-              <div
-                key={startup.id}
-                className="w-full bg-white dark:bg-[#161616] border-y border-slate-200/80 dark:border-white/10 mb-2 transition-colors hover:bg-slate-50/70 dark:hover:bg-[#1a1a1a] group"
-              >
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5">
-                  <div className="grid grid-cols-[80px_100px_minmax(0,1fr)_100px_190px_100px_64px] xl:grid-cols-[88px_108px_minmax(0,1fr)_110px_240px_110px_64px] gap-3 xl:gap-4 items-center">
-                    {/* Col 1: Logo + Name under logo */}
-                    <div className="flex justify-center min-w-0">
-                      <Link
-                        href={`/startup/${startup.slug}`}
-                        className="inline-flex flex-col items-center gap-1 group/logo focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-0.5 max-w-full text-center"
-                      >
-                        <StartupLogo
-                          name={startup.name}
-                          category={startup.category}
-                          logoType={startup.logoType}
-                          logoColor={startup.logoColor}
-                          size="md"
-                        />
-                        <span
-                          title={`${rank}. ${startup.name}`}
-                          className="text-[11px] font-bold text-slate-700 dark:text-slate-300 line-clamp-2 break-words max-w-[80px] xl:max-w-[88px] group-hover/logo:text-brand-600 dark:group-hover/logo:text-brand-400 transition-colors text-center leading-tight"
-                        >
-                          {rank}. {startup.name}
-                        </span>
-                      </Link>
-                    </div>
-
-                    {/* Col 2: Startup Image Thumbnail (98x68) */}
-                    <div className="flex justify-center min-w-0">
-                      <Link
-                        href={`/startup/${startup.slug}`}
-                        className="inline-block relative w-[98px] h-[68px] rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs hover:scale-105 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                        aria-label={`${startup.name} image`}
-                      >
-                        {hasImage ? (
-                          <Image
-                            src={rawImage!}
-                            alt={startup.name}
-                            fill
-                            className="object-cover"
-                            sizes="98px"
-                          />
-                        ) : (
-                          <div
-                            className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${gradientClass} text-white`}
-                          >
-                            <ImageIcon className="w-5 h-5 opacity-90" />
-                          </div>
-                        )}
-                      </Link>
-                    </div>
-
-                    {/* Col 3: Startup Idea Title + Full Description */}
-                    <div className="min-w-0 pr-2">
-                      <Link
-                        href={`/startup/${startup.slug}`}
-                        className="block group/idea focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg min-w-0"
-                      >
-                        <h4 className="font-bold text-slate-900 dark:text-white group-hover/idea:text-brand-600 dark:group-hover/idea:text-brand-400 transition-colors text-sm line-clamp-1">
-                          {startup.ideaTitle || startup.name}
-                        </h4>
-                        <p className="text-xs leading-snug text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere] mt-0.5">
-                          {startup.description || startup.tagline}
-                        </p>
-                      </Link>
-                    </div>
-
-                    {/* Col 4: Category Pill */}
-                    <div className="min-w-0">
-                      <Badge variant="brand" size="sm" className="max-w-full truncate">
-                        {startup.category}
-                      </Badge>
-                    </div>
-
-                    {/* Col 5: Country with Pin Icon, NO flag, no truncation */}
-                    <div className="min-w-0">
-                      <div
-                        className="inline-flex items-start gap-1.5 min-w-0 max-w-full text-xs text-slate-600 dark:text-slate-300"
-                        title={country}
-                      >
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                        <span className="leading-snug whitespace-normal break-words">
-                          {country}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Col 6: Stage Pill */}
-                    <div className="min-w-0">
-                      <StageBadge stage={startup.stage} />
-                    </div>
-
-                    {/* Col 7: Like Button Only (right-aligned flush) */}
-                    <div className="flex items-center justify-end relative z-20">
-                      <VoteButton
-                        startupIdOrSlug={startup.slug}
-                        initialLikes={startup.likes}
-                        initialLiked={startup.isLiked}
-                        startupName={startup.name}
-                        size="sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </div>
     </>
   );
