@@ -95,7 +95,7 @@ export default function NewsletterPage() {
                 Check your inbox to confirm!
               </h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                We&apos;ve sent a verification link to <span className="font-semibold text-slate-900 dark:text-white">{email}</span>. Click the link to complete your double opt-in subscription.
+                We&apos;ve sent a verification link to {email}. Click the link to complete your double opt-in subscription.
               </p>
             </div>
           ) : (

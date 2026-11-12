@@ -186,7 +186,7 @@ export function InvestorNetworkModal({
         <div className="shrink-0 px-4 pt-3 pb-1 text-center">
           <p
             className="text-center font-normal font-calibri text-2xl sm:text-3xl text-slate-600 dark:text-slate-300 leading-tight"
-            style={{ fontFamily: "Calibri, Carlito, Arial, sans-serif" }}
+            style={{ fontFamily: "Calibri, var(--font-carlito), Arial, sans-serif" }}
           >
             {subtitleText}
           </p>
