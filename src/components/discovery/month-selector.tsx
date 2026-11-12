@@ -47,7 +47,7 @@ export function MonthSelector({
   const nextUrl = hasNext ? buildUrl(months[currentIndex + 1].id) : null;
 
   return (
-    <div className="w-full py-2">
+    <div className="w-full">
       <div className="flex items-center gap-2.5 sm:gap-3">
         {/* Previous Month Arrow Button */}
         {prevUrl ? (

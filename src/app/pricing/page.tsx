@@ -79,7 +79,7 @@ export default function PricingPage() {
                 <strong>Investor Connect ($199 USD, one time):</strong> Everything in Startup Listing, plus investor networking support and 3 investor meetings (subject to investor availability).
               </li>
               <li>
-                <strong>Investor Ready+Connect ($999 USD, one time):</strong> Everything in Investor Connect, plus investor readiness support, pitch deck, financials &amp; fundraising preparation, and 5 investor meetings (subject to investor availability).
+                <strong>Investor Ready+Connect ($999 USD, one time):</strong> Everything in Investor Connect, plus investor readiness support, pitch deck, market research, financial model &amp; fundraising preparation, and 5 investor meetings (subject to investor availability).
               </li>
             </ul>
           </section>

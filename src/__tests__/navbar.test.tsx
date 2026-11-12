@@ -47,6 +47,33 @@ vi.mock("next/image", () => ({
   },
 }));
 
+// Mock next/dynamic
+vi.mock("next/dynamic", () => ({
+  default: () => {
+    return function MockDynamicComponent(props: {
+      isOpen: boolean;
+      onClose: () => void;
+      triggerRef?: React.RefObject<HTMLButtonElement | null>;
+    }) {
+      if (!props.isOpen) return null;
+      return (
+        <div role="dialog" aria-label="Global Investor Network">
+          <button
+            type="button"
+            onClick={() => {
+              props.onClose();
+              props.triggerRef?.current?.focus();
+            }}
+            aria-label="Close investor network"
+          >
+            Close investor network
+          </button>
+        </div>
+      );
+    };
+  },
+}));
+
 // Mock theme toggle
 vi.mock("@/components/theme-toggle", () => ({
   ThemeToggle: ({ className }: { className?: string }) => (
@@ -161,10 +188,10 @@ describe("Navbar Component", () => {
   it("renders links for signed-out visitors (desktop and mobile overlay)", () => {
     render(<Navbar user={null} profile={null} />);
 
-    // Primary nav links
+    // Primary nav links & Investor Network buttons
     expect(screen.getAllByRole("link", { name: "Home" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Browse" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: "Categories" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Investor Network" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "About" }).length).toBeGreaterThan(0);
 
     // Sign in and Sign up
@@ -289,5 +316,55 @@ describe("Navbar Component", () => {
 
     expect(document.activeElement).toBe(hamburger);
     vi.useRealTimers();
+  });
+
+  it("opens Investor Network modal from desktop button", async () => {
+    render(<Navbar user={null} profile={null} />);
+
+    const investorButtons = screen.getAllByRole("button", {
+      name: "Investor Network",
+    });
+    const desktopBtn = investorButtons[0];
+
+    fireEvent.click(desktopBtn);
+
+    // Modal opens with dialog
+    const dialog = await screen.findByRole("dialog", {
+      name: "Global Investor Network",
+    });
+    expect(dialog).toBeDefined();
+
+    // Close modal
+    const closeBtn = screen.getByRole("button", {
+      name: "Close investor network",
+    });
+    fireEvent.click(closeBtn);
+
+    expect(
+      screen.queryByRole("dialog", { name: "Global Investor Network" })
+    ).toBeNull();
+  });
+
+  it("opens Investor Network modal from mobile menu and closes menu first", async () => {
+    render(<Navbar user={null} profile={null} />);
+
+    const hamburger = screen.getByRole("button", { name: "Toggle mobile menu" });
+    fireEvent.click(hamburger);
+
+    expect(screen.getByRole("dialog", { name: "Main menu" })).toBeDefined();
+
+    const mobileInvestorBtn = screen.getAllByRole("button", {
+      name: "Investor Network",
+    })[1];
+    fireEvent.click(mobileInvestorBtn);
+
+    // Mobile menu dialog should be closed
+    expect(screen.queryByRole("dialog", { name: "Main menu" })).toBeNull();
+
+    // Investor Network dialog should be opened
+    const dialog = await screen.findByRole("dialog", {
+      name: "Global Investor Network",
+    });
+    expect(dialog).toBeDefined();
   });
 });

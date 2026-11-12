@@ -54,10 +54,10 @@ describe("Payments - Pricing Plans Constants and Helpers", () => {
     expect(PLANS.investor_ready.priceCents).toBe(99900); // $999
   });
 
-  it("defines PLAN_DISPLAY_ORDER with each key exactly once and investor_ready in the center", () => {
-    expect(PLAN_DISPLAY_ORDER).toEqual(["basic", "investor_ready", "investor_connect"]);
+  it("defines PLAN_DISPLAY_ORDER with each key exactly once and investor_connect in the center", () => {
+    expect(PLAN_DISPLAY_ORDER).toEqual(["basic", "investor_connect", "investor_ready"]);
     expect(new Set(PLAN_DISPLAY_ORDER).size).toBe(PLAN_KEYS.length);
-    expect(PLAN_DISPLAY_ORDER[1]).toBe("investor_ready");
+    expect(PLAN_DISPLAY_ORDER[1]).toBe("investor_connect");
     expect(PLAN_DISPLAY_ORDER.every((k) => PLAN_KEYS.includes(k))).toBe(true);
   });
 

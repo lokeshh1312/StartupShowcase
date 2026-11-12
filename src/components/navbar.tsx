@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -17,6 +18,14 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { signOutAction } from "@/server/actions";
+
+const InvestorNetworkModal = dynamic(
+  () =>
+    import("@/components/investor-network/investor-network-modal").then(
+      (m) => m.InvestorNetworkModal
+    ),
+  { ssr: false }
+);
 
 interface NavbarUser {
   id: string;
@@ -34,24 +43,31 @@ interface NavbarProps {
   profile?: NavbarProfile | null;
 }
 
-const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/browse", label: "Browse" },
-  { href: "/categories", label: "Categories" },
-  { href: "/about", label: "About" },
-] as const;
-
 export function Navbar({ user, profile }: NavbarProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [investorModalOpen, setInvestorModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   const hamburgerRef = useRef<HTMLButtonElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const desktopInvestorButtonRef = useRef<HTMLButtonElement | null>(null);
+  const lastInvestorTriggerRef = useRef<HTMLButtonElement | null>(null);
   const wasOpenRef = useRef(false);
 
   const isAdmin = profile?.role === "admin";
+
+  const handleOpenInvestorFromDesktop = () => {
+    lastInvestorTriggerRef.current = desktopInvestorButtonRef.current;
+    setInvestorModalOpen(true);
+  };
+
+  const handleOpenInvestorFromMobile = () => {
+    lastInvestorTriggerRef.current = hamburgerRef.current;
+    setMobileMenuOpen(false);
+    setInvestorModalOpen(true);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -147,29 +163,53 @@ export function Navbar({ user, profile }: NavbarProps) {
                 <ThemeToggle className="min-w-[40px] min-h-[40px] flex items-center justify-center shrink-0" />
               </div>
 
-              {/* Desktop: 4 Nav Links */}
+              {/* Desktop: Nav Links + Investor Network */}
               <nav
                 className="hidden lg:flex items-center gap-1.5 lg:gap-2 xl:gap-3"
                 aria-label="Primary navigation"
               >
-                {navLinks.map(({ href, label }) => {
-                  const isActive =
-                    href === "/" ? pathname === "/" : pathname.startsWith(href);
-
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      className={`px-3 xl:px-3.5 py-1.5 text-xs font-semibold transition-all select-none ${
-                        isActive
-                          ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
-                          : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                      }`}
-                    >
-                      {label}
-                    </Link>
-                  );
-                })}
+                <Link
+                  href="/"
+                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-semibold transition-all select-none ${
+                    pathname === "/"
+                      ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
+                      : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  }`}
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/browse"
+                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-semibold transition-all select-none ${
+                    pathname.startsWith("/browse")
+                      ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
+                      : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  }`}
+                >
+                  Browse
+                </Link>
+                <button
+                  ref={desktopInvestorButtonRef}
+                  type="button"
+                  onClick={handleOpenInvestorFromDesktop}
+                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-semibold transition-all select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                    investorModalOpen
+                      ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
+                      : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  }`}
+                >
+                  Investor Network
+                </button>
+                <Link
+                  href="/about"
+                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-semibold transition-all select-none ${
+                    pathname.startsWith("/about")
+                      ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
+                      : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  }`}
+                >
+                  About
+                </Link>
               </nav>
             </div>
 
@@ -378,25 +418,46 @@ export function Navbar({ user, profile }: NavbarProps) {
               <div className="flex-1 overflow-y-auto px-6 py-6">
                 <div className="flex flex-col divide-y divide-slate-100 dark:divide-white/5">
                   <nav className="flex flex-col" aria-label="Mobile primary navigation">
-                    {navLinks.map(({ href, label }) => {
-                      const isActive =
-                        href === "/" ? pathname === "/" : pathname.startsWith(href);
-
-                      return (
-                        <Link
-                          key={href}
-                          href={href}
-                          onClick={() => setMobileMenuOpen(false)}
-                          className={`text-lg font-semibold py-3 px-1 transition-colors ${
-                            isActive
-                              ? "text-brand-600 dark:text-brand-400"
-                              : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
-                          }`}
-                        >
-                          {label}
-                        </Link>
-                      );
-                    })}
+                    <Link
+                      href="/"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                        pathname === "/"
+                          ? "text-brand-600 dark:text-brand-400"
+                          : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
+                      }`}
+                    >
+                      Home
+                    </Link>
+                    <Link
+                      href="/browse"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                        pathname.startsWith("/browse")
+                          ? "text-brand-600 dark:text-brand-400"
+                          : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
+                      }`}
+                    >
+                      Browse
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleOpenInvestorFromMobile}
+                      className="text-lg font-semibold py-3 px-1 transition-colors text-left text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded cursor-pointer"
+                    >
+                      Investor Network
+                    </button>
+                    <Link
+                      href="/about"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                        pathname.startsWith("/about")
+                          ? "text-brand-600 dark:text-brand-400"
+                          : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
+                      }`}
+                    >
+                      About
+                    </Link>
                   </nav>
 
                   {user ? (
@@ -502,6 +563,14 @@ export function Navbar({ user, profile }: NavbarProps) {
             document.body
           )
         : null}
+
+      {investorModalOpen && (
+        <InvestorNetworkModal
+          isOpen={investorModalOpen}
+          onClose={() => setInvestorModalOpen(false)}
+          triggerRef={lastInvestorTriggerRef}
+        />
+      )}
     </>
   );
 }
