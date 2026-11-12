@@ -38,10 +38,7 @@ export default function PricingPage() {
             </div>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Transparent, founder-friendly{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              listing plans
-            </em>
+            Transparent, founder-friendly listing plans
           </h1>
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
             Choose the plan that fits your launch goals. One-time payment, no subscriptions.

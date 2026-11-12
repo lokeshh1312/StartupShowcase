@@ -69,10 +69,7 @@ export default function SignUpPage() {
             </div>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Create an{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              Account
-            </em>
+            Create an Account
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
             Join the global showcase to launch, vote, and explore early-stage innovations.
@@ -107,9 +104,7 @@ export default function SignUpPage() {
               Check your inbox
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              We sent a confirmation link to{" "}
-              <span className="font-semibold text-slate-900 dark:text-white">{successNotice}</span>.
-              Please verify your email to activate your account and start submitting.
+              We sent a confirmation link to {successNotice}. Please verify your email to activate your account and start submitting.
             </p>
             <div className="pt-2">
               <Link

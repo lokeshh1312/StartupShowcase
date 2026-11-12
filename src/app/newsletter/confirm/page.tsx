@@ -60,10 +60,7 @@ export default async function NewsletterConfirmPage({ searchParams }: ConfirmPag
 
         <div className="space-y-2">
           <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-            Confirm Your{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              Subscription
-            </em>
+            Confirm Your Subscription
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
             Click the button below to complete your double opt-in verification and join our global startup radar.

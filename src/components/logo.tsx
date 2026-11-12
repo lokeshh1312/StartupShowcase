@@ -33,10 +33,7 @@ export function Logo({ size = "default", className = "" }: LogoProps) {
       {/* Brand name */}
       <div className="flex flex-wrap items-baseline tracking-tight font-bold">
         <span className={`text-slate-900 dark:text-white ${s.text}`}>
-          Startup
-        </span>
-        <span className={`text-brand-600 dark:text-brand-400 ml-1.5 ${s.text}`}>
-          Showcase Global
+          Startup Showcase Global
         </span>
       </div>
     </Link>

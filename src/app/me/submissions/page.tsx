@@ -59,10 +59,7 @@ export default async function MySubmissionsPage() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                My{" "}
-                <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-                  Submissions
-                </em>
+                My Submissions
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Review history, payment status, and moderation progress for all startups you created.

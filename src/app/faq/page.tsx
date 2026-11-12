@@ -75,10 +75,7 @@ export default function FAQPage() {
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Frequently Asked{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              Questions
-            </em>
+            Frequently Asked Questions
           </h1>
 
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">

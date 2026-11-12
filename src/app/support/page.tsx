@@ -46,10 +46,7 @@ export default function SupportPage() {
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            How can we{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              help?
-            </em>
+            How can we help?
           </h1>
 
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto leading-relaxed">
@@ -66,9 +63,7 @@ export default function SupportPage() {
               Support Request Logged
             </h2>
             <p className="text-xs text-slate-600 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-              Thank you, <span className="font-semibold text-slate-900 dark:text-white">{formData.name}</span>. Your ticket number is{" "}
-              <span className="font-mono font-bold text-brand-600 dark:text-brand-400">{ticketId}</span>. A team member will respond to{" "}
-              <span className="font-semibold text-slate-900 dark:text-white">{formData.email}</span> shortly.
+              Thank you, {formData.name}. Your ticket number is {ticketId}. A team member will respond to {formData.email} shortly.
             </p>
             <div className="pt-2">
               <button
