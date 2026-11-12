@@ -1,5 +1,6 @@
+import React from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { LogoMark } from "@/components/logo-mark";
 
 type LogoSize = "sm" | "default" | "md" | "lg";
 
@@ -27,14 +28,7 @@ export function Logo({ size = "default", className = "" }: LogoProps) {
       className={`group inline-flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg py-1 transition-transform duration-200 active:scale-95 ${className}`}
       aria-label="Startup Showcase Global Home"
     >
-      <Image
-        src="/logo-mark.png"
-        alt=""
-        width={389}
-        height={512}
-        className={`${s.image} object-contain shrink-0`}
-        priority
-      />
+      <LogoMark className={`${s.image} text-brand-500 shrink-0`} />
 
       {/* Brand name */}
       <div className="flex flex-wrap items-baseline tracking-tight font-bold">

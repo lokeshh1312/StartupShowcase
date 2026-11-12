@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import Image from "next/image";
+import { LogoMark } from "@/components/logo-mark";
 import { usePathname } from "next/navigation";
 import {
   Menu,
@@ -218,16 +218,9 @@ export function Navbar({ user, profile }: NavbarProps) {
               <Link
                 href="/"
                 aria-label="Startup Showcase Global Home"
-                className="group flex items-center justify-center rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 transition-transform duration-200 hover:scale-105 active:scale-95"
+                className="navbar-logo-link group flex items-center justify-center rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 transition-transform duration-200 hover:scale-105 active:scale-95"
               >
-                <Image
-                  src="/logo-mark.png"
-                  alt="Startup Showcase Global"
-                  width={389}
-                  height={512}
-                  priority
-                  className="h-10 lg:h-12 w-auto"
-                />
+                <LogoMark className="h-10 lg:h-12 w-auto text-brand-500 shrink-0" />
                 <span className="sr-only">Startup Showcase Global</span>
               </Link>
             </div>
@@ -392,14 +385,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                   aria-label="Startup Showcase Global Home"
                   className="group flex items-center rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 transition-transform duration-200 hover:scale-105 active:scale-95"
                 >
-                  <Image
-                    src="/logo-mark.png"
-                    alt="Startup Showcase Global"
-                    width={389}
-                    height={512}
-                    priority
-                    className="h-9 w-auto"
-                  />
+                  <LogoMark className="h-9 w-auto text-brand-500 shrink-0" />
                   <span className="sr-only">Startup Showcase Global</span>
                 </Link>
 
