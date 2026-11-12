@@ -17,6 +17,7 @@
 
 @theme inline {
   --font-sans: var(--font-poppins), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-calibri: Calibri, var(--font-carlito), Arial, sans-serif;
 
   --color-brand-50: var(--brand-50);
   --color-brand-100: var(--brand-100);
@@ -166,6 +167,10 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.font-calibri {
+  font-family: Calibri, var(--font-carlito), Arial, sans-serif;
 }
 
 @keyframes logo-orbit-spin {

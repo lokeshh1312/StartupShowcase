@@ -77,8 +77,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       {/* Top Header Flow: Heading -> Month Tabs -> Category Chips */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-[30px]">
         {/* Section Header */}
-        <section aria-label="Page introduction">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15] md:whitespace-nowrap min-w-0">
+        <section aria-label="Page introduction" className="text-center">
+          <h1
+            id="main-heading"
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-900 dark:text-white leading-[1.15] text-center font-calibri min-w-0"
+            style={{ fontFamily: "Calibri, var(--font-carlito), Arial, sans-serif" }}
+          >
             Showcase Your Startup to a Global Audience
           </h1>
         </section>
