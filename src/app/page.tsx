@@ -75,24 +75,21 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <JsonLd data={leaderboardJsonLd} />
 
       {/* Top Header Flow: Heading -> Month Tabs -> Category Chips */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-3">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-[30px]">
         {/* Section Header */}
         <section aria-label="Page introduction">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15] md:whitespace-nowrap min-w-0">
-            Showcase Your Startup to a Global{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              Audience
-            </em>
+            Showcase Your Startup to a Global Audience
           </h1>
         </section>
 
         {/* Month Selector Carousel / Tabs */}
-        <section aria-label="Month selection" className="mt-3">
+        <section aria-label="Month selection" className="mt-[14px]">
           <MonthSelector months={months} activeMonth={activeMonth} />
         </section>
 
         {/* Category Chips Section */}
-        <section aria-label="Categories" className="mt-3 space-y-1.5 sm:space-y-0">
+        <section aria-label="Categories" className="mt-4 space-y-1.5 sm:space-y-0">
           {/* View all categories link on mobile (< 640px) */}
           <div className="sm:hidden">
             <Link

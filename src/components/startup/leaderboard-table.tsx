@@ -5,7 +5,7 @@ import { StartupLogo } from "@/components/common/startup-logo";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { VoteButton } from "@/components/startup/vote-button";
 import { CountryFlag } from "@/components/common/country-flag";
-import { MapPin, ChevronRight, Image as ImageIcon } from "lucide-react";
+import { MapPin, Image as ImageIcon } from "lucide-react";
 import { getCountryName } from "@/lib/validation";
 import { isAllowedImageUrl } from "@/lib/images";
 import type { FormattedStartup } from "@/server/startups";
@@ -58,8 +58,8 @@ export function LeaderboardTable({
 
   return (
     <>
-      {/* Mobile Layout (< md): BetaList-style edge-to-edge cards */}
-      <ul className="md:hidden flex flex-col gap-2">
+      {/* Mobile/Tablet Card List (< lg): BetaList-style edge-to-edge cards */}
+      <ul className="lg:hidden flex flex-col gap-2">
         {startups.map((startup, index) => {
           const rank = startup.rank || index + 1;
           const rawImage = startup.coverImage || startup.thumbnail;
@@ -163,19 +163,19 @@ export function LeaderboardTable({
         })}
       </ul>
 
-      {/* Desktop Layout (>= md): Full-width bands per startup */}
-      <div className="hidden md:flex md:flex-col">
+      {/* Desktop Layout (>= lg): Full-width bands per startup */}
+      <div className="hidden lg:flex lg:flex-col">
         {/* Full-width Column Header Row */}
-        <div className="w-full border-y border-slate-200/80 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] mb-2">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5">
-            <div className="grid grid-cols-[72px_92px_1fr_100px_116px_88px_84px] lg:grid-cols-[76px_96px_1fr_116px_124px_96px_88px] gap-2.5 lg:gap-4 items-center text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase">
+        <div className="w-full h-[55px] border-y border-slate-200/80 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] mb-[2px] flex items-center">
+          <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="grid grid-cols-[80px_100px_minmax(0,1fr)_100px_190px_100px_64px] xl:grid-cols-[88px_108px_minmax(0,1fr)_110px_240px_110px_64px] gap-3 xl:gap-4 items-center text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 tracking-wider uppercase">
               <div className="text-center">Logo</div>
               <div className="text-center">Image</div>
               <div>Startup Idea</div>
               <div>Category</div>
               <div>Country</div>
               <div>Stage</div>
-              <div className="text-right sr-only">Actions</div>
+              <div className="text-right sr-only">Vote</div>
             </div>
           </div>
         </div>
@@ -195,8 +195,8 @@ export function LeaderboardTable({
                 key={startup.id}
                 className="w-full bg-white dark:bg-[#161616] border-y border-slate-200/80 dark:border-white/10 mb-2 transition-colors hover:bg-slate-50/70 dark:hover:bg-[#1a1a1a] group"
               >
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
-                  <div className="grid grid-cols-[72px_92px_1fr_100px_116px_88px_84px] lg:grid-cols-[76px_96px_1fr_116px_124px_96px_88px] gap-2.5 lg:gap-4 items-center">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5">
+                  <div className="grid grid-cols-[80px_100px_minmax(0,1fr)_100px_190px_100px_64px] xl:grid-cols-[88px_108px_minmax(0,1fr)_110px_240px_110px_64px] gap-3 xl:gap-4 items-center">
                     {/* Col 1: Logo + Name under logo */}
                     <div className="flex justify-center min-w-0">
                       <Link
@@ -208,22 +208,22 @@ export function LeaderboardTable({
                           category={startup.category}
                           logoType={startup.logoType}
                           logoColor={startup.logoColor}
-                          className="w-10 h-10 p-2 rounded-xl text-sm"
+                          size="md"
                         />
                         <span
                           title={`${rank}. ${startup.name}`}
-                          className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 line-clamp-2 break-words max-w-[72px] lg:max-w-[76px] group-hover/logo:text-brand-600 dark:group-hover/logo:text-brand-400 transition-colors text-center leading-tight"
+                          className="text-[11px] font-bold text-slate-700 dark:text-slate-300 line-clamp-2 break-words max-w-[80px] xl:max-w-[88px] group-hover/logo:text-brand-600 dark:group-hover/logo:text-brand-400 transition-colors text-center leading-tight"
                         >
                           {rank}. {startup.name}
                         </span>
                       </Link>
                     </div>
 
-                    {/* Col 2: Startup Image Thumbnail (88x60) */}
+                    {/* Col 2: Startup Image Thumbnail (98x68) */}
                     <div className="flex justify-center min-w-0">
                       <Link
                         href={`/startup/${startup.slug}`}
-                        className="inline-block relative w-[88px] h-[60px] rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs hover:scale-105 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                        className="inline-block relative w-[98px] h-[68px] rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs hover:scale-105 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                         aria-label={`${startup.name} image`}
                       >
                         {hasImage ? (
@@ -232,7 +232,7 @@ export function LeaderboardTable({
                             alt={startup.name}
                             fill
                             className="object-cover"
-                            sizes="88px"
+                            sizes="98px"
                           />
                         ) : (
                           <div
@@ -253,7 +253,7 @@ export function LeaderboardTable({
                         <h4 className="font-bold text-slate-900 dark:text-white group-hover/idea:text-brand-600 dark:group-hover/idea:text-brand-400 transition-colors text-sm line-clamp-1">
                           {startup.ideaTitle || startup.name}
                         </h4>
-                        <p className="text-sm leading-snug text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere] mt-0.5">
+                        <p className="text-xs leading-snug text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere] mt-0.5">
                           {startup.description || startup.tagline}
                         </p>
                       </Link>
@@ -261,22 +261,19 @@ export function LeaderboardTable({
 
                     {/* Col 4: Category Pill */}
                     <div className="min-w-0">
-                      <Badge variant="brand" size="sm" className="max-w-[96px] lg:max-w-none truncate">
+                      <Badge variant="brand" size="sm" className="max-w-full truncate">
                         {startup.category}
                       </Badge>
                     </div>
 
-                    {/* Col 5: Country with Pin Icon and Flag */}
+                    {/* Col 5: Country with Pin Icon, NO flag, no truncation */}
                     <div className="min-w-0">
                       <div
-                        className="inline-flex items-center gap-1.5 min-w-0 max-w-full text-xs text-slate-600 dark:text-slate-300"
+                        className="inline-flex items-start gap-1.5 min-w-0 max-w-full text-xs text-slate-600 dark:text-slate-300"
                         title={country}
                       >
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        {startup.countryCode && (
-                          <CountryFlag code={startup.countryCode} className="shrink-0" />
-                        )}
-                        <span className="truncate">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                        <span className="leading-snug whitespace-normal break-words">
                           {country}
                         </span>
                       </div>
@@ -287,8 +284,8 @@ export function LeaderboardTable({
                       <StageBadge stage={startup.stage} />
                     </div>
 
-                    {/* Col 7: Like Button + Chevron Arrow */}
-                    <div className="flex items-center justify-end gap-1.5 relative z-20">
+                    {/* Col 7: Like Button Only (right-aligned flush) */}
+                    <div className="flex items-center justify-end relative z-20">
                       <VoteButton
                         startupIdOrSlug={startup.slug}
                         initialLikes={startup.likes}
@@ -296,13 +293,6 @@ export function LeaderboardTable({
                         startupName={startup.name}
                         size="sm"
                       />
-                      <Link
-                        href={`/startup/${startup.slug}`}
-                        className="inline-flex items-center justify-center min-w-[32px] min-h-[32px] p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 rounded-lg transition-colors group-hover:translate-x-0.5"
-                        aria-label={`View details for ${startup.name}`}
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Link>
                     </div>
                   </div>
                 </div>
