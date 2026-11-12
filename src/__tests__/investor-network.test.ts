@@ -13,6 +13,11 @@ import {
 } from "@/lib/country-map-data";
 import { investorRegionSchema, getAvailableCountries } from "@/lib/validation";
 import { aggregateInvestorNetworkData } from "@/server/investor-network";
+import { formatInvestorSubtitle } from "@/components/investor-network/investor-network-modal";
+import {
+  getCountryMapInfo,
+  NO_ISO_TERRITORIES,
+} from "@/components/investor-network/investor-world-map";
 
 describe("Investor Network Feature", () => {
   describe("1. Seed Data & Headline Total", () => {
@@ -323,6 +328,131 @@ describe("Investor Network Feature", () => {
       expect(FALLBACK_COUNTRY_COORDINATES["MC"]).toBeDefined();
       expect(FALLBACK_COUNTRY_COORDINATES["HK"]).toBeDefined();
       expect(FALLBACK_COUNTRY_COORDINATES["BM"]).toBeDefined();
+    });
+  });
+
+  describe("5. Investor Network UI Helpers & Window Rules", () => {
+    describe("formatInvestorSubtitle", () => {
+      it("rounds down to nearest 10,000 for totals >= 10,000", () => {
+        expect(formatInvestorSubtitle(61725)).toBe(
+          "Connect with a Global Network of 60,000+ Active Angel Investors."
+        );
+        expect(formatInvestorSubtitle(144500)).toBe(
+          "Connect with a Global Network of 140,000+ Active Angel Investors."
+        );
+        expect(formatInvestorSubtitle(10000)).toBe(
+          "Connect with a Global Network of 10,000+ Active Angel Investors."
+        );
+        expect(formatInvestorSubtitle(19999)).toBe(
+          "Connect with a Global Network of 10,000+ Active Angel Investors."
+        );
+      });
+
+      it("rounds down to nearest 1,000 for totals >= 1,000 and < 10,000", () => {
+        expect(formatInvestorSubtitle(4850)).toBe(
+          "Connect with a Global Network of 4,000+ Active Angel Investors."
+        );
+        expect(formatInvestorSubtitle(1000)).toBe(
+          "Connect with a Global Network of 1,000+ Active Angel Investors."
+        );
+        expect(formatInvestorSubtitle(9999)).toBe(
+          "Connect with a Global Network of 9,000+ Active Angel Investors."
+        );
+        expect(formatInvestorSubtitle(1234)).toBe(
+          "Connect with a Global Network of 1,000+ Active Angel Investors."
+        );
+      });
+
+      it("shows exact total for totals > 0 and < 1,000", () => {
+        expect(formatInvestorSubtitle(500)).toBe(
+          "Connect with a Global Network of 500+ Active Angel Investors."
+        );
+        expect(formatInvestorSubtitle(1)).toBe(
+          "Connect with a Global Network of 1+ Active Angel Investors."
+        );
+        expect(formatInvestorSubtitle(999)).toBe(
+          "Connect with a Global Network of 999+ Active Angel Investors."
+        );
+      });
+
+      it("returns default fallback text when there is no investor data (0, null, undefined, negative)", () => {
+        expect(formatInvestorSubtitle(0)).toBe(
+          "Connect with a Global Network of Angel Investors."
+        );
+        expect(formatInvestorSubtitle(null)).toBe(
+          "Connect with a Global Network of Angel Investors."
+        );
+        expect(formatInvestorSubtitle(undefined)).toBe(
+          "Connect with a Global Network of Angel Investors."
+        );
+        expect(formatInvestorSubtitle(-50)).toBe(
+          "Connect with a Global Network of Angel Investors."
+        );
+      });
+    });
+
+    describe("getCountryMapInfo & Country Resolution", () => {
+      const mockInvestorMap = new Map<string, { investors: number; name?: string }>([
+        ["US", { investors: 35552, name: "United States" }],
+        ["IN", { investors: 1890, name: "India" }],
+        ["DE", { investors: 1626, name: "Germany" }],
+      ]);
+
+      it("resolves a country with data correctly", () => {
+        const usFeature = {
+          type: "Feature" as const,
+          id: "840",
+          properties: { name: "United States" },
+          geometry: { type: "Polygon" as const, coordinates: [] },
+        };
+        const info = getCountryMapInfo(usFeature, mockInvestorMap);
+        expect(info.code).toBe("US");
+        expect(info.name).toBe("United States");
+        expect(info.investors).toBe(35552);
+      });
+
+      it("resolves a country with no data to 0 investors", () => {
+        // Mongolia (id: 496) is present on the map but has no investor data
+        const mongoliaFeature = {
+          type: "Feature" as const,
+          id: "496",
+          properties: { name: "Mongolia" },
+          geometry: { type: "Polygon" as const, coordinates: [] },
+        };
+        const info = getCountryMapInfo(mongoliaFeature, mockInvestorMap);
+        expect(info.code).toBe("MN");
+        expect(info.name).toBe("Mongolia");
+        expect(info.investors).toBe(0);
+      });
+
+      it("resolves shapes with no ISO code (e.g. Antarctica, Kosovo, N. Cyprus, Somaliland, W. Sahara) to null code and 0", () => {
+        expect(NO_ISO_TERRITORIES.has("Antarctica")).toBe(true);
+        expect(NO_ISO_TERRITORIES.has("Kosovo")).toBe(true);
+        expect(NO_ISO_TERRITORIES.has("N. Cyprus")).toBe(true);
+        expect(NO_ISO_TERRITORIES.has("Somaliland")).toBe(true);
+        expect(NO_ISO_TERRITORIES.has("W. Sahara")).toBe(true);
+
+        const testShapes = [
+          { id: "010", name: "Antarctica" },
+          { id: undefined, name: "Kosovo" },
+          { id: undefined, name: "N. Cyprus" },
+          { id: undefined, name: "Somaliland" },
+          { id: "732", name: "W. Sahara" },
+        ];
+
+        for (const shape of testShapes) {
+          const feat = {
+            type: "Feature" as const,
+            id: shape.id,
+            properties: { name: shape.name },
+            geometry: { type: "Polygon" as const, coordinates: [] },
+          };
+          const info = getCountryMapInfo(feat, mockInvestorMap);
+          expect(info.code).toBeNull();
+          expect(info.name).toBe(shape.name);
+          expect(info.investors).toBe(0);
+        }
+      });
     });
   });
 });

@@ -7,26 +7,92 @@ import * as d3Selection from "d3-selection";
 import * as topojson from "topojson-client";
 import type { Topology, Objects } from "topojson-specification";
 import type { Feature, FeatureCollection, Geometry } from "geojson";
+import * as reactFlags from "country-flag-icons/react/3x2";
+import { hasFlag } from "country-flag-icons";
 import { Plus, Minus, RotateCcw } from "lucide-react";
 import worldData from "@/data/countries-110m.json";
-import {
-  numericIdToAlpha2,
-  FALLBACK_COUNTRY_COORDINATES,
-} from "@/lib/country-map-data";
-import { CountryFlag } from "@/components/common/country-flag";
+import { numericIdToAlpha2 } from "@/lib/country-map-data";
+import { getCountryName } from "@/lib/validation";
 import type { CountryInvestorData } from "@/server/investor-network";
 
-interface InvestorWorldMapProps {
-  countries: CountryInvestorData[];
-  selectedCode: string | null;
-  onSelectCountry: (code: string) => void;
+export interface InvestorWorldMapProps {
+  countries?: CountryInvestorData[];
+  selectedCode?: string | null;
+  onSelectCountry?: (code: string) => void;
 }
 
-interface TooltipInfo {
-  code: string;
+export interface CountryMapInfo {
+  code: string | null;
   name: string;
   investors: number;
-  startups: number;
+}
+
+/**
+ * Territories / disputed regions that do not carry a sovereign ISO 3166-1 alpha-2 code
+ * in the map data. These shapes display their shape name, no flag, no bracket code,
+ * and 0 investors.
+ */
+export const NO_ISO_TERRITORIES = new Set([
+  "Antarctica",
+  "Kosovo",
+  "N. Cyprus",
+  "Northern Cyprus",
+  "Somaliland",
+  "W. Sahara",
+  "Western Sahara",
+]);
+
+/**
+ * Resolves country metadata (name, alpha-2 code, investor count) from a map feature.
+ * - If the shape has an ISO alpha-2 code, resolves its name from the app's country list
+ *   and pulls its investor count from the data (or 0 if not present).
+ * - For shapes with no ISO code, returns null code, map data name, and 0 investors.
+ */
+export function getCountryMapInfo(
+  feature: Feature<Geometry>,
+  investorDataMap: Map<string, { investors: number; name?: string }>
+): CountryMapInfo {
+  const shapeName =
+    ((feature.properties as { name?: string })?.name || "").trim() || "Territory";
+
+  if (NO_ISO_TERRITORIES.has(shapeName)) {
+    return {
+      code: null,
+      name: shapeName,
+      investors: 0,
+    };
+  }
+
+  const rawCode = numericIdToAlpha2(feature.id as string | number);
+  if (!rawCode) {
+    return {
+      code: null,
+      name: shapeName,
+      investors: 0,
+    };
+  }
+
+  const code = rawCode.toUpperCase();
+  const appCountryName = getCountryName(code);
+  const data = investorDataMap.get(code);
+
+  return {
+    code,
+    name: data?.name || (shapeName && shapeName !== "Territory" ? shapeName : appCountryName),
+    investors: data?.investors ?? 0,
+  };
+}
+
+interface HoveredState {
+  feature: Feature<Geometry>;
+  centroid: [number, number];
+  info: CountryMapInfo;
+}
+
+interface TooltipState {
+  code: string | null;
+  name: string;
+  investors: number;
   x: number;
   y: number;
 }
@@ -35,10 +101,11 @@ const MAP_WIDTH = 960;
 const MAP_HEIGHT = 500;
 
 export function InvestorWorldMap({
-  countries,
-  selectedCode,
+  countries = [],
+  selectedCode: _selectedCode = null,
   onSelectCountry,
 }: InvestorWorldMapProps) {
+  void _selectedCode;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const zoomBehaviorRef = useRef<d3Zoom.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -46,7 +113,8 @@ export function InvestorWorldMap({
   const [currentTransform, setCurrentTransform] = useState<d3Zoom.ZoomTransform>(
     d3Zoom.zoomIdentity
   );
-  const [tooltip, setTooltip] = useState<TooltipInfo | null>(null);
+  const [hoveredCountry, setHoveredCountry] = useState<HoveredState | null>(null);
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [isDark, setIsDark] = useState(false);
 
   // Detect dark mode reactively
@@ -84,59 +152,44 @@ export function InvestorWorldMap({
   }, [countries]);
 
   // Extract GeoJSON features from topojson
-  const { featureCollection, countryFeaturesByCode } = useMemo(() => {
+  const featureCollection = useMemo(() => {
     const topology = worldData as unknown as Topology<Objects>;
-    const collection = topojson.feature(
+    return topojson.feature(
       topology,
       topology.objects.countries
     ) as unknown as FeatureCollection<Geometry>;
-
-    const byCode = new Map<string, Feature<Geometry>>();
-    for (const feat of collection.features) {
-      const code = numericIdToAlpha2(feat.id as string | number);
-      if (code) {
-        byCode.set(code, feat);
-      }
-    }
-
-    return { featureCollection: collection, countryFeaturesByCode: byCode };
   }, []);
 
   // Equal Earth projection and path generator
-  const { projection, pathGenerator } = useMemo(() => {
+  const pathGenerator = useMemo(() => {
     const proj = d3Geo.geoEqualEarth().fitSize([MAP_WIDTH, MAP_HEIGHT], featureCollection);
-    const path = d3Geo.geoPath(proj);
-    return { projection: proj, pathGenerator: path };
+    return d3Geo.geoPath(proj);
   }, [featureCollection]);
 
-  // Precompute centroids for polygon features and fallback markers
-  const countryPositions = useMemo(() => {
-    const positions = new Map<string, [number, number]>();
+  // Precompute 2D projected centroids for every feature
+  const countryCentroids = useMemo(() => {
+    const centroids = new Map<Feature<Geometry>, [number, number]>();
 
-    // Polygons
-    for (const [code, feat] of countryFeaturesByCode.entries()) {
+    for (const feat of featureCollection.features) {
+      let c: [number, number] = [MAP_WIDTH / 2, MAP_HEIGHT / 2];
       try {
-        const centroid = pathGenerator.centroid(feat);
-        if (centroid && !isNaN(centroid[0]) && !isNaN(centroid[1])) {
-          positions.set(code, centroid);
+        const calculated = pathGenerator.centroid(feat);
+        if (calculated && !isNaN(calculated[0]) && !isNaN(calculated[1])) {
+          c = calculated;
+        } else {
+          const bounds = pathGenerator.bounds(feat);
+          if (bounds) {
+            c = [(bounds[0][0] + bounds[1][0]) / 2, (bounds[0][1] + bounds[1][1]) / 2];
+          }
         }
       } catch {
-        // fallback
+        // Fallback to center
       }
+      centroids.set(feat, c);
     }
 
-    // Fallbacks for microstates / island territories without 110m polygons
-    for (const [code, lngLat] of Object.entries(FALLBACK_COUNTRY_COORDINATES)) {
-      if (!positions.has(code)) {
-        const projPoint = projection(lngLat);
-        if (projPoint) {
-          positions.set(code, projPoint);
-        }
-      }
-    }
-
-    return positions;
-  }, [countryFeaturesByCode, pathGenerator, projection]);
+    return centroids;
+  }, [featureCollection, pathGenerator]);
 
   // Attach D3 Zoom
   useEffect(() => {
@@ -162,53 +215,20 @@ export function InvestorWorldMap({
     };
   }, []);
 
-  // Smooth zoom to country when selectedCode changes
-  const zoomToCountry = useCallback(
-    (code: string | null) => {
-      if (!code || !svgRef.current || !zoomBehaviorRef.current) return;
-
-      const pos = countryPositions.get(code.toUpperCase());
-      if (!pos) return;
-
-      const [cx, cy] = pos;
-      const targetScale = 3.5;
-      const x = MAP_WIDTH / 2 - cx * targetScale;
-      const y = MAP_HEIGHT / 2 - cy * targetScale;
-
-      const newTransform = d3Zoom.zoomIdentity.translate(x, y).scale(targetScale);
-      d3Selection
-        .select(svgRef.current)
-        .call(zoomBehaviorRef.current.transform, newTransform);
-    },
-    [countryPositions]
-  );
-
-  useEffect(() => {
-    if (selectedCode) {
-      zoomToCountry(selectedCode);
-    }
-  }, [selectedCode, zoomToCountry]);
-
   // Zoom control buttons
   const handleZoomIn = () => {
     if (!svgRef.current || !zoomBehaviorRef.current) return;
-    d3Selection
-      .select(svgRef.current)
-      .call(zoomBehaviorRef.current.scaleBy, 1.4);
+    d3Selection.select(svgRef.current).call(zoomBehaviorRef.current.scaleBy, 1.4);
   };
 
   const handleZoomOut = () => {
     if (!svgRef.current || !zoomBehaviorRef.current) return;
-    d3Selection
-      .select(svgRef.current)
-      .call(zoomBehaviorRef.current.scaleBy, 1 / 1.4);
+    d3Selection.select(svgRef.current).call(zoomBehaviorRef.current.scaleBy, 1 / 1.4);
   };
 
   const handleResetZoom = () => {
     if (!svgRef.current || !zoomBehaviorRef.current) return;
-    d3Selection
-      .select(svgRef.current)
-      .call(zoomBehaviorRef.current.transform, d3Zoom.zoomIdentity);
+    d3Selection.select(svgRef.current).call(zoomBehaviorRef.current.transform, d3Zoom.zoomIdentity);
   };
 
   // Color interpolation: sequential brand orange in light theme, neutral slate in dark theme
@@ -236,64 +256,116 @@ export function InvestorWorldMap({
     }
   };
 
-  // Sizing of centroid circles: sqrt(investors)
-  const getCircleRadius = (investors: number): number => {
-    if (investors <= 0) return 0;
-    const base = Math.sqrt(investors) * 0.13;
-    // Scale slightly inversely with zoom so circles stay manageable
-    const scaleFactor = Math.pow(currentTransform.k, 0.45);
-    return Math.max(3, Math.min(22, base / scaleFactor));
+  // Calculate tooltip coordinates inside the map container
+  const computeTooltipPosition = useCallback(
+    (clientX: number, clientY: number): { x: number; y: number } => {
+      if (!containerRef.current) return { x: 0, y: 0 };
+      const rect = containerRef.current.getBoundingClientRect();
+      const relX = clientX - rect.left;
+      const relY = clientY - rect.top;
+
+      const tooltipWidth = 240;
+      const tooltipHeight = 90;
+      const margin = 14;
+
+      let x = relX + 16;
+      let y = relY + 16;
+
+      // Flip left if near the right boundary
+      if (x + tooltipWidth > rect.width - margin) {
+        x = relX - tooltipWidth - 16;
+      }
+      // Clamp within container horizontally
+      x = Math.max(margin, Math.min(x, rect.width - tooltipWidth - margin));
+
+      // Flip up if near the bottom boundary
+      if (y + tooltipHeight > rect.height - margin) {
+        y = relY - tooltipHeight - 16;
+      }
+      // Clamp within container vertically
+      y = Math.max(margin, Math.min(y, rect.height - tooltipHeight - margin));
+
+      return { x, y };
+    },
+    []
+  );
+
+  // Handle country hover (desktop)
+  const handleCountryHover = (
+    feat: Feature<Geometry>,
+    e: React.MouseEvent<SVGPathElement>
+  ) => {
+    const info = getCountryMapInfo(feat, investorDataMap);
+    const centroid = countryCentroids.get(feat) || [MAP_WIDTH / 2, MAP_HEIGHT / 2];
+    const pos = computeTooltipPosition(e.clientX, e.clientY);
+
+    setHoveredCountry({ feature: feat, centroid, info });
+    setTooltip({
+      code: info.code,
+      name: info.name,
+      investors: info.investors,
+      x: pos.x,
+      y: pos.y,
+    });
   };
 
-  // Handle pointer interactions for tooltip
-  const handleCountryHover = (
-    code: string | null,
-    defaultName: string,
-    e?: React.MouseEvent | React.TouchEvent
+  // Handle country tap / click (desktop & mobile)
+  const handleCountryClick = (
+    feat: Feature<Geometry>,
+    e: React.MouseEvent<SVGPathElement> | React.TouchEvent<SVGPathElement>
   ) => {
-    if (!code) {
-      setTooltip(null);
-      return;
-    }
-
-    const data = investorDataMap.get(code.toUpperCase());
-    const name = data?.name || defaultName || code;
-    const investors = data?.investors ?? 0;
-    const startups = data?.startups ?? 0;
+    e.stopPropagation();
+    const info = getCountryMapInfo(feat, investorDataMap);
+    const centroid = countryCentroids.get(feat) || [MAP_WIDTH / 2, MAP_HEIGHT / 2];
 
     let clientX = 0;
     let clientY = 0;
-    if (e && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      if ("clientX" in e) {
-        clientX = e.clientX - rect.left;
-        clientY = e.clientY - rect.top;
-      } else if (e.touches && e.touches[0]) {
-        clientX = e.touches[0].clientX - rect.left;
-        clientY = e.touches[0].clientY - rect.top;
-      }
+    if ("clientX" in e) {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    } else if (e.touches && e.touches[0]) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
     }
 
+    const pos = computeTooltipPosition(clientX, clientY);
+
+    setHoveredCountry({ feature: feat, centroid, info });
     setTooltip({
-      code: code.toUpperCase(),
-      name,
-      investors,
-      startups,
-      x: clientX,
-      y: clientY,
+      code: info.code,
+      name: info.name,
+      investors: info.investors,
+      x: pos.x,
+      y: pos.y,
     });
+
+    if (info.code && onSelectCountry) {
+      onSelectCountry(info.code);
+    }
   };
+
+  // Clear hover state
+  const handleMapBackgroundClick = () => {
+    setHoveredCountry(null);
+    setTooltip(null);
+  };
+
+  const hoveredPath = hoveredCountry ? pathGenerator(hoveredCountry.feature) : null;
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full min-h-[380px] sm:min-h-[440px] md:min-h-[500px] bg-slate-50 dark:bg-[#0c0c0c] rounded-3xl overflow-hidden select-none border border-slate-200/90 dark:border-white/10"
+      onClick={handleMapBackgroundClick}
+      className="relative w-full h-full min-h-[380px] sm:min-h-[440px] md:min-h-[500px] bg-slate-50 dark:bg-[#0c0c0c] rounded-none sm:rounded-3xl overflow-hidden select-none border-y sm:border border-slate-200/90 dark:border-white/10"
     >
       {/* Zoom Control Buttons */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-1.5 bg-white/90 dark:bg-slate-900/90 p-1.5 rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-lg backdrop-blur-md">
+      <div className="absolute top-4 right-4 z-20 flex flex-col gap-1.5 bg-white/90 dark:bg-[#161616]/90 p-1.5 rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-lg backdrop-blur-md">
         <button
           type="button"
-          onClick={handleZoomIn}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleZoomIn();
+          }}
           className="p-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           title="Zoom in"
           aria-label="Zoom in"
@@ -302,7 +374,10 @@ export function InvestorWorldMap({
         </button>
         <button
           type="button"
-          onClick={handleZoomOut}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleZoomOut();
+          }}
           className="p-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           title="Zoom out"
           aria-label="Zoom out"
@@ -311,7 +386,10 @@ export function InvestorWorldMap({
         </button>
         <button
           type="button"
-          onClick={handleResetZoom}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleResetZoom();
+          }}
           className="p-2 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-brand-600 dark:hover:text-brand-400 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           title="Reset map view"
           aria-label="Reset map view"
@@ -326,125 +404,110 @@ export function InvestorWorldMap({
         viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
         className="w-full h-full cursor-grab active:cursor-grabbing touch-none"
         aria-label="World map showing investor network distribution"
+        onMouseLeave={() => {
+          setHoveredCountry(null);
+          setTooltip(null);
+        }}
       >
         <g
           transform={`translate(${currentTransform.x}, ${currentTransform.y}) scale(${currentTransform.k})`}
         >
-          {/* Base Country Polygons */}
+          {/* Base Country Polygons - unscaled hit targets */}
           {featureCollection.features.map((feat, idx) => {
-            const code = numericIdToAlpha2(feat.id as string | number);
-            const countryData = code ? investorDataMap.get(code) : undefined;
-            const investors = countryData?.investors ?? 0;
-            const isSelected = Boolean(code && selectedCode && code === selectedCode.toUpperCase());
             const d = pathGenerator(feat);
             if (!d) return null;
 
-            const name = (feat.properties as { name?: string })?.name || code || "Country";
+            const info = getCountryMapInfo(feat, investorDataMap);
+            const fill = getCountryFill(info.investors);
+            const key = info.code ? `feat-${info.code}` : `feat-shape-${idx}`;
 
             return (
               <path
-                key={code || `feat-${idx}`}
+                key={key}
+                data-country-code={info.code || undefined}
                 d={d}
-                fill={getCountryFill(investors)}
-                stroke={isSelected ? "#2563eb" : isDark ? "#404040" : "#cbd5e1"}
-                strokeWidth={isSelected ? 2.5 / currentTransform.k : 0.6 / currentTransform.k}
-                className="transition-colors duration-150 cursor-pointer hover:opacity-90"
-                onMouseEnter={(e) => handleCountryHover(code, name, e)}
-                onMouseMove={(e) => handleCountryHover(code, name, e)}
-                onMouseLeave={() => setTooltip(null)}
-                onClick={() => {
-                  if (code) onSelectCountry(code);
-                }}
+                fill={fill}
+                stroke={isDark ? "#383838" : "#cbd5e1"}
+                strokeWidth={0.6}
+                vectorEffect="non-scaling-stroke"
+                className="transition-colors duration-150 cursor-pointer"
+                onMouseEnter={(e) => handleCountryHover(feat, e)}
+                onMouseMove={(e) => handleCountryHover(feat, e)}
+                onClick={(e) => handleCountryClick(feat, e)}
+                onTouchStart={(e) => handleCountryClick(feat, e)}
               />
             );
           })}
 
-          {/* Centroid Circles Sized by sqrt(investors) */}
-          {Array.from(countryPositions.entries()).map(([code, [cx, cy]]) => {
-            const countryData = investorDataMap.get(code);
-            const investors = countryData?.investors ?? 0;
-            if (investors <= 0) return null;
-
-            const r = getCircleRadius(investors);
-            const isSelected = Boolean(selectedCode && code === selectedCode.toUpperCase());
-
-            return (
-              <g
-                key={`bubble-${code}`}
-                transform={`translate(${cx}, ${cy})`}
-                className="cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectCountry(code);
-                }}
-                onMouseEnter={(e) =>
-                  handleCountryHover(code, countryData?.name || code, e)
-                }
-                onMouseMove={(e) =>
-                  handleCountryHover(code, countryData?.name || code, e)
-                }
-                onMouseLeave={() => setTooltip(null)}
-              >
-                <circle
-                  r={r}
-                  fill={isDark ? "#ffffff" : "#ff6600"}
-                  fillOpacity={isSelected ? 0.95 : 0.8}
-                  stroke={isSelected ? "#2563eb" : isDark ? "#171717" : "#ffffff"}
-                  strokeWidth={isSelected ? 2 / currentTransform.k : 1 / currentTransform.k}
-                  className="transition-all duration-200 hover:scale-110"
-                />
-                {/* Number label for top countries when zoomed in */}
-                {currentTransform.k >= 2.4 && r >= 5 && (
-                  <text
-                    y={-(r + 2 / currentTransform.k)}
-                    textAnchor="middle"
-                    fill={isDark ? "#ffffff" : "#0f172a"}
-                    fontSize={`${Math.max(9, 11 / currentTransform.k)}px`}
-                    fontWeight="bold"
-                    className="pointer-events-none drop-shadow-xs font-mono"
-                  >
-                    {investors >= 1000 ? `${(investors / 1000).toFixed(1)}k` : investors}
-                  </text>
-                )}
-              </g>
-            );
-          })}
+          {/* Separate Overlay Path: enlarged highlight (scale ~1.06 around centroid, 150ms ease) */}
+          {hoveredCountry && hoveredPath && (
+            <path
+              data-overlay="hovered"
+              d={hoveredPath}
+              fill={isDark ? "#f5f5f5" : "#ff6600"}
+              stroke={isDark ? "#ffffff" : "#ea580c"}
+              strokeWidth={1.5}
+              vectorEffect="non-scaling-stroke"
+              style={{
+                pointerEvents: "none",
+                transformBox: "view-box",
+                transformOrigin: `${hoveredCountry.centroid[0]}px ${hoveredCountry.centroid[1]}px`,
+                transform: "scale(1.06)",
+                transition: "transform 150ms ease, fill 150ms ease",
+              }}
+            />
+          )}
         </g>
       </svg>
 
-      {/* Hover / Tap Tooltip */}
+      {/* Tooltip: rounded-2xl box following cursor, clamped inside map container */}
       {tooltip && (
         <div
+          data-testid="investor-tooltip"
           style={{
-            left: Math.max(12, Math.min(tooltip.x + 12, (containerRef.current?.clientWidth || 300) - 200)),
-            top: Math.max(12, tooltip.y - 80),
+            left: tooltip.x,
+            top: tooltip.y,
           }}
-          className="absolute z-30 pointer-events-none px-3.5 py-2.5 rounded-2xl bg-slate-900/95 dark:bg-slate-950/95 border border-white/10 shadow-2xl backdrop-blur-md text-white text-xs space-y-1 animate-in fade-in zoom-in-95 duration-100 min-w-[170px]"
+          className="absolute z-30 pointer-events-none px-4 py-3 rounded-2xl bg-white dark:bg-[#161616] border border-slate-200/90 dark:border-white/10 shadow-xl backdrop-blur-md text-slate-900 dark:text-white min-w-[180px] max-w-[280px] select-none animate-in fade-in zoom-in-95 duration-100"
         >
-          <div className="flex items-center gap-2 font-bold text-slate-100 border-b border-white/10 pb-1.5">
-            <CountryFlag code={tooltip.code} className="text-base" />
-            <span className="truncate max-w-[140px]">{tooltip.name}</span>
-            <span className="text-[10px] font-mono text-slate-400">({tooltip.code})</span>
+          {/* First row = flag + country name in bold + ISO code in grey in brackets */}
+          <div className="flex items-center gap-2">
+            {tooltip.code && hasFlag(tooltip.code) && (
+              <div className="w-[24px] h-[18px] rounded-sm overflow-hidden shrink-0 flex items-center justify-center border border-black/10 dark:border-white/15 shadow-2xs">
+                {(() => {
+                  const FlagComponent = (
+                    reactFlags as Record<
+                      string,
+                      React.ComponentType<{ className?: string; style?: React.CSSProperties }>
+                    >
+                  )[tooltip.code];
+                  return FlagComponent ? (
+                    <FlagComponent className="w-full h-full object-cover" />
+                  ) : null;
+                })()}
+              </div>
+            )}
+            <div className="flex items-baseline gap-1.5 min-w-0">
+              <span className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                {tooltip.name}
+              </span>
+              {tooltip.code && (
+                <span className="text-xs text-slate-400 dark:text-slate-500 font-normal shrink-0">
+                  ({tooltip.code})
+                </span>
+              )}
+            </div>
           </div>
 
-          {tooltip.investors === 0 && tooltip.startups === 0 ? (
-            <div className="text-[11px] text-slate-400 italic">No data yet</div>
-          ) : (
-            <div className="space-y-0.5 pt-0.5 text-[11px]">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-slate-400">Investors:</span>
-                <span className="font-mono font-bold text-brand-400">
-                  {tooltip.investors.toLocaleString("en-US")}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-slate-400">Startups:</span>
-                <span className="font-mono font-semibold text-slate-200">
-                  {tooltip.startups.toLocaleString("en-US")}
-                </span>
-              </div>
-            </div>
-          )}
+          {/* 1px divider */}
+          <div className="h-px w-full bg-slate-200/80 dark:bg-white/10 my-2.5" />
+
+          {/* Second row = ONLY the investor count, en-US formatted, large */}
+          <div>
+            <span className="text-2xl sm:text-3xl font-extrabold font-mono text-brand-600 dark:text-brand-500 tracking-tight leading-none">
+              {tooltip.investors.toLocaleString("en-US")}
+            </span>
+          </div>
         </div>
       )}
     </div>
