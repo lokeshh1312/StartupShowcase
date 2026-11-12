@@ -10,12 +10,14 @@ import type { InvestorNetworkResponse } from "@/server/investor-network";
 export interface InvestorNetworkModalProps {
   isOpen: boolean;
   onClose: () => void;
+  triggerRef?: React.RefObject<HTMLButtonElement | null>;
   bubbleTriggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 export function InvestorNetworkModal({
   isOpen,
   onClose,
+  triggerRef,
   bubbleTriggerRef,
 }: InvestorNetworkModalProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -60,7 +62,7 @@ export function InvestorNetworkModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    const triggerEl = bubbleTriggerRef?.current;
+    const triggerEl = triggerRef?.current ?? bubbleTriggerRef?.current;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -112,7 +114,7 @@ export function InvestorNetworkModal({
         triggerEl.focus();
       }
     };
-  }, [isOpen, onClose, bubbleTriggerRef]);
+  }, [isOpen, onClose, triggerRef, bubbleTriggerRef]);
 
   // Filter countries by search query
   const filteredCountries = useMemo(() => {

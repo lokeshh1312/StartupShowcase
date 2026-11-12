@@ -168,22 +168,4 @@
   scrollbar-width: none;
 }
 
-/* Floating bob animation for investor bubble */
-@keyframes float-bob {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
 
-.animate-float-bob {
-  animation: float-bob 3.5s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-float-bob {
-    animation: none !important;
-  }
-}
