@@ -31,10 +31,7 @@ export default function ErrorBoundary({
 
         <div className="space-y-2">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Something went{" "}
-            <em className="font-serif-italic font-normal text-rose-600 dark:text-rose-400 not-italic-fallback">
-              wrong
-            </em>
+            Something went wrong
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             An unexpected error occurred while loading this view. You can attempt to refresh the component or return to discovery.

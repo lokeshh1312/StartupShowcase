@@ -60,10 +60,7 @@ export default async function NewsletterUnsubscribePage({ searchParams }: Unsubs
 
         <div className="space-y-2">
           <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-            Unsubscribe from{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              Newsletter
-            </em>
+            Unsubscribe from Newsletter
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
             Are you sure you want to unsubscribe <span className="font-semibold text-slate-900 dark:text-white">{email}</span> from the Startup Showcase weekly dispatch?

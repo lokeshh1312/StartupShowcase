@@ -56,10 +56,7 @@ export default function LoginPage() {
             </div>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Welcome{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              Back
-            </em>
+            Welcome Back
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
             Sign in to vote, save startups, join discussions, or submit your company.

@@ -39,10 +39,7 @@ export default function DeliveryPage() {
             </div>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Delivery{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              Policy
-            </em>
+            Delivery Policy
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Effective Date: 25-10-2026

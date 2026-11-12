@@ -151,46 +151,57 @@ export function InvestorNetworkModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-labelledby="investor-network-title"
+      aria-label="Investors"
+      aria-labelledby="investors-title"
       ref={dialogRef}
       tabIndex={-1}
-      className="fixed inset-0 z-[100] flex flex-col bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200 focus:outline-hidden"
+      className="fixed inset-0 z-[100] h-dvh w-full flex flex-col bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200 focus:outline-hidden overflow-hidden"
     >
       {/* Full-Page Window Container */}
       <div className="relative flex flex-col w-full h-full bg-white dark:bg-[#0c0c0c] text-slate-900 dark:text-white overflow-hidden shadow-2xl">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-200/90 dark:border-white/10 shrink-0 bg-white/95 dark:bg-[#0c0c0c]/95 backdrop-blur-md z-30">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <Globe className="w-5 h-5 text-brand-600 dark:text-brand-400 shrink-0" />
-              <h2
-                id="investor-network-title"
-                className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white"
-              >
-                Investor Network
-              </h2>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {subtitleText}
-            </p>
+        {/* Header = globe icon + "Investors" on the left and close X on the right ONLY */}
+        <header className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-200/90 dark:border-white/10 shrink-0 bg-white/95 dark:bg-[#0c0c0c]/95 backdrop-blur-md z-30">
+          <div className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-brand-600 dark:text-brand-400 shrink-0" />
+            <h2
+              id="investors-title"
+              className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 dark:text-white"
+            >
+              Investors
+            </h2>
           </div>
 
           <button
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            aria-label="Close Investor Network"
+            aria-label="Close Investors"
             className="p-2 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </header>
 
+        {/* Subtitle Line: centred directly above map box, font Calibri, regular weight, ~30px, slate-600/slate-300 */}
+        <div className="shrink-0 px-4 pt-3 pb-1 text-center">
+          <p
+            className="text-center font-normal font-calibri text-2xl sm:text-3xl text-slate-600 dark:text-slate-300 leading-tight"
+            style={{ fontFamily: "Calibri, Carlito, Arial, sans-serif" }}
+          >
+            {subtitleText}
+          </p>
+        </div>
+
         {/* Content Body */}
         {loading ? (
           /* Loading Skeleton in Centred Box */
-          <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full p-0 sm:p-6">
-            <div className="w-full max-w-[1320px] h-full flex-1 min-h-0 rounded-none sm:rounded-3xl bg-slate-100 dark:bg-white/5 animate-pulse border-y sm:border border-slate-200/90 dark:border-white/10" />
+          <div className="flex-1 min-h-0 flex items-center justify-center p-0 sm:p-3 md:p-4 w-full overflow-hidden">
+            <div
+              className="w-full max-w-[1150px] aspect-[960/500] max-h-full rounded-none sm:rounded-3xl bg-slate-100 dark:bg-white/5 animate-pulse border-y sm:border border-slate-200/90 dark:border-white/10"
+              style={{
+                width: "min(1150px, 100%, calc((100dvh - 160px) * 960 / 500))",
+              }}
+            />
           </div>
         ) : error ? (
           /* Error State with Retry Button */
@@ -216,9 +227,14 @@ export function InvestorNetworkModal({
             </button>
           </div>
         ) : (
-          /* Main Layout: Centred rounded world map box (max-w ~1320px, ~24px margin on desktop, full width on mobile) */
-          <div className="flex-1 flex flex-col items-center justify-center min-h-0 w-full p-0 sm:p-6">
-            <div className="w-full max-w-[1320px] h-full flex-1 min-h-0">
+          /* Main Layout: Centred rounded world map box (max-w 1150px, keeps aspect 960:500, never taller than available space) */
+          <div className="flex-1 min-h-0 flex items-center justify-center p-0 sm:p-3 md:p-4 w-full overflow-hidden">
+            <div
+              className="w-full max-w-[1150px] aspect-[960/500] max-h-full"
+              style={{
+                width: "min(1150px, 100%, calc((100dvh - 160px) * 960 / 500))",
+              }}
+            >
               <InvestorWorldMap countries={data?.countries || []} />
             </div>
           </div>

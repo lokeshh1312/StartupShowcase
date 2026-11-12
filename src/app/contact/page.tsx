@@ -46,10 +46,7 @@ export default function ContactPage() {
             </div>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Contact{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              Us
-            </em>
+            Contact Us
           </h1>
         </div>
 

@@ -23,10 +23,7 @@ export default function NotFound() {
 
         <div className="space-y-2">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Page Not{" "}
-            <em className="font-serif-italic font-normal text-brand-600 dark:text-brand-400 not-italic-fallback">
-              Found
-            </em>
+            Page Not Found
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             The page you requested could not be located. It might have been moved, renamed, or is currently unavailable.

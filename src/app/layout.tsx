@@ -56,6 +56,24 @@ const poppins = localFont({
   ],
 });
 
+const carlito = localFont({
+  src: [
+    {
+      path: "./fonts/carlito-latin-400-normal.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/carlito-latin-700-normal.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-carlito",
+  display: "swap",
+  fallback: ["Calibri", "Arial", "sans-serif"],
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseUrl()),
   title: {
@@ -92,7 +110,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body
-        className={`${poppins.variable} font-sans antialiased selection:bg-brand-500/20 selection:text-brand-700 dark:selection:bg-white/20 dark:selection:text-white min-h-screen`}
+        className={`${poppins.variable} ${carlito.variable} font-sans antialiased selection:bg-brand-500/20 selection:text-brand-700 dark:selection:bg-white/20 dark:selection:text-white min-h-screen`}
       >
         <ThemeProvider>
           <div className="min-h-screen flex flex-col" id="top">

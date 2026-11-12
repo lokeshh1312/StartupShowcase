@@ -198,7 +198,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                       : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
                   }`}
                 >
-                  Investor Network
+                  Investors
                 </button>
                 <Link
                   href="/about"
@@ -431,7 +431,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                       onClick={handleOpenInvestorFromMobile}
                       className="text-lg font-semibold py-3 px-1 transition-colors text-left text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded cursor-pointer"
                     >
-                      Investor Network
+                      Investors
                     </button>
                     <Link
                       href="/about"
