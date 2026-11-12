@@ -4,8 +4,8 @@ export type PlanKey = (typeof PLAN_KEYS)[number];
 
 export const PLAN_DISPLAY_ORDER: PlanKey[] = [
   "basic",
-  "investor_ready",
   "investor_connect",
+  "investor_ready",
 ];
 
 export const DEFAULT_PLAN: PlanKey = "basic";
@@ -63,7 +63,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     features: [
       "Everything in Investor Connect",
       "Investor readiness support",
-      "Pitch deck, Financials & fundraising preparation",
+      "Pitch deck, Market Research, Financial Model & fundraising preparation",
       "5 investor meetings (subject to investor availability)",
     ],
   },
