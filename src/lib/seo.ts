@@ -103,7 +103,7 @@ export function buildOrganizationJsonLd() {
     "@type": "Organization",
     name: SITE_NAME,
     url: siteUrl,
-    logo: absoluteUrl("/opengraph-image"),
+    logo: absoluteUrl("/logo-mark.png"),
     description: DEFAULT_SITE_DESCRIPTION,
   };
 }

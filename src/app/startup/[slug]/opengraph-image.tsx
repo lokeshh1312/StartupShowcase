@@ -1,6 +1,4 @@
 import { ImageResponse } from "next/og";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { getStartupBySlug } from "@/server/startups";
 
 export const size = {
@@ -27,11 +25,6 @@ export default async function Image({ params }: Props) {
   const monthLabel = result?.startup?.monthLabel || "";
   const logoColor = result?.startup?.logoColor || "#ff6600";
 
-  const logoBuffer = await fs.readFile(
-    path.join(process.cwd(), "public", "logo-mark.png")
-  );
-  const logoDataUri = `data:image/png;base64,${logoBuffer.toString("base64")}`;
-
   return new ImageResponse(
     (
       <div
@@ -57,16 +50,27 @@ export default async function Image({ params }: Props) {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={logoDataUri}
-              alt=""
-              width={30}
-              height={40}
-              style={{
-                objectFit: "contain",
-              }}
-            />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 100 100"
+              width="32"
+              height="32"
+              fill="none"
+            >
+              <circle cx="50" cy="50" r="16.7" fill="#ff6600" />
+              <g fill="none" stroke="#ff6600">
+                <path
+                  d="M13.29 59.84A38 38 0 0 1 70.7 18.13"
+                  strokeWidth="4.3"
+                />
+                <path
+                  d="M86.71 40.16A38 38 0 0 1 29.3 81.87"
+                  strokeWidth="4.3"
+                />
+                <circle cx="76.87" cy="23.13" r="7.45" strokeWidth="4.1" />
+                <circle cx="23.13" cy="76.87" r="7.45" strokeWidth="4.1" />
+              </g>
+            </svg>
             <div
               style={{
                 fontSize: "22px",
@@ -190,16 +194,27 @@ export default async function Image({ params }: Props) {
               fontWeight: 600,
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={logoDataUri}
-              alt=""
-              width={18}
-              height={24}
-              style={{
-                objectFit: "contain",
-              }}
-            />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 100 100"
+              width="20"
+              height="20"
+              fill="none"
+            >
+              <circle cx="50" cy="50" r="16.7" fill="#ff6600" />
+              <g fill="none" stroke="#ff6600">
+                <path
+                  d="M13.29 59.84A38 38 0 0 1 70.7 18.13"
+                  strokeWidth="4.3"
+                />
+                <path
+                  d="M86.71 40.16A38 38 0 0 1 29.3 81.87"
+                  strokeWidth="4.3"
+                />
+                <circle cx="76.87" cy="23.13" r="7.45" strokeWidth="4.1" />
+                <circle cx="23.13" cy="76.87" r="7.45" strokeWidth="4.1" />
+              </g>
+            </svg>
             <span>Startup Showcase Global</span>
           </div>
         </div>

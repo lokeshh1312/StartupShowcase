@@ -122,10 +122,15 @@ describe("Navbar Component", () => {
     const mainLogoLink = logoLinks[0];
     expect(mainLogoLink.getAttribute("href")).toBe("/");
 
-    const logoImg = mainLogoLink.querySelector("img");
-    expect(logoImg).not.toBeNull();
-    expect(logoImg?.getAttribute("src")).toBe("/logo-mark.png");
-    expect(logoImg?.getAttribute("alt")).toBe("Startup Showcase Global");
+    expect(mainLogoLink.classList.contains("navbar-logo-link")).toBe(true);
+
+    const logoSvg = mainLogoLink.querySelector("svg");
+    expect(logoSvg).not.toBeNull();
+    expect(logoSvg?.getAttribute("viewBox")).toBe("0 0 100 100");
+    expect(logoSvg?.querySelector(".orbit")).not.toBeNull();
+
+    const srOnlyText = mainLogoLink.querySelector(".sr-only");
+    expect(srOnlyText?.textContent).toBe("Startup Showcase Global");
   });
 
   it("renders hamburger button with exact aria-label 'Toggle mobile menu'", () => {
