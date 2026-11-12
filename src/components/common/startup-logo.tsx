@@ -74,7 +74,7 @@ export function StartupLogo({
 
   const sizeClasses = {
     sm: "w-9 h-9 p-2 rounded-xl text-sm",
-    md: "w-11 h-11 p-2.5 rounded-2xl text-base",
+    md: "w-11 h-11 p-2.5 rounded-xl text-base",
     lg: "w-16 h-16 p-3.5 rounded-2xl text-xl",
     xl: "w-20 h-20 p-4 rounded-3xl text-2xl",
   };
