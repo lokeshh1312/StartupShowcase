@@ -83,7 +83,7 @@ export function CommentsSection({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <MessageSquare className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-          <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+          <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white">
             Community Feedback ({comments.length})
           </h3>
         </div>
@@ -116,7 +116,7 @@ export function CommentsSection({
             <button
               type="submit"
               disabled={isPending || !content.trim()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white dark:text-[#0e0d0d] text-xs font-semibold transition-all cursor-pointer shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white dark:text-[#0e0d0d] text-xs font-medium transition-all cursor-pointer shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <Send className="w-3.5 h-3.5" />
               <span>{isPending ? "Posting…" : "Post Comment"}</span>
@@ -130,7 +130,7 @@ export function CommentsSection({
           </p>
           <Link
             href={`/login?redirect=/startup/${startupSlug}`}
-            className="inline-block px-4 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="inline-block px-4 py-2 text-xs font-medium rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Sign in to comment
           </Link>

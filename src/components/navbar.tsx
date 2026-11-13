@@ -147,7 +147,7 @@ export function Navbar({ user, profile }: NavbarProps) {
               >
                 <Link
                   href="/"
-                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-semibold transition-all select-none ${
+                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-medium transition-all select-none ${
                     pathname === "/"
                       ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
                       : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
@@ -157,7 +157,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                 </Link>
                 <Link
                   href="/browse"
-                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-semibold transition-all select-none ${
+                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-medium transition-all select-none ${
                     pathname.startsWith("/browse")
                       ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
                       : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
@@ -167,7 +167,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                 </Link>
                 <Link
                   href="/investors"
-                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-semibold transition-all select-none ${
+                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-medium transition-all select-none ${
                     pathname.startsWith("/investors")
                       ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
                       : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
@@ -177,7 +177,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                 </Link>
                 <Link
                   href="/about"
-                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-semibold transition-all select-none ${
+                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-medium transition-all select-none ${
                     pathname.startsWith("/about")
                       ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
                       : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
@@ -225,7 +225,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                     <button
                       type="button"
                       onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                      className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl dark:rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl dark:rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                       aria-expanded={userDropdownOpen}
                     >
                       <div className="w-6 h-6 rounded-lg dark:rounded-full bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-xs">
@@ -314,13 +314,13 @@ export function Navbar({ user, profile }: NavbarProps) {
                   <div className="flex items-center gap-2">
                     <Link
                       href="/login"
-                      className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 border border-slate-200 bg-white hover:bg-slate-50 rounded-xl dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-200 dark:rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shadow-xs dark:shadow-none"
+                      className="px-3.5 py-1.5 text-xs font-medium text-slate-700 border border-slate-200 bg-white hover:bg-slate-50 rounded-xl dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 dark:text-slate-200 dark:rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shadow-xs dark:shadow-none"
                     >
                       Sign in
                     </Link>
                     <Link
                       href="/signup"
-                      className="px-3 py-1.5 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      className="px-3 py-1.5 text-xs font-medium text-brand-600 dark:text-brand-400 hover:underline transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                     >
                       Sign up
                     </Link>
@@ -330,7 +330,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                 {/* Submit Startup Button */}
                 <Link
                   href="/submit"
-                  className="inline-flex items-center justify-center gap-1.5 min-w-[36px] min-h-[36px] px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold transition-all shadow-xs active:scale-95 bg-slate-900 hover:bg-slate-800 text-white rounded-xl dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 dark:rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
+                  className="inline-flex items-center justify-center gap-1.5 min-w-[36px] min-h-[36px] px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-medium transition-all shadow-xs active:scale-95 bg-slate-900 hover:bg-slate-800 text-white rounded-xl dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 dark:rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 shrink-0"
                   aria-label="Submit Startup"
                 >
                   <Send className="w-3.5 h-3.5 shrink-0" />
@@ -382,7 +382,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                     <Link
                       href="/"
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                      className={`text-lg font-medium py-3 px-1 transition-colors ${
                         pathname === "/"
                           ? "text-brand-600 dark:text-brand-400"
                           : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
@@ -393,7 +393,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                     <Link
                       href="/browse"
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                      className={`text-lg font-medium py-3 px-1 transition-colors ${
                         pathname.startsWith("/browse")
                           ? "text-brand-600 dark:text-brand-400"
                           : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
@@ -404,7 +404,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                     <Link
                       href="/investors"
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                      className={`text-lg font-medium py-3 px-1 transition-colors ${
                         pathname.startsWith("/investors")
                           ? "text-brand-600 dark:text-brand-400"
                           : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
@@ -415,7 +415,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                     <Link
                       href="/about"
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                      className={`text-lg font-medium py-3 px-1 transition-colors ${
                         pathname.startsWith("/about")
                           ? "text-brand-600 dark:text-brand-400"
                           : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
@@ -430,7 +430,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                       <Link
                         href={`/u/${user.id}`}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                        className={`text-lg font-medium py-3 px-1 transition-colors ${
                           pathname === `/u/${user.id}`
                             ? "text-brand-600 dark:text-brand-400"
                             : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
@@ -441,7 +441,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                       <Link
                         href="/me/submissions"
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                        className={`text-lg font-medium py-3 px-1 transition-colors ${
                           pathname.startsWith("/me/submissions")
                             ? "text-brand-600 dark:text-brand-400"
                             : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
@@ -452,7 +452,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                       <Link
                         href="/saved"
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                        className={`text-lg font-medium py-3 px-1 transition-colors ${
                           pathname === "/saved"
                             ? "text-brand-600 dark:text-brand-400"
                             : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
@@ -464,7 +464,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                         <Link
                           href="/admin"
                           onClick={() => setMobileMenuOpen(false)}
-                          className="text-lg font-semibold py-3 px-1 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+                          className="text-lg font-medium py-3 px-1 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
                         >
                           Admin Review
                         </Link>
@@ -478,7 +478,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                       <form action={signOutAction} className="w-full">
                         <button
                           type="submit"
-                          className="text-lg font-semibold py-3 px-1 text-rose-600 dark:text-rose-400 hover:opacity-80 transition-opacity text-left w-full"
+                          className="text-lg font-medium py-3 px-1 text-rose-600 dark:text-rose-400 hover:opacity-80 transition-opacity text-left w-full"
                         >
                           Sign out
                         </button>
@@ -489,7 +489,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                       <Link
                         href="/login"
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                        className={`text-lg font-medium py-3 px-1 transition-colors ${
                           pathname === "/login"
                             ? "text-brand-600 dark:text-brand-400"
                             : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
@@ -500,7 +500,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                       <Link
                         href="/signup"
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`text-lg font-semibold py-3 px-1 transition-colors ${
+                        className={`text-lg font-medium py-3 px-1 transition-colors ${
                           pathname === "/signup"
                             ? "text-brand-600 dark:text-brand-400"
                             : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
@@ -518,7 +518,7 @@ export function Navbar({ user, profile }: NavbarProps) {
                 <Link
                   href="/submit"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full h-12 rounded-full flex items-center justify-center gap-2 text-base font-bold transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 bg-slate-950 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950"
+                  className="w-full h-12 rounded-full flex items-center justify-center gap-2 text-base font-medium transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 bg-slate-950 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950"
                 >
                   <Send className="w-4 h-4 shrink-0" />
                   <span>Submit Startup</span>

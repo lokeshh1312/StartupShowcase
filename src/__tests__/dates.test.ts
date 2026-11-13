@@ -5,6 +5,7 @@ import {
   toUtcDateString,
   formatDisplayDate,
   formatMonthYear,
+  formatShortMonthYear,
 } from "../lib/dates";
 
 describe("UTC Dates and Locales", () => {
@@ -30,5 +31,12 @@ describe("UTC Dates and Locales", () => {
       timeZone: "UTC",
     });
     expect(formatted).toBe("Oct 21, 2026");
+  });
+
+  it("formats abbreviated month and 2-digit year for mobile pill", () => {
+    expect(formatShortMonthYear("2026-11-01T00:00:00Z")).toBe("Nov 26");
+    expect(formatShortMonthYear("2026-10-01T00:00:00Z")).toBe("Oct 26");
+    expect(formatShortMonthYear("November 2026")).toBe("Nov 26");
+    expect(formatShortMonthYear("October 2026")).toBe("Oct 26");
   });
 });

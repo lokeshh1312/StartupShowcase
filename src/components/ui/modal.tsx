@@ -83,7 +83,7 @@ export function Modal({
           <div className="space-y-1">
             <h3
               id="modal-title"
-              className="text-base sm:text-lg font-bold text-slate-900 dark:text-white"
+              className="text-[18px] font-semibold text-slate-900 dark:text-white"
             >
               {title}
             </h3>
@@ -116,7 +116,7 @@ export function Modal({
               ref={okButtonRef}
               type="button"
               onClick={onClose}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] text-xs sm:text-sm font-bold transition-colors cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] text-xs sm:text-sm font-medium transition-colors cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
             >
               OK
             </button>

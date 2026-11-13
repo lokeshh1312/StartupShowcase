@@ -60,3 +60,39 @@ export function formatMonthYear(
     timeZone: "UTC",
   }).format(d);
 }
+
+/**
+ * Format abbreviated month and 2-digit year (e.g. "Nov 26", "Oct 26")
+ */
+export function formatShortMonthYear(
+  dateInput: Date | string,
+  locale = "en-US"
+): string {
+  if (typeof dateInput === "string" && !dateInput.includes("-")) {
+    const parts = dateInput.trim().split(/\s+/);
+    if (parts.length === 2 && parts[1].length === 4) {
+      return `${parts[0].slice(0, 3)} ${parts[1].slice(-2)}`;
+    }
+  }
+
+  const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  if (isNaN(d.getTime())) {
+    const parts = String(dateInput).trim().split(/\s+/);
+    if (parts.length === 2 && parts[1].length === 4) {
+      return `${parts[0].slice(0, 3)} ${parts[1].slice(-2)}`;
+    }
+    return String(dateInput);
+  }
+
+  const monthShort = new Intl.DateTimeFormat(locale, {
+    month: "short",
+    timeZone: "UTC",
+  }).format(d);
+
+  const year2 = new Intl.DateTimeFormat(locale, {
+    year: "2-digit",
+    timeZone: "UTC",
+  }).format(d);
+
+  return `${monthShort} ${year2}`;
+}

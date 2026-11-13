@@ -72,7 +72,7 @@ describe("LeaderboardTable Redesign", () => {
 
     const desktopContainer = container.querySelector(".lg\\:flex");
     expect(desktopContainer).not.toBeNull();
-    expect(desktopContainer?.classList.contains("gap-[12px]")).toBe(true);
+    expect(desktopContainer?.classList.contains("gap-2.5")).toBe(true);
 
     const card = desktopContainer?.firstElementChild;
     expect(card?.classList.contains("rounded-3xl")).toBe(true);

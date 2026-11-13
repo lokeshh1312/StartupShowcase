@@ -37,7 +37,7 @@ export default function TermsPage() {
               <span>Legal Agreement</span>
             </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             Terms &amp; Conditions
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -63,7 +63,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               1. Acceptance of Terms
             </h2>
             <p>
@@ -82,7 +82,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               2. Our Services
             </h2>
             <p>Startup Showcase Global provides a platform for:</p>
@@ -99,7 +99,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               3. User Registration
             </h2>
             <p>
@@ -114,7 +114,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               4. Startup Submission and Approval
             </h2>
             <p>Users submitting startups must ensure that:</p>
@@ -130,7 +130,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               5. Payments and Pricing
             </h2>
             <p>
@@ -145,7 +145,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               6. Investor Connections and Funding Disclaimer
             </h2>
             <p>
@@ -165,7 +165,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               7. Refund and Cancellation
             </h2>
             <p>
@@ -184,7 +184,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               8. Intellectual Property
             </h2>
             <p>
@@ -199,7 +199,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               9. Prohibited Activities
             </h2>
             <p>Users must not:</p>
@@ -217,7 +217,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               10. Limitation of Liability
             </h2>
             <p>Startup Showcase Global shall not be responsible for:</p>
@@ -234,7 +234,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               11. Third-Party Services
             </h2>
             <p>
@@ -246,7 +246,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               12. Suspension and Termination
             </h2>
             <p>
@@ -255,7 +255,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               13. Changes to Terms
             </h2>
             <p>
@@ -267,7 +267,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               14. Governing Law and Jurisdiction
             </h2>
             <p>
@@ -276,7 +276,7 @@ export default function TermsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               15. Contact Us
             </h2>
             <p>

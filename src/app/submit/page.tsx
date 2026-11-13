@@ -51,7 +51,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
         <div className="space-y-3 pt-2">
           <Link
             href={editingStartup ? "/me/submissions" : "/"}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{editingStartup ? "Back to My Submissions" : "Back to Discovery"}</span>
@@ -62,7 +62,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
             <span>{editingStartup ? "Edit Pending Submission" : "Global Submission Portal"}</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             {editingStartup ? `Edit: ${editingStartup.name}` : "Submit Your Startup"}
           </h1>
 
@@ -75,7 +75,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
 
         {!isFounderOrAdmin ? (
           <div className="p-8 rounded-3xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 space-y-4 shadow-xs">
-            <div className="flex items-center gap-3 text-amber-700 dark:text-amber-400 font-bold text-base">
+            <div className="flex items-center gap-3 text-amber-700 dark:text-amber-400 font-semibold text-base">
               <ShieldAlert className="w-6 h-6 shrink-0" />
               <span>Founder Role Required</span>
             </div>

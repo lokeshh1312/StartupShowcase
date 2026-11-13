@@ -16,7 +16,7 @@ export default function InvestorsPage() {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6 sm:space-y-8">
         {/* Centred Heading */}
         <div className="text-center space-y-3 pt-2">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             Investors
           </h1>
         </div>

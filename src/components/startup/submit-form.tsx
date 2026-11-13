@@ -394,7 +394,7 @@ export function SubmitStartupForm({
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+          <h2 className="text-[22px] sm:text-[24px] font-semibold text-slate-900 dark:text-white">
             {verifyingPayment
               ? "Verifying Payment..."
               : `Payment Pending for "${pendingPayment.startup.name}"`}
@@ -417,7 +417,7 @@ export function SubmitStartupForm({
             <button
               type="button"
               onClick={() => setIsPlanPickerOpen(true)}
-              className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-bold text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-medium text-xs transition-colors shadow-xs flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <CreditCard className="w-4 h-4" />
               <span>Choose Plan &amp; Pay</span>
@@ -425,7 +425,7 @@ export function SubmitStartupForm({
           )}
           <Link
             href="/me/submissions"
-            className="px-5 py-3 rounded-xl border border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="px-5 py-3 rounded-xl border border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-medium text-xs transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Go to My Submissions
           </Link>
@@ -452,7 +452,7 @@ export function SubmitStartupForm({
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+          <h2 className="text-[22px] sm:text-[24px] font-semibold text-slate-900 dark:text-white">
             {isEditing ? "Startup Updated Successfully!" : "Payment Verified & Submitted for Review!"}
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
@@ -465,13 +465,13 @@ export function SubmitStartupForm({
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <Link
             href="/me/submissions"
-            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-bold text-xs transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-medium text-xs transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Go to My Submissions
           </Link>
           <Link
             href="/"
-            className="px-5 py-2.5 rounded-xl border border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="px-5 py-2.5 rounded-xl border border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 font-medium text-xs transition-colors shadow-2xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Explore Directory
           </Link>
@@ -492,7 +492,7 @@ export function SubmitStartupForm({
       <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
           <Rocket className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Startup Essentials
           </h2>
         </div>
@@ -585,7 +585,7 @@ export function SubmitStartupForm({
       <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
           <ImageIcon className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Branding & Visuals (Uploads)
           </h2>
         </div>
@@ -703,7 +703,7 @@ export function SubmitStartupForm({
       <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
           <Globe className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Geography & Origin
           </h2>
         </div>
@@ -774,7 +774,7 @@ export function SubmitStartupForm({
       <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
           <Sparkles className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Links & Product Details
           </h2>
         </div>
@@ -867,7 +867,7 @@ export function SubmitStartupForm({
       <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
         <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
           <User className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
             Founder Details
           </h2>
         </div>
@@ -928,7 +928,7 @@ export function SubmitStartupForm({
           <button
             type="submit"
             disabled={isPending || logoUploading || coverUploading}
-            className="px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-medium text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             {isPending ? (
               <span>Saving Changes...</span>
@@ -944,7 +944,7 @@ export function SubmitStartupForm({
             type="button"
             onClick={handleChoosePlanClick}
             disabled={isPending || logoUploading || coverUploading}
-            className="px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-extrabold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="px-8 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-medium text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             {isPending ? (
               <span>Processing Order...</span>

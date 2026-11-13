@@ -36,7 +36,7 @@ export function LeaderboardTable({
             <div className="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 border border-brand-100 dark:border-brand-900/40 flex items-center justify-center mx-auto text-2xl font-bold shadow-xs">
               🚀
             </div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white">
               {emptyMessage}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -45,7 +45,7 @@ export function LeaderboardTable({
             <div className="pt-2">
               <Link
                 href="/submit"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white dark:text-[#0e0d0d] font-semibold text-xs transition-colors shadow-xs"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white dark:text-[#0e0d0d] font-medium text-xs transition-colors shadow-xs"
               >
                 <span>Submit your startup</span>
               </Link>
@@ -70,7 +70,7 @@ export function LeaderboardTable({
           return (
             <li
               key={`m-${startup.id}`}
-              className="relative w-full py-3 px-4 border-y border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] backdrop-blur-md transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.05] cursor-pointer group"
+              className="relative w-full py-2 px-3.5 border-y border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] backdrop-blur-md transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.05] cursor-pointer group"
             >
               {/* Stretched Link overlay */}
               <Link
@@ -79,10 +79,10 @@ export function LeaderboardTable({
                 aria-label={`View ${startup.name}`}
               />
 
-              <div className="grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-2 items-start">
-                {/* LEFT: Startup Image (w-20 h-12) */}
+              <div className="grid grid-cols-[auto_1fr_auto] gap-x-2.5 gap-y-1 items-start">
+                {/* LEFT: Startup Image (w-16 h-10) */}
                 <div
-                  className="col-start-1 row-start-1 relative w-20 h-12 rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs"
+                  className="col-start-1 row-start-1 relative w-16 h-10 rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs"
                   aria-label={`${startup.name} image`}
                 >
                   {hasImage ? (
@@ -91,19 +91,19 @@ export function LeaderboardTable({
                       alt={startup.name}
                       fill
                       className="object-cover"
-                      sizes="80px"
+                      sizes="64px"
                     />
                   ) : (
                     <div
                       className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${gradientClass} text-white`}
                     >
-                      <ImageIcon className="w-5 h-5 opacity-90" />
+                      <ImageIcon className="w-4 h-4 opacity-90" />
                     </div>
                   )}
                 </div>
 
                 {/* MIDDLE, Row 1: Startup Name + Flag & Badges */}
-                <div className="col-start-2 row-start-1 flex flex-col justify-center gap-1 min-w-0 self-stretch">
+                <div className="col-start-2 row-start-1 flex flex-col justify-center gap-0.5 min-w-0 self-stretch">
                   <div className="flex items-center min-w-0">
                     <span className="truncate min-w-0 text-sm font-semibold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                       {rank}. {startup.name}
@@ -128,14 +128,15 @@ export function LeaderboardTable({
                 </div>
 
                 {/* RIGHT COLUMN: Logo on top, VoteButton directly below, spanning both rows */}
-                <div className="col-start-3 row-span-2 flex flex-col items-end gap-1.5 shrink-0">
+                <div className="col-start-3 row-span-2 flex flex-col items-end gap-1 shrink-0">
                   <div className="p-0.5">
                     <StartupLogo
                       name={startup.name}
                       category={startup.category}
                       logoType={startup.logoType}
                       logoColor={startup.logoColor}
-                      size="md"
+                      className="!w-9 !h-9 text-xs"
+                      size="sm"
                     />
                   </div>
                   <div className="relative z-20">
@@ -151,7 +152,7 @@ export function LeaderboardTable({
 
                 {/* UNDER Row 1: Description spanning Image and Main columns (cols 1 & 2) */}
                 <div className="col-start-1 col-span-2 block pr-2">
-                  <p className="text-xs leading-snug text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                  <p className="text-xs leading-tight text-slate-600 dark:text-slate-400 break-words [overflow-wrap:anywhere] line-clamp-2 mt-0.5">
                     {startup.description || startup.tagline}
                   </p>
                 </div>
@@ -162,7 +163,7 @@ export function LeaderboardTable({
       </ul>
 
       {/* Desktop Layout (>= lg): Individual rounded-3xl containers per startup */}
-      <div className="hidden lg:flex lg:flex-col gap-[12px]">
+      <div className="hidden lg:flex lg:flex-col gap-2.5">
         {startups.map((startup, index) => {
           const rank = startup.rank || index + 1;
           const country = getCountryName(startup.countryCode);
@@ -183,28 +184,28 @@ export function LeaderboardTable({
                 aria-label={`View ${startup.name}`}
               />
 
-              <div className="py-[28px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[96px_100px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[128px_120px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
+              <div className="py-[16px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[84px_90px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[100px_100px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
                 {/* Col 1: Logo tile + name */}
-                <div className="flex flex-col items-center justify-center gap-1.5 min-w-0 text-center">
+                <div className="flex flex-col items-center justify-center gap-1 min-w-0 text-center">
                   <StartupLogo
                     name={startup.name}
                     category={startup.category}
                     logoType={startup.logoType}
                     logoColor={startup.logoColor}
-                    className="!w-12 !h-12 xl:!w-[54px] xl:!h-[54px] p-2 xl:p-2.5 rounded-xl text-base"
+                    className="!w-[44px] !h-[44px] p-1.5 rounded-xl text-sm"
                   />
                   <span
                     title={`${rank}. ${startup.name}`}
-                    className="text-[11px] font-bold text-slate-700 dark:text-slate-300 line-clamp-2 break-words max-w-full text-center leading-tight group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors"
+                    className="text-[11px] font-medium text-slate-700 dark:text-slate-300 line-clamp-1 break-words max-w-full text-center leading-tight group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors"
                   >
                     {rank}. {startup.name}
                   </span>
                 </div>
 
-                {/* Col 2: Startup Image Thumbnail (100x70 at lg, 120x83 at xl) */}
+                {/* Col 2: Startup Image Thumbnail (84x56 at lg, 92x62 at xl) */}
                 <div className="flex justify-center min-w-0">
                   <div
-                    className="relative w-[100px] h-[70px] xl:w-[120px] xl:h-[83px] rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs"
+                    className="relative w-[84px] h-[56px] xl:w-[92px] xl:h-[62px] rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs"
                     aria-label={`${startup.name} image`}
                   >
                     {hasImage ? (
@@ -213,24 +214,24 @@ export function LeaderboardTable({
                         alt={startup.name}
                         fill
                         className="object-cover"
-                        sizes="(min-width: 1280px) 120px, 100px"
+                        sizes="(min-width: 1280px) 92px, 84px"
                       />
                     ) : (
                       <div
                         className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${gradientClass} text-white`}
                       >
-                        <ImageIcon className="w-5 h-5 opacity-90" />
+                        <ImageIcon className="w-4 h-4 opacity-90" />
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Col 3: Startup Idea Title + FULL Description */}
+                {/* Col 3: Startup Idea Title + Description clamped to 2 lines */}
                 <div className="min-w-0 pr-2">
-                  <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors text-base line-clamp-1">
+                  <h4 className="font-semibold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors text-base line-clamp-1">
                     {startup.ideaTitle || startup.name}
                   </h4>
-                  <p className="text-sm leading-snug text-slate-600 dark:text-slate-400 whitespace-pre-line break-words [overflow-wrap:anywhere] mt-1">
+                  <p className="text-xs xl:text-sm leading-snug text-slate-600 dark:text-slate-400 break-words [overflow-wrap:anywhere] mt-0.5 line-clamp-2">
                     {startup.description || startup.tagline}
                   </p>
                 </div>

@@ -74,7 +74,7 @@ export default function FAQPage() {
             </div>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             Frequently Asked Questions
           </h1>
 
@@ -87,7 +87,7 @@ export default function FAQPage() {
         <div className="space-y-8">
           {FAQ_SECTIONS.map((section) => (
             <div key={section.category} className="space-y-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
                 {section.category}
               </h2>
 
@@ -97,7 +97,7 @@ export default function FAQPage() {
                     key={idx}
                     className="group rounded-2xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 p-5 open:shadow-xs transition-all backdrop-blur-md"
                   >
-                    <summary className="flex items-center justify-between gap-4 font-bold text-sm text-slate-900 dark:text-white cursor-pointer list-none">
+                    <summary className="flex items-center justify-between gap-4 font-semibold text-sm text-slate-900 dark:text-white cursor-pointer list-none">
                       <span>{item.q}</span>
                       <ChevronRight className="w-4 h-4 text-slate-400 transition-transform group-open:rotate-90 shrink-0" />
                     </summary>
@@ -113,7 +113,7 @@ export default function FAQPage() {
 
         {/* Contact Support Box */}
         <div className="p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 text-center space-y-4 shadow-xs backdrop-blur-md">
-          <h3 className="font-bold text-base text-slate-900 dark:text-white">
+          <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white">
             Still have questions?
           </h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
@@ -121,7 +121,7 @@ export default function FAQPage() {
           </p>
           <Link
             href="/support"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-bold text-xs transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-medium text-xs transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <span>Contact Support</span>
             <ArrowRight className="w-3.5 h-3.5" />

@@ -34,7 +34,7 @@ export default function AboutPage() {
               <span>Platform Overview</span>
             </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             About Us
           </h1>
         </div>
@@ -42,7 +42,7 @@ export default function AboutPage() {
         {/* Content */}
         <div className="relative bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 rounded-3xl p-6 sm:p-10 shadow-xs backdrop-blur-md space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
           <section className="space-y-3">
-            <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
               Empowering Startups. Connecting Opportunities. Inspiring Innovation.
             </p>
             <p>
@@ -54,7 +54,7 @@ export default function AboutPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               What We Do
             </h2>
             <p>
@@ -80,7 +80,7 @@ export default function AboutPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               Our Mission
             </h2>
             <p>
@@ -92,13 +92,13 @@ export default function AboutPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               Be Part of the Global Startup Ecosystem
             </h2>
             <p>
               Whether you&apos;re an aspiring entrepreneur, an established founder, an investor, or simply passionate about innovation, Startup Showcase Global welcomes you.
             </p>
-            <p className="font-bold text-slate-900 dark:text-white pt-2">
+            <p className="font-semibold text-slate-900 dark:text-white pt-2">
               Your startup deserves to be seen. Your innovation deserves to be discovered. Let&apos;s build the future together.
             </p>
           </section>

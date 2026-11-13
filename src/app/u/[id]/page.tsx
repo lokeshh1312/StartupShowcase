@@ -44,7 +44,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
         <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Discovery</span>
@@ -59,7 +59,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
                   {profile.displayName}
                 </h1>
                 <span className="capitalize px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-50 dark:bg-brand-950/40 border border-brand-200/60 dark:border-brand-900/40 text-brand-700 dark:text-brand-300">
@@ -88,7 +88,7 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
         {/* Startups section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold text-slate-900 dark:text-white">
               Launched Ventures
             </h2>
             <span className="text-xs text-slate-500 dark:text-slate-400">

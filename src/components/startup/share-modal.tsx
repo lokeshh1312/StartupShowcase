@@ -43,7 +43,7 @@ export function ShareModal({ startupName, tagline }: ShareModalProps) {
         >
           <div className="w-full max-w-sm bg-white dark:bg-slate-950 rounded-3xl border border-slate-200/90 dark:border-white/10 p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 dark:text-white text-base">
+              <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white">
                 Share {startupName}
               </h3>
               <button
@@ -69,7 +69,7 @@ export function ShareModal({ startupName, tagline }: ShareModalProps) {
               />
               <button
                 onClick={handleCopy}
-                className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] flex items-center gap-1.5 transition-colors shrink-0 shadow-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="px-3.5 py-2 text-xs font-medium rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] flex items-center gap-1.5 transition-colors shrink-0 shadow-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copied ? "Copied" : "Copy"}</span>
@@ -82,7 +82,7 @@ export function ShareModal({ startupName, tagline }: ShareModalProps) {
                 href={`https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="w-full text-center py-2 text-xs font-semibold rounded-xl border border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.05] text-slate-700 dark:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="w-full text-center py-2 text-xs font-medium rounded-xl border border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.05] text-slate-700 dark:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 Share on X / Twitter ↗
               </a>
@@ -90,7 +90,7 @@ export function ShareModal({ startupName, tagline }: ShareModalProps) {
                 href={`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="w-full text-center py-2 text-xs font-semibold rounded-xl border border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.05] text-slate-700 dark:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="w-full text-center py-2 text-xs font-medium rounded-xl border border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/[0.05] text-slate-700 dark:text-slate-300 transition-colors focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 Share on LinkedIn ↗
               </a>

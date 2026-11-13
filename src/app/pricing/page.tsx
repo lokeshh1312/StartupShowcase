@@ -36,7 +36,7 @@ export default function PricingPage() {
               <span>Transparent Pricing</span>
             </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             Transparent, founder-friendly listing plans
           </h1>
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
@@ -55,7 +55,7 @@ export default function PricingPage() {
         {/* Services & Terms Detail Card */}
         <div className="relative bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 rounded-3xl p-6 sm:p-10 shadow-xs backdrop-blur-md space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               Listing Services &amp; Fulfilment
             </h2>
             <p>
@@ -64,7 +64,7 @@ export default function PricingPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               How It Works
             </h2>
             <ol className="list-decimal pl-5 space-y-2 text-slate-700 dark:text-slate-300">
@@ -77,7 +77,7 @@ export default function PricingPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               Important Conditions
             </h2>
             <p>
@@ -96,7 +96,7 @@ export default function PricingPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               Payment Methods
             </h2>
             <p>

@@ -15,36 +15,11 @@ import { UnverifiedBanner } from "@/components/common/unverified-banner";
 import { Analytics } from "@/components/analytics";
 import "./globals.css";
 
-const poppins = localFont({
-  src: [
-    {
-      path: "./fonts/Poppins-Regular.woff2",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "./fonts/Poppins-Medium.woff2",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "./fonts/Poppins-SemiBold.woff2",
-      weight: "600",
-      style: "normal",
-    },
-    {
-      path: "./fonts/Poppins-Bold.woff2",
-      weight: "700",
-      style: "normal",
-    },
-    {
-      path: "./fonts/Poppins-ExtraBold.woff2",
-      weight: "800",
-      style: "normal",
-    },
-  ],
-  variable: "--font-poppins",
+const inter = localFont({
+  src: "./fonts/inter-latin-wght-normal.woff2",
+  variable: "--font-inter",
   display: "swap",
+  weight: "100 900",
   fallback: [
     "system-ui",
     "-apple-system",
@@ -110,7 +85,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body
-        className={`${poppins.variable} ${carlito.variable} font-sans antialiased selection:bg-brand-500/20 selection:text-brand-700 dark:selection:bg-white/20 dark:selection:text-white min-h-screen`}
+        className={`${inter.variable} ${carlito.variable} font-sans antialiased selection:bg-brand-500/20 selection:text-brand-700 dark:selection:bg-white/20 dark:selection:text-white min-h-screen`}
       >
         <ThemeProvider>
           <div className="min-h-screen flex flex-col" id="top">

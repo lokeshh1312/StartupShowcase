@@ -80,7 +80,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <section aria-label="Page introduction" className="text-center">
           <h1
             id="main-heading"
-            className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-900 dark:text-white leading-[1.15] text-center font-calibri min-w-0"
+            className="text-[30px] sm:text-[36px] font-bold tracking-tight text-slate-900 dark:text-white leading-[1.15] text-center font-calibri min-w-0"
             style={{ fontFamily: "Calibri, var(--font-carlito), Arial, sans-serif" }}
           >
             Showcase Your Startup to a Global Audience

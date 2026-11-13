@@ -34,7 +34,7 @@ export default function DeliveryPage() {
               <span>Fulfillment &amp; Delivery</span>
             </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             Delivery Policy
           </h1>
         </div>
