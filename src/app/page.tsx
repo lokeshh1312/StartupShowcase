@@ -83,7 +83,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             className="text-[30px] sm:text-[36px] font-bold tracking-tight text-slate-900 dark:text-white leading-[1.15] text-center font-calibri min-w-0"
             style={{ fontFamily: "Calibri, var(--font-carlito), Arial, sans-serif" }}
           >
-            Showcase Your Startup to a Global Audience
+            Showcase Your Idea/Startup to the World
           </h1>
         </section>
 
