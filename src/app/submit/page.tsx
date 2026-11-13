@@ -1,7 +1,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Rocket, ShieldAlert, ArrowLeft } from "lucide-react";
+import { ShieldAlert, ArrowLeft } from "lucide-react";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { getAvailableCountries } from "@/lib/validation";
 import { getStartupBySlug } from "@/server/startups";
@@ -47,8 +47,8 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
     <div className="relative isolate min-h-screen">
 
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-        {/* Header */}
-        <div className="space-y-3 pt-2">
+        {/* Back link */}
+        <div>
           <Link
             href={editingStartup ? "/me/submissions" : "/"}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
@@ -56,12 +56,10 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
             <ArrowLeft className="w-4 h-4" />
             <span>{editingStartup ? "Back to My Submissions" : "Back to Discovery"}</span>
           </Link>
+        </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold tracking-widest uppercase border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 text-slate-700 dark:text-slate-300 shadow-2xs dark:shadow-none">
-            <Rocket className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-            <span>{editingStartup ? "Edit Pending Submission" : "Global Submission Portal"}</span>
-          </div>
-
+        {/* Header */}
+        <div className="space-y-3">
           <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             {editingStartup ? `Edit: ${editingStartup.name}` : "Submit Your Startup"}
           </h1>
