@@ -38,10 +38,10 @@ export function StartupCard({ startup }: StartupCardProps) {
               size="md"
             />
             <div className="min-w-0">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover/link:text-brand-600 dark:group-hover/link:text-brand-400 transition-colors truncate">
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-white group-hover/link:text-brand-600 dark:group-hover/link:text-brand-400 transition-colors truncate">
                 {startup.name}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-normal truncate">
                 {startup.ideaTitle || startup.category}
               </p>
             </div>

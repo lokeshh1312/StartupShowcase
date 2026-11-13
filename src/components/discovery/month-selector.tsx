@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { formatShortMonthYear } from "@/lib/dates";
 
 interface MonthItem {
   id: string; // "2026-10-01"
@@ -74,19 +75,24 @@ export function MonthSelector({
           {months.map((m) => {
             const isActive = m.id === currentMonthId;
             const href = buildUrl(m.id);
+            const shortLabel = formatShortMonthYear(m.id || m.label);
 
             return (
               <Link
                 key={m.id}
                 href={href}
-                className={`flex items-center justify-center h-[51px] min-w-[130px] sm:min-w-[150px] px-4 sm:px-6 rounded-2xl transition-all select-none text-center shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-95 ${
+                aria-label={m.label}
+                className={`flex items-center justify-center h-[51px] px-3.5 sm:px-6 sm:min-w-[150px] rounded-2xl transition-all select-none text-center shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-95 ${
                   isActive
                     ? "bg-brand-500 dark:bg-brand-600 text-white dark:text-[#0e0d0d] shadow-md shadow-brand-500/20 dark:shadow-none"
                     : "bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/[0.06] shadow-2xs dark:shadow-none"
                 }`}
               >
-                <span className="text-sm font-bold tracking-tight whitespace-nowrap">
+                <span className="text-sm font-semibold tracking-tight whitespace-nowrap hidden sm:inline">
                   {m.label}
+                </span>
+                <span className="text-sm font-semibold tracking-tight whitespace-nowrap sm:hidden">
+                  {shortLabel}
                 </span>
               </Link>
             );

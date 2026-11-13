@@ -76,7 +76,7 @@ export function Footer() {
 
           {/* Directory Links */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+            <h4 className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
               Explore
             </h4>
             <ul className="space-y-2 text-xs">
@@ -95,7 +95,7 @@ export function Footer() {
 
           {/* Platform & Support */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+            <h4 className="text-xs font-semibold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
               Platform & Legal
             </h4>
             <ul className="space-y-2 text-xs">

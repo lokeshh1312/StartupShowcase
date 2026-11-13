@@ -79,12 +79,12 @@ export function PlanCards({
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white">
                   {plan.name}
                 </h3>
                 <div className="mt-2 flex flex-col gap-0.5">
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    <span className="text-3xl sm:text-4xl font-semibold text-slate-900 dark:text-white tracking-tight">
                       {displayedPrice}
                     </span>
                     {plan.originalPriceFormatted && (
@@ -138,7 +138,7 @@ export function PlanCards({
               {isPricingMode ? (
                 <Link
                   href="/submit"
-                  className={`w-full py-3 px-4 rounded-xl text-center text-xs sm:text-sm font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                  className={`w-full py-3 px-4 rounded-xl text-center text-xs sm:text-sm font-medium transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 ${
                     isHighlighted
                       ? "bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] shadow-md hover:shadow-lg"
                       : "bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100"

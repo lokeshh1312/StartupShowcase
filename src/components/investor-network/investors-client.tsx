@@ -72,12 +72,7 @@ export function InvestorsClient({ children }: InvestorsClientProps) {
     <div className="space-y-6 sm:space-y-8">
       {/* Subtitle Line */}
       <div className="text-center px-2">
-        <p
-          className="text-center font-normal font-calibri text-xl sm:text-2xl md:text-3xl text-slate-600 dark:text-slate-300 leading-tight"
-          style={{
-            fontFamily: "Calibri, var(--font-carlito), Arial, sans-serif",
-          }}
-        >
+        <p className="text-center font-normal text-xl sm:text-2xl md:text-3xl text-slate-600 dark:text-slate-300 leading-tight">
           {subtitleText}
         </p>
       </div>
@@ -99,7 +94,7 @@ export function InvestorsClient({ children }: InvestorsClientProps) {
                 <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="space-y-1 max-w-md">
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white">
                   Unable to Load Network Data
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -109,7 +104,7 @@ export function InvestorsClient({ children }: InvestorsClientProps) {
               <button
                 type="button"
                 onClick={fetchData}
-                className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-medium transition-all shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span>Retry</span>

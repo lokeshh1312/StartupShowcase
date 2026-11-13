@@ -349,7 +349,7 @@ export function AdminPanel({
           {pendingItems.length === 0 ? (
             <div className="p-12 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 text-center space-y-2 backdrop-blur-md shadow-xs">
               <ShieldCheck className="w-10 h-10 text-emerald-500 mx-auto" />
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
                 Queue is clear
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -365,7 +365,7 @@ export function AdminPanel({
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="space-y-2 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                         {startup.name}
                       </h3>
                       <StageBadge stage={startup.stage} />
@@ -485,7 +485,7 @@ export function AdminPanel({
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                       {startup.name}
                     </h3>
                     <Badge variant="blue">{startup.category}</Badge>
@@ -556,7 +556,7 @@ export function AdminPanel({
               >
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
                       {startup.name}
                     </h3>
                     <Badge variant="blue">{startup.category}</Badge>
@@ -592,7 +592,7 @@ export function AdminPanel({
       {activeTab === "audit" && (
         <div className="p-6 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-4 backdrop-blur-md shadow-xs">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+            <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
               Security & Moderation Audit Trail (Latest {auditLogs.length} Entries)
             </h3>
             <span className="text-xs text-slate-400">Append-only audit record</span>
@@ -690,7 +690,7 @@ export function AdminPanel({
           {investorItems.length === 0 ? (
             <div className="p-12 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 text-center space-y-2 backdrop-blur-md shadow-xs">
               <Globe className="w-10 h-10 text-slate-400 mx-auto" />
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-white">
                 No investor regions configured
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -765,7 +765,7 @@ export function AdminPanel({
             <div className="flex items-center gap-3">
               <CountryFlag code={editingInvestor.countryCode} className="text-2xl" />
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white">
                   Edit Investors: {editingInvestor.countryName}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
@@ -838,7 +838,7 @@ export function AdminPanel({
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
             <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 space-y-4 border border-slate-200/90 dark:border-white/10 shadow-2xl">
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white">
                   Add Country to Investor Network
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -928,7 +928,7 @@ export function AdminPanel({
       {rejectingStartup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 space-y-4 border border-slate-200/90 dark:border-white/10 shadow-2xl">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
               Reject Submission: {rejectingStartup.name}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -999,10 +999,10 @@ export function AdminPanel({
               <div className="p-4 rounded-2xl bg-brand-50/60 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-900/50 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
                       Selected Plan
                     </span>
-                    <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
+                    <h4 className="text-base font-semibold text-slate-900 dark:text-white">
                       {planMeta.name}
                     </h4>
                   </div>
@@ -1010,7 +1010,7 @@ export function AdminPanel({
                 </div>
 
                 <div className="space-y-1.5 pt-1">
-                  <p className="font-bold text-slate-800 dark:text-slate-200">
+                  <p className="font-semibold text-slate-800 dark:text-slate-200">
                     Customer Entitlements / Services:
                   </p>
                   <ul className="space-y-1 pl-1">
@@ -1030,7 +1030,7 @@ export function AdminPanel({
 
               {/* Founder Information */}
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-2">
-                <h5 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider font-mono">
+                <h5 className="font-semibold text-slate-900 dark:text-white text-xs uppercase tracking-wider font-mono">
                   Founder Information
                 </h5>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700 dark:text-slate-300">
@@ -1069,7 +1069,7 @@ export function AdminPanel({
 
               {/* Payment Info Section */}
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-2">
-                <h5 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider font-mono">
+                <h5 className="font-semibold text-slate-900 dark:text-white text-xs uppercase tracking-wider font-mono">
                   Payment Verification Record
                 </h5>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-700 dark:text-slate-300">

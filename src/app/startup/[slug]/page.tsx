@@ -172,13 +172,13 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
                 />
                 <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
                       {startup.name}
                     </h1>
                     <StageBadge stage={startup.stage} />
                     <Badge variant="default">{startup.category}</Badge>
                   </div>
-                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 font-medium max-w-2xl leading-relaxed">
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 font-normal max-w-2xl leading-relaxed">
                     {startup.tagline || startup.ideaTitle}
                   </p>
                 </div>
@@ -200,7 +200,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
                     href={startup.websiteUrl}
                     target="_blank"
                     rel="ugc nofollow noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] text-xs font-bold transition-all shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                    className="inline-flex items-center justify-center gap-1.5 px-5 py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] text-xs font-medium transition-all shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                   >
                     <span>Visit Website</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -235,7 +235,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
           <div className="lg:col-span-2 space-y-8">
             {/* Overview */}
             <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-4 shadow-xs backdrop-blur-md">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <h2 className="text-[22px] sm:text-[24px] font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                 <span>About the Product</span>
               </h2>
@@ -257,7 +257,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
                     <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200/60 dark:border-red-900/40 flex items-center justify-center font-bold">
                       <Target className="w-4 h-4" />
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">The Problem</h3>
+                    <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white">The Problem</h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                       {startup.problem}
                     </p>
@@ -269,7 +269,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
                     <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-center font-bold">
                       <Zap className="w-4 h-4" />
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Our Solution</h3>
+                    <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white">Our Solution</h3>
                     <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                       {startup.solution}
                     </p>
@@ -281,7 +281,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
             {/* Tech Stack & Key Features */}
             {(techStackList.length > 0 || keyFeaturesList.length > 0) && (
               <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
-                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 className="text-[22px] sm:text-[24px] font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                   <Cpu className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                   <span>Technologies & Features</span>
                 </h2>
@@ -341,7 +341,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
             {/* Founder Spotlight Card */}
             {founderObj && founderObj.name && (
               <div className="p-6 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-4 shadow-xs backdrop-blur-md">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">
                   Founder Spotlight
                 </h3>
                 <div className="flex items-center gap-3">
@@ -349,7 +349,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
                     {founderObj.name.charAt(0)}
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                    <h4 className="font-semibold text-sm text-slate-900 dark:text-white">
                       {founderObj.name}
                     </h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -370,7 +370,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
             {/* Traction / Milestones */}
             {startup.traction && (
               <div className="p-6 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-3 shadow-xs backdrop-blur-md">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">
                   <BarChart3 className="w-4 h-4 text-emerald-500" />
                   <span>Traction & Milestones</span>
                 </div>
@@ -383,7 +383,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
             {/* Related Startups */}
             {relatedStartups.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">
                   More in {startup.category}
                 </h3>
                 <div className="space-y-3">

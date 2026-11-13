@@ -76,7 +76,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <span>Full-Text Search Engine</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             Search Startups
           </h1>
 
@@ -96,7 +96,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             />
             <button
               type="submit"
-              className="absolute right-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold transition-colors shadow-xs"
+              className="absolute right-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium transition-colors shadow-xs"
             >
               Search
             </button>
@@ -138,7 +138,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <div className="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 border border-brand-100 dark:border-brand-900/40 flex items-center justify-center mx-auto text-2xl font-bold shadow-xs">
               🔍
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h3 className="text-[18px] font-semibold text-slate-900 dark:text-white">
               No startups matched your search criteria
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
@@ -147,7 +147,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <div className="pt-2">
               <Link
                 href="/search"
-                className="inline-block px-5 py-2.5 text-xs font-semibold rounded-xl bg-brand-600 hover:bg-brand-700 text-white dark:text-[#0e0d0d] transition-colors shadow-xs"
+                className="inline-block px-5 py-2.5 text-xs font-medium rounded-xl bg-brand-600 hover:bg-brand-700 text-white dark:text-[#0e0d0d] transition-colors shadow-xs"
               >
                 Reset Filters
               </Link>

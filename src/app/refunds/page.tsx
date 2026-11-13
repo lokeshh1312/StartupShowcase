@@ -38,7 +38,7 @@ export default function RefundsPage() {
               <span>Refund Guidelines</span>
             </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             Refund &amp; Cancellation Policy
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -55,7 +55,7 @@ export default function RefundsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               1. Service and Price
             </h2>
             <p>
@@ -70,7 +70,7 @@ export default function RefundsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               2. Refund Eligibility
             </h2>
             <p>
@@ -89,7 +89,7 @@ export default function RefundsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               3. Rejected Startup Submissions
             </h2>
             <p>Payment does not guarantee publication.</p>
@@ -102,7 +102,7 @@ export default function RefundsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               4. Cancellation Requests
             </h2>
             <p>
@@ -114,7 +114,7 @@ export default function RefundsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               5. Failed or Pending Payments
             </h2>
             <p>
@@ -126,7 +126,7 @@ export default function RefundsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               6. How to Request a Refund
             </h2>
             <p>
@@ -150,7 +150,7 @@ export default function RefundsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               7. Refund Processing
             </h2>
             <p>
@@ -162,7 +162,7 @@ export default function RefundsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               8. Statutory Rights
             </h2>
             <p>
@@ -171,7 +171,7 @@ export default function RefundsPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               9. Contact Details
             </h2>
             <p>

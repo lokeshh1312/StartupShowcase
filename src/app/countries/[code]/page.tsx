@@ -94,7 +94,7 @@ export default async function CountryDetailPage({ params }: CountryPageProps) {
                 <Globe className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
                 <span>Country Showcase</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+              <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white">
                 {countryName}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -105,7 +105,7 @@ export default async function CountryDetailPage({ params }: CountryPageProps) {
 
           <Link
             href={`/browse?countryCode=${upperCode}`}
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 text-xs font-bold transition-all shadow-xs shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950 text-xs font-medium transition-all shadow-xs shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Filter in Directory
           </Link>

@@ -37,7 +37,7 @@ export default function PrivacyPage() {
               <span>Data Protection</span>
             </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             Privacy Policy
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               1. Information We Collect
             </h2>
             <p>We may collect the following information:</p>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               2. How We Use Your Information
             </h2>
             <p>We use collected information to:</p>
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               3. Information Sharing
             </h2>
             <p>
@@ -101,7 +101,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               4. Payment Security
             </h2>
             <p>
@@ -113,7 +113,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               5. Cookies and Tracking
             </h2>
             <p>
@@ -125,7 +125,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               6. Data Security
             </h2>
             <p>
@@ -137,7 +137,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               7. Data Retention
             </h2>
             <p>
@@ -146,7 +146,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               8. Your Privacy Rights
             </h2>
             <p>You may request to:</p>
@@ -170,7 +170,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               9. Third-Party Websites
             </h2>
             <p>
@@ -182,7 +182,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               10. Children&apos;s Privacy
             </h2>
             <p>
@@ -191,7 +191,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               11. Changes to This Privacy Policy
             </h2>
             <p>
@@ -200,7 +200,7 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-[22px] sm:text-[24px] font-semibold leading-snug text-slate-900 dark:text-white">
               12. Contact Us
             </h2>
             <p>

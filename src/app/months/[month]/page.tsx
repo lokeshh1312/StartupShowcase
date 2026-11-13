@@ -108,7 +108,7 @@ export default async function MonthLeaderboardPage({ params }: MonthPageProps) {
                 <Calendar className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
                 <span>Official Cohort Rankings</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+              <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white">
                 {monthLabel} Leaderboard
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">

@@ -25,7 +25,7 @@ export default async function CountriesPage() {
             <span>Global Geography</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             Startups by Country
           </h1>
 
@@ -53,7 +53,7 @@ export default async function CountriesPage() {
                     {c.code}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors truncate">
+                    <h3 className="font-semibold text-sm text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors truncate">
                       {c.name}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400">

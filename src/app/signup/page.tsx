@@ -68,7 +68,7 @@ export default function SignUpPage() {
               <span>Join the Showcase</span>
             </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             Create an Account
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -100,7 +100,7 @@ export default function SignUpPage() {
             <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+            <h3 className="font-semibold text-[18px] text-slate-900 dark:text-white">
               Check your inbox
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -113,7 +113,7 @@ export default function SignUpPage() {
                     ? `/login?redirect=${encodeURIComponent(redirectTo)}`
                     : "/login"
                 }
-                className="inline-block px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-500 transition-colors shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
+                className="inline-block px-4 py-2 rounded-xl bg-emerald-600 text-white font-medium text-xs hover:bg-emerald-500 transition-colors shadow-xs cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
                 Go to Sign In
               </Link>
@@ -205,7 +205,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-bold text-xs transition-colors shadow-xs disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-medium text-xs transition-colors shadow-xs disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               {isPending ? (
                 <span>Creating Account...</span>
@@ -228,7 +228,7 @@ export default function SignUpPage() {
                   ? `/login?redirect=${encodeURIComponent(redirectTo)}`
                   : "/login"
               }
-              className="font-bold text-brand-600 dark:text-brand-400 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
+              className="font-medium text-brand-600 dark:text-brand-400 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
             >
               Sign in
             </Link>
