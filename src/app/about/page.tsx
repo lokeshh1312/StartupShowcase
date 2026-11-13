@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, Globe } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import { createMetadata } from "@/lib/seo";
 
@@ -27,13 +27,7 @@ export default function AboutPage() {
         </div>
 
         {/* Header */}
-        <div className="space-y-3 pt-2">
-          <div className="flex justify-start">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold tracking-widest uppercase border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 text-slate-700 dark:text-slate-300 shadow-2xs dark:shadow-none">
-              <Globe className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-              <span>Platform Overview</span>
-            </div>
-          </div>
+        <div>
           <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
             About Us
           </h1>

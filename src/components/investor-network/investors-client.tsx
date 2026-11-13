@@ -26,11 +26,7 @@ function MapPlaceholder() {
   );
 }
 
-interface InvestorsClientProps {
-  children?: React.ReactNode;
-}
-
-export function InvestorsClient({ children }: InvestorsClientProps) {
+export function InvestorsClient() {
   const [data, setData] = useState<InvestorNetworkResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,9 +72,6 @@ export function InvestorsClient({ children }: InvestorsClientProps) {
           {subtitleText}
         </p>
       </div>
-
-      {/* Crawlable Intro Paragraph under the Subtitle */}
-      {children}
 
       {/* World Map Container: Centred rounded box, max-w-[1150px], aspect-[960/500], NO inner scrollbars */}
       <div className="w-full flex items-center justify-center pt-2 sm:pt-4">

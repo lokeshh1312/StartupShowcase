@@ -41,7 +41,7 @@ describe("Investors Page (/investors)", () => {
     expect(metadata.alternates?.canonical).toContain("/investors");
   });
 
-  it("renders server-rendered heading 'Investors' and crawlable intro paragraph", async () => {
+  it("renders server-rendered heading 'Investors'", async () => {
     await act(async () => {
       render(<InvestorsPage />);
     });
@@ -50,12 +50,8 @@ describe("Investors Page (/investors)", () => {
     const heading = screen.getByRole("heading", { level: 1, name: "Investors" });
     expect(heading).toBeDefined();
 
-    // Crawlable intro paragraph
-    const intro = screen.getByText(/Investor figures are estimates/i);
-    expect(intro).toBeDefined();
-    expect(intro.textContent?.toLowerCase()).toContain("investor figures are estimates");
-    expect(intro.textContent?.toLowerCase()).toContain("investor meetings are subject to investor availability");
-    expect(intro.textContent?.toLowerCase()).toContain("we offer introductions, not funding");
+    // Intro paragraph was removed
+    expect(screen.queryByText(/Investor figures are estimates/i)).toBeNull();
   });
 
   it("renders initial subtitle fallback and updates with computed count once data loads", async () => {
