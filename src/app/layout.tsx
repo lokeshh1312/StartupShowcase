@@ -12,6 +12,7 @@ import {
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/urls";
 import { UnverifiedBanner } from "@/components/common/unverified-banner";
+import { PromoBanner } from "@/components/common/promo-banner";
 import { Analytics } from "@/components/analytics";
 import "./globals.css";
 
@@ -96,6 +97,7 @@ export default async function RootLayout({
             <main className="flex-1">{children}</main>
             <Footer />
           </div>
+          <PromoBanner />
         </ThemeProvider>
         <Analytics />
       </body>
