@@ -47,33 +47,6 @@ vi.mock("next/image", () => ({
   },
 }));
 
-// Mock next/dynamic
-vi.mock("next/dynamic", () => ({
-  default: () => {
-    return function MockDynamicComponent(props: {
-      isOpen: boolean;
-      onClose: () => void;
-      triggerRef?: React.RefObject<HTMLButtonElement | null>;
-    }) {
-      if (!props.isOpen) return null;
-      return (
-        <div role="dialog" aria-label="Investors">
-          <button
-            type="button"
-            onClick={() => {
-              props.onClose();
-              props.triggerRef?.current?.focus();
-            }}
-            aria-label="Close Investors"
-          >
-            Close Investors
-          </button>
-        </div>
-      );
-    };
-  },
-}));
-
 // Mock theme toggle
 vi.mock("@/components/theme-toggle", () => ({
   ThemeToggle: ({ className }: { className?: string }) => (
@@ -193,10 +166,10 @@ describe("Navbar Component", () => {
   it("renders links for signed-out visitors (desktop and mobile overlay)", () => {
     render(<Navbar user={null} profile={null} />);
 
-    // Primary nav links & Investors buttons
+    // Primary nav links
     expect(screen.getAllByRole("link", { name: "Home" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Browse" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: "Investors" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Investors" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "About" }).length).toBeGreaterThan(0);
 
     // Sign in and Sign up
@@ -323,34 +296,23 @@ describe("Navbar Component", () => {
     vi.useRealTimers();
   });
 
-  it("opens Investors modal from desktop button", async () => {
+  it("renders Investors link pointing to /investors on desktop and mobile", () => {
     render(<Navbar user={null} profile={null} />);
 
-    const investorButtons = screen.getAllByRole("button", {
-      name: "Investors",
-    });
-    const desktopBtn = investorButtons[0];
+    const investorLinks = screen.getAllByRole("link", { name: "Investors" });
+    expect(investorLinks.length).toBeGreaterThanOrEqual(1);
+    expect(investorLinks[0].getAttribute("href")).toBe("/investors");
 
-    fireEvent.click(desktopBtn);
+    // Open mobile menu
+    const hamburger = screen.getByRole("button", { name: "Toggle mobile menu" });
+    fireEvent.click(hamburger);
 
-    // Modal opens with dialog
-    const dialog = await screen.findByRole("dialog", {
-      name: "Investors",
-    });
-    expect(dialog).toBeDefined();
-
-    // Close modal
-    const closeBtn = screen.getByRole("button", {
-      name: "Close Investors",
-    });
-    fireEvent.click(closeBtn);
-
-    expect(
-      screen.queryByRole("dialog", { name: "Investors" })
-    ).toBeNull();
+    const mobileInvestorLinks = screen.getAllByRole("link", { name: "Investors" });
+    expect(mobileInvestorLinks.length).toBe(2); // desktop + mobile overlay
+    expect(mobileInvestorLinks[1].getAttribute("href")).toBe("/investors");
   });
 
-  it("opens Investors modal from mobile menu and closes menu first", async () => {
+  it("closes mobile menu when Investors link is clicked", () => {
     render(<Navbar user={null} profile={null} />);
 
     const hamburger = screen.getByRole("button", { name: "Toggle mobile menu" });
@@ -358,18 +320,11 @@ describe("Navbar Component", () => {
 
     expect(screen.getByRole("dialog", { name: "Main menu" })).toBeDefined();
 
-    const mobileInvestorBtn = screen.getAllByRole("button", {
-      name: "Investors",
-    })[1];
-    fireEvent.click(mobileInvestorBtn);
+    // Click Investors link in mobile menu
+    const mobileInvestorLinks = screen.getAllByRole("link", { name: "Investors" });
+    const overlayInvestorLink = mobileInvestorLinks[mobileInvestorLinks.length - 1];
+    fireEvent.click(overlayInvestorLink);
 
-    // Mobile menu dialog should be closed
     expect(screen.queryByRole("dialog", { name: "Main menu" })).toBeNull();
-
-    // Investors dialog should be opened
-    const dialog = await screen.findByRole("dialog", {
-      name: "Investors",
-    });
-    expect(dialog).toBeDefined();
   });
 });

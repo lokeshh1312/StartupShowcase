@@ -13,7 +13,7 @@ import {
 } from "@/lib/country-map-data";
 import { investorRegionSchema, getAvailableCountries } from "@/lib/validation";
 import { aggregateInvestorNetworkData } from "@/server/investor-network";
-import { formatInvestorSubtitle } from "@/components/investor-network/investor-network-modal";
+import { formatInvestorSubtitle } from "@/lib/investor-network";
 import {
   getCountryMapInfo,
   NO_ISO_TERRITORIES,
@@ -333,61 +333,72 @@ describe("Investor Network Feature", () => {
 
   describe("5. Investor Network UI Helpers & Window Rules", () => {
     describe("formatInvestorSubtitle", () => {
-      it("rounds down to nearest 10,000 for totals >= 10,000", () => {
+      it("rounds down to nearest 10,000 for totals >= 10,000 as {n}k+", () => {
+        expect(formatInvestorSubtitle(54128)).toBe(
+          "Our Network Spans 50k+ Active Angel Investors Across the Globe"
+        );
         expect(formatInvestorSubtitle(61725)).toBe(
-          "Connect with a Global Network of 60,000+ Active Angel Investors."
+          "Our Network Spans 60k+ Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(144500)).toBe(
-          "Connect with a Global Network of 140,000+ Active Angel Investors."
+          "Our Network Spans 140k+ Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(10000)).toBe(
-          "Connect with a Global Network of 10,000+ Active Angel Investors."
+          "Our Network Spans 10k+ Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(19999)).toBe(
-          "Connect with a Global Network of 10,000+ Active Angel Investors."
+          "Our Network Spans 10k+ Active Angel Investors Across the Globe"
         );
       });
 
-      it("rounds down to nearest 1,000 for totals >= 1,000 and < 10,000", () => {
+      it("rounds down to nearest 1,000 for totals >= 1,000 and < 10,000 as {n}k+", () => {
         expect(formatInvestorSubtitle(4850)).toBe(
-          "Connect with a Global Network of 4,000+ Active Angel Investors."
+          "Our Network Spans 4k+ Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(1000)).toBe(
-          "Connect with a Global Network of 1,000+ Active Angel Investors."
+          "Our Network Spans 1k+ Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(9999)).toBe(
-          "Connect with a Global Network of 9,000+ Active Angel Investors."
+          "Our Network Spans 9k+ Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(1234)).toBe(
-          "Connect with a Global Network of 1,000+ Active Angel Investors."
+          "Our Network Spans 1k+ Active Angel Investors Across the Globe"
         );
       });
 
-      it("shows exact total for totals > 0 and < 1,000", () => {
+      it("shows exact total + '+' for totals > 0 and < 1,000", () => {
         expect(formatInvestorSubtitle(500)).toBe(
-          "Connect with a Global Network of 500+ Active Angel Investors."
+          "Our Network Spans 500+ Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(1)).toBe(
-          "Connect with a Global Network of 1+ Active Angel Investors."
+          "Our Network Spans 1+ Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(999)).toBe(
-          "Connect with a Global Network of 999+ Active Angel Investors."
+          "Our Network Spans 999+ Active Angel Investors Across the Globe"
         );
       });
 
-      it("returns default fallback text when there is no investor data (0, null, undefined, negative)", () => {
+      it("returns fallback text without trailing period when there is no investor data (0, null, undefined, negative)", () => {
         expect(formatInvestorSubtitle(0)).toBe(
-          "Connect with a Global Network of Angel Investors."
+          "Our Network Spans Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(null)).toBe(
-          "Connect with a Global Network of Angel Investors."
+          "Our Network Spans Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(undefined)).toBe(
-          "Connect with a Global Network of Angel Investors."
+          "Our Network Spans Active Angel Investors Across the Globe"
         );
         expect(formatInvestorSubtitle(-50)).toBe(
-          "Connect with a Global Network of Angel Investors."
+          "Our Network Spans Active Angel Investors Across the Globe"
         );
+      });
+
+      it("never includes a trailing full stop", () => {
+        const testValues = [54128, 144500, 4850, 1000, 500, 1, 0, null, undefined, -10];
+        for (const val of testValues) {
+          const res = formatInvestorSubtitle(val);
+          expect(res.endsWith(".")).toBe(false);
+        }
       });
     });
 
