@@ -3,12 +3,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Shield, ArrowLeft } from "lucide-react";
 import { createMetadata } from "@/lib/seo";
-import { legalName, gstin, address, getContactEmail } from "@/lib/company";
+import { getContactEmail, website } from "@/lib/company";
 
 export const metadata: Metadata = createMetadata({
-  title: "Privacy Policy | Startup Showcase",
+  title: "Privacy Policy | Startup Showcase Global",
   description:
-    "Privacy Policy explaining how WAVERISE CONSULTANCY PRIVATE LIMITED collects, uses, stores, and shares information when you use Startup Showcase.",
+    "At Startup Showcase Global, we respect your privacy and are committed to protecting your personal information. Review our privacy practices.",
   path: "/privacy",
 });
 
@@ -17,7 +17,6 @@ export default function PrivacyPage() {
 
   return (
     <div className="relative isolate min-h-screen">
-
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         {/* Back button */}
         <div>
@@ -42,7 +41,7 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Effective Date: 25-10-2026
+            Last Updated: November 2026
           </p>
         </div>
 
@@ -50,7 +49,7 @@ export default function PrivacyPage() {
         <div className="relative bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 rounded-3xl p-6 sm:p-10 shadow-xs backdrop-blur-md space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
           <section className="space-y-3">
             <p>
-              This Privacy Policy explains how {legalName} (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) collects, uses, stores, and shares information when you use Startup Showcase.
+              At <strong>Startup Showcase Global</strong>, we respect your privacy and are committed to protecting your personal information. This Privacy Policy explains how we collect, use, store, and protect your information when you visit our website or use our services.
             </p>
           </section>
 
@@ -58,185 +57,165 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               1. Information We Collect
             </h2>
-            <p>
-              Depending on how you use the platform, we may collect the following information.
-            </p>
-
-            <h3 className="text-base font-bold text-slate-900 dark:text-white pt-2">
-              Information You Provide
-            </h3>
+            <p>We may collect the following information:</p>
             <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
-              <li>Name and email address.</li>
-              <li>Account and contact information.</li>
-              <li>Startup name, website, country, industry, and business description.</li>
-              <li>Logos, images, and other content submitted for publication.</li>
-              <li>Messages, feedback, and customer-support requests.</li>
+              <li>Personal details such as name, email address, and contact number.</li>
+              <li>Startup information, including company name, website, business description, and industry.</li>
+              <li>Account registration and login information.</li>
+              <li>Payment and transaction details.</li>
+              <li>Information submitted through contact forms and customer support requests.</li>
+              <li>Technical information such as IP address, browser type, and website usage data.</li>
             </ul>
-
-            <h3 className="text-base font-bold text-slate-900 dark:text-white pt-2">
-              Transaction Information
-            </h3>
-            <p>
-              We may process order details, service purchased, payment status, transaction references, and relevant billing information.
-            </p>
-            <p>
-              Payments may be processed by Razorpay or another payment provider. We do not intend to store complete payment-card numbers, card security codes, or payment authentication credentials on our platform.
-            </p>
-
-            <h3 className="text-base font-bold text-slate-900 dark:text-white pt-2">
-              Technical Information
-            </h3>
-            <p>
-              Depending on our website configuration, we may collect technical information such as IP address, browser type, device information, usage logs, and pages visited.
-            </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              2. How We Use Information
+              2. How We Use Your Information
             </h2>
-            <p>We may use information to:</p>
+            <p>We use collected information to:</p>
             <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
               <li>Create and manage user accounts.</li>
-              <li>Review and publish startup submissions.</li>
-              <li>Deliver purchased services.</li>
-              <li>Process and verify payments.</li>
-              <li>Respond to questions and complaints.</li>
-              <li>Maintain website security and prevent fraud.</li>
-              <li>Improve website functionality and user experience.</li>
-              <li>Comply with legal, accounting, tax, and regulatory requirements.</li>
-              <li>Send service-related communications.</li>
-              <li>Send promotional communications where permitted by law.</li>
+              <li>Process startup submissions and publish approved listings.</li>
+              <li>Provide startup showcase and promotional services.</li>
+              <li>Facilitate investor networking and introductions.</li>
+              <li>Process payments and manage transactions.</li>
+              <li>Respond to enquiries and provide customer support.</li>
+              <li>Improve our website, services, and user experience.</li>
+              <li>Send important service updates and relevant communications.</li>
             </ul>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              3. Public Startup Information
+              3. Information Sharing
             </h2>
             <p>
-              Information submitted for publication may be visible to visitors and may be indexed by search engines or shared by third parties.
+              We do not sell or rent your personal information to third parties.
             </p>
             <p>
-              Please do not submit confidential or sensitive information that you do not want publicly displayed. You are responsible for ensuring that you have permission to publish information about your startup and its representatives.
+              However, we may share relevant information with trusted service providers, payment processors, technology partners, and investor networks when necessary to deliver our services.
+            </p>
+            <p>
+              Startup information submitted for public listing may be displayed on our website and accessible to visitors.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              4. Payment Providers and Other Service Providers
+              4. Payment Security
             </h2>
             <p>
-              We may share relevant information with payment providers, including Razorpay, to process transactions, verify payments, prevent fraud, and handle disputes.
+              Payments made through our website are processed using secure third-party payment gateways. We do not intentionally store complete payment card details on our servers.
             </p>
             <p>
-              We may also use hosting providers, email services, analytics tools, and other service providers to operate our platform. Information is shared as reasonably necessary for the relevant service and subject to applicable legal requirements.
+              Payment processing is subject to the respective payment provider&apos;s privacy and security policies.
             </p>
-            <p>Service providers we currently use include:</p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              5. Cookies and Tracking
+            </h2>
+            <p>
+              Our website may use cookies and similar technologies to improve website functionality, understand visitor activity, remember preferences, and enhance user experience.
+            </p>
+            <p>
+              You can manage or disable cookies through your browser settings.
+            </p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              6. Data Security
+            </h2>
+            <p>
+              We implement reasonable technical and organizational security measures to protect your information against unauthorized access, misuse, alteration, or disclosure.
+            </p>
+            <p>
+              However, no online platform or electronic transmission can guarantee complete security.
+            </p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              7. Data Retention
+            </h2>
+            <p>
+              We retain personal information only for as long as necessary to provide our services, fulfill business purposes, maintain records, and comply with applicable requirements.
+            </p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              8. Your Privacy Rights
+            </h2>
+            <p>You may request to:</p>
             <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
-              <li>Razorpay – payment processing.</li>
-              <li>Supabase – database, user authentication, and file storage.</li>
-              <li>Cloudflare Turnstile – spam and bot protection on forms; it may process your IP address and browser signals.</li>
-              <li>Resend – delivery of transactional emails.</li>
-              <li>Hostinger – website hosting.</li>
+              <li>Access your personal information.</li>
+              <li>Correct inaccurate information.</li>
+              <li>Update your account details.</li>
+              <li>Request deletion of your personal information, subject to applicable legal and operational requirements.</li>
+              <li>Opt out of promotional communications.</li>
             </ul>
-            <p>Optional analytics tools are used only if enabled on the website.</p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              5. Cookies and Similar Technologies
-            </h2>
-            <p>
-              Our website may use cookies or similar technologies for essential functionality, security, preferences, and analytics where implemented.
-            </p>
-            <p>
-              You may manage cookies through your browser settings. Disabling some cookies may affect website functionality.
+            <p className="pt-2">
+              For privacy-related requests, please contact our{" "}
+              <Link
+                href="/support"
+                className="text-brand-600 dark:text-brand-400 hover:underline font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
+              >
+                support team
+              </Link>
+              .
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              6. Data Retention
+              9. Third-Party Websites
             </h2>
             <p>
-              We retain information for as long as reasonably necessary to operate our platform, provide services, maintain listings, handle disputes, and meet legal and accounting obligations.
+              Our website may contain links to external websites, including startup websites, investor platforms, and payment providers. We are not responsible for the privacy practices or content of these third-party websites.
             </p>
             <p>
-              When information is no longer required, we will take reasonable steps to delete or anonymize it, subject to applicable law.
+              We encourage users to review their respective privacy policies.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              7. Data Security
+              10. Children&apos;s Privacy
             </h2>
             <p>
-              We use reasonable technical and organizational measures intended to protect information against unauthorized access, loss, misuse, or disclosure. However, no internet transmission or electronic storage method can be guaranteed completely secure.
+              Our services are not intended for children under the age of 14. We do not knowingly collect personal information from children.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              8. International Processing
+              11. Changes to This Privacy Policy
             </h2>
             <p>
-              Our platform may serve users from different countries. Depending on our hosting and service providers, information may be processed or stored outside your country, subject to applicable legal requirements.
+              We may update this Privacy Policy from time to time to reflect changes in our services, practices, or applicable requirements. Any updates will be published on this page with a revised update date.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              9. Your Privacy Rights
+              12. Contact Us
             </h2>
             <p>
-              Depending on applicable law, you may have the right to request access to, correction of, or deletion of personal information, or to raise a grievance concerning its processing.
+              If you have questions, concerns, or requests regarding this Privacy Policy, please contact us:
             </p>
             <p>
-              You can contact us using the details below. We may need to verify your identity before responding. Certain records may need to be retained where required by law.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              10. Third-Party Websites
-            </h2>
-            <p>
-              Our website may link to startup websites, social media profiles, and other external services. We are not responsible for their privacy practices. Please review their privacy policies separately.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              11. Children&apos;s Privacy
-            </h2>
-            <p>
-              Startup Showcase is designed for startup discovery and business-related use and is not specifically directed at children. If you believe a child has provided personal information inappropriately, contact us so we can review the matter.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              12. Changes to This Policy
-            </h2>
-            <p>
-              We may update this Privacy Policy from time to time. The latest version will be published on this page with its effective date.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              13. Contact Us
-            </h2>
-            <p>For privacy questions or requests:</p>
-            <p>
-              <strong>{legalName}</strong>
-            </p>
-            <p>
-              <strong>GSTIN:</strong> {gstin}
-            </p>
-            <p>
-              <strong>Address:</strong> {address}
+              <strong>Website:</strong>{" "}
+              <a
+                href={website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-600 dark:text-brand-400 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
+              >
+                {website}
+              </a>
             </p>
             <p>
               <strong>Email:</strong>{" "}
@@ -246,6 +225,9 @@ export default function PrivacyPage() {
               >
                 {contactEmail}
               </a>
+            </p>
+            <p className="pt-2 text-xs text-slate-500 dark:text-slate-400">
+              By using Startup Showcase Global, you acknowledge that you have read and understood this Privacy Policy.
             </p>
           </section>
         </div>

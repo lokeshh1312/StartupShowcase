@@ -58,12 +58,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     },
     {
-      url: absoluteUrl("/contact"),
-      lastModified: STATIC_PAGES_LAST_MODIFIED,
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
       url: absoluteUrl("/faq"),
       lastModified: STATIC_PAGES_LAST_MODIFIED,
       changeFrequency: "monthly",
@@ -71,12 +65,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: absoluteUrl("/support"),
-      lastModified: STATIC_PAGES_LAST_MODIFIED,
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    {
-      url: absoluteUrl("/newsletter"),
       lastModified: STATIC_PAGES_LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.5,

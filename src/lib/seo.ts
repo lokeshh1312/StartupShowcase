@@ -93,6 +93,12 @@ export function createMetadata({
   };
 }
 
+export const SOCIAL_LINKS = {
+  instagram: "https://www.instagram.com/startupshowcaseglobal/",
+  x: "https://x.com/StartupShwcase",
+  linkedin: "https://www.linkedin.com/company/startup-showcase-global-/",
+} as const;
+
 /**
  * JSON-LD: Organization schema for the home page.
  */
@@ -105,6 +111,11 @@ export function buildOrganizationJsonLd() {
     url: siteUrl,
     logo: absoluteUrl("/logo-mark.png"),
     description: DEFAULT_SITE_DESCRIPTION,
+    sameAs: [
+      SOCIAL_LINKS.instagram,
+      SOCIAL_LINKS.x,
+      SOCIAL_LINKS.linkedin,
+    ],
   };
 }
 

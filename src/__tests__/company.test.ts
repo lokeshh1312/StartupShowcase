@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { legalName, gstin, address, phone, website, getContactEmail } from "@/lib/company";
+import { website, getContactEmail } from "@/lib/company";
 import { PLANS } from "@/lib/plans";
 
 describe("Company Details and Pricing Consistency", () => {
@@ -17,13 +17,7 @@ describe("Company Details and Pricing Consistency", () => {
     }
   });
 
-  it("exports exact legal company metadata", () => {
-    expect(legalName).toBe("WAVERISE CONSULTANCY PRIVATE LIMITED");
-    expect(gstin).toBe("23AADCW8958R1ZB");
-    expect(address).toBe(
-      "House No. 5, Gali No. 1, Dwarka Nagar, Nishatpura, Bhopal, Madhya Pradesh – 462010, India."
-    );
-    expect(phone).toBe("+91 97247 19086");
+  it("exports official website URL", () => {
     expect(website).toBe("https://startupshowcaseglobal.com/");
   });
 

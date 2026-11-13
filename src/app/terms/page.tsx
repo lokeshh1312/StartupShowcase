@@ -3,12 +3,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FileText, ArrowLeft } from "lucide-react";
 import { createMetadata } from "@/lib/seo";
-import { legalName, gstin, address, getContactEmail } from "@/lib/company";
+import { getContactEmail, website } from "@/lib/company";
 
 export const metadata: Metadata = createMetadata({
-  title: "Terms & Conditions | Startup Showcase",
+  title: "Terms & Conditions | Startup Showcase Global",
   description:
-    "Terms and Conditions governing access to and use of Startup Showcase, operated by WAVERISE CONSULTANCY PRIVATE LIMITED.",
+    "Terms & Conditions governing access to and use of Startup Showcase Global. Please read them carefully before using our services.",
   path: "/terms",
 });
 
@@ -17,7 +17,6 @@ export default function TermsPage() {
 
   return (
     <div className="relative isolate min-h-screen">
-
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         {/* Back button */}
         <div>
@@ -42,7 +41,7 @@ export default function TermsPage() {
             Terms &amp; Conditions
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Effective Date: 25-10-2026
+            Last Updated: November 2026
           </p>
         </div>
 
@@ -50,217 +49,261 @@ export default function TermsPage() {
         <div className="relative bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 rounded-3xl p-6 sm:p-10 shadow-xs backdrop-blur-md space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
           <section className="space-y-3">
             <p>
-              These Terms &amp; Conditions govern your access to and use of Startup Showcase, operated by {legalName} (&ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;).
-            </p>
-            <p>
-              By accessing our website, submitting a startup, or purchasing a service, you agree to these Terms &amp; Conditions.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              1. About Startup Showcase
-            </h2>
-            <p>
-              Startup Showcase is an online platform for discovering startups and displaying eligible startup profiles. It allows founders and authorized representatives to submit startup information for review and potential publication.
+              Welcome to <strong>Startup Showcase Global</strong>. By accessing or using our website (
+              <a
+                href={website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-600 dark:text-brand-400 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
+              >
+                {website}
+              </a>
+              ), you agree to comply with these Terms &amp; Conditions. Please read them carefully before using our services.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              2. Eligibility
+              1. Acceptance of Terms
             </h2>
             <p>
-              You must provide accurate information and have the legal authority to submit a startup profile and any associated content.
+              By accessing our website, creating an account, submitting a startup, or purchasing any service, you agree to these Terms &amp; Conditions and our{" "}
+              <Link
+                href="/privacy"
+                className="text-brand-600 dark:text-brand-400 hover:underline font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
+              >
+                Privacy Policy
+              </Link>
+              .
             </p>
             <p>
-              If you submit information on behalf of a business, you confirm that you are authorized to do so.
+              If you do not agree with these terms, please discontinue using our website and services.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              3. Startup Submissions
+              2. Our Services
             </h2>
-            <p>
-              The standard startup submission fee is a <strong>one-time listing fee based on the plan you choose: Startup Listing ($9), Investor Connect ($199) or Investor Ready+Connect ($999), paid in USD by international card, as displayed on our pricing and checkout pages</strong>.
-            </p>
-            <p>
-              Each paid submission covers one startup profile and its review for potential publication.
-            </p>
-            <p>
-              You must provide accurate, complete, and lawful information. We may reject, request corrections to, suspend, or remove a submission if it contains misleading information, infringes third-party rights, violates applicable law, or breaches our policies.
-            </p>
-            <p>
-              Payment does not guarantee approval or publication.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              4. Review and Publication
-            </h2>
-            <p>
-              We review submissions according to our platform requirements. Review times may vary depending on submission volume and whether additional information is needed.
-            </p>
-            <p>
-              We may decline a submission at our discretion where reasonably necessary to protect the integrity, safety, or lawful operation of the platform.
-            </p>
-            <p>
-              An order confirmation or successful payment does not itself confirm publication.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              5. Payments
-            </h2>
-            <p>
-              The applicable price will be shown before checkout. Payments may be processed through Razorpay or other payment providers made available on our website.
-            </p>
-            <p>
-              You are responsible for reviewing the service description, amount, and applicable taxes displayed before completing payment.
-            </p>
-            <p>
-              Payment-provider terms may also apply to your transaction.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              6. Refunds and Cancellations
-            </h2>
-            <p>
-              Refund and cancellation requests are governed by our Refund &amp; Cancellation Policy, subject to applicable law. When approved, refunds are returned to the original payment method in the same currency.
-            </p>
-            <p>
-              Please review that policy before purchasing a submission.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              7. User Content and Intellectual Property
-            </h2>
-            <p>
-              You retain ownership of content you submit, subject to the rights of any third parties.
-            </p>
-            <p>
-              By submitting content, you grant us a non-exclusive, worldwide, royalty-free licence to host, reproduce, display, format, and distribute that content as reasonably necessary to review, publish, maintain, and promote your startup profile and operate the platform.
-            </p>
-            <p>
-              You confirm that you have the necessary rights and permissions for all submitted names, descriptions, logos, images, and other materials.
-            </p>
-            <p>
-              Our website design, branding, and original platform materials remain the property of the Company or the applicable rights holders.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              8. Prohibited Use
-            </h2>
-            <p>You must not:</p>
+            <p>Startup Showcase Global provides a platform for:</p>
             <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
-              <li>Submit false, fraudulent, or misleading information.</li>
-              <li>Impersonate a person or business.</li>
-              <li>Submit content that unlawfully infringes intellectual property or privacy rights.</li>
-              <li>Use the platform for illegal, fraudulent, or abusive activities.</li>
-              <li>Attempt unauthorized access to our systems.</li>
-              <li>Interfere with website security or functionality.</li>
+              <li>Showcasing startups and innovative business ideas.</li>
+              <li>Promoting startup visibility and online presence.</li>
+              <li>Providing startup listing and promotional opportunities.</li>
+              <li>Facilitating investor networking and introductions.</li>
+              <li>Offering investor readiness and related support services.</li>
+            </ul>
+            <p>
+              We reserve the right to modify, improve, or discontinue any service when necessary.
+            </p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              3. User Registration
+            </h2>
+            <p>
+              Users must provide accurate and complete information while registering or submitting a startup.
+            </p>
+            <p>
+              You are responsible for maintaining the confidentiality of your account credentials and all activities performed through your account.
+            </p>
+            <p>
+              We reserve the right to suspend or terminate accounts containing false, misleading, or inappropriate information.
+            </p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              4. Startup Submission and Approval
+            </h2>
+            <p>Users submitting startups must ensure that:</p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+              <li>All submitted information is accurate and authentic.</li>
+              <li>They have the necessary rights to submit company details, logos, images, and other materials.</li>
+              <li>Their submissions do not violate intellectual property rights or applicable laws.</li>
+              <li>Their startup descriptions do not contain misleading or fraudulent claims.</li>
+            </ul>
+            <p>
+              We reserve the right to review, reject, edit, suspend, or remove any startup submission that violates our policies or quality standards.
+            </p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              5. Payments and Pricing
+            </h2>
+            <p>
+              All paid services are subject to the prices displayed on our website at the time of purchase.
+            </p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+              <li>Payments must be completed through the available payment methods.</li>
+              <li>Services will be processed after successful payment confirmation.</li>
+              <li>Any applicable taxes or additional charges will be communicated during checkout.</li>
+              <li>We reserve the right to update service prices and packages.</li>
             </ul>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              9. Third-Party Information and Links
+              6. Investor Connections and Funding Disclaimer
             </h2>
             <p>
-              Startup profiles may contain information supplied by third parties and links to external websites.
+              Startup Showcase Global may facilitate introductions between startups and potential investors.
             </p>
+            <p>However:</p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+              <li>We do not guarantee funding, investment, or financial returns.</li>
+              <li>Investor meetings are subject to investor availability and mutual agreement.</li>
+              <li>Investment decisions are made independently by investors.</li>
+              <li>We do not guarantee that any investor will invest in a listed startup.</li>
+              <li>Founders are responsible for conducting their own due diligence before entering into investment agreements.</li>
+            </ul>
             <p>
-              We do not guarantee the accuracy, completeness, legitimacy, or current status of third-party information. Visitors should independently verify information before relying on it or entering into a transaction with a listed business.
-            </p>
-            <p>
-              External websites are governed by their own terms and policies.
+              Our platform provides networking and facilitation services and does not act as a financial advisor or investment intermediary.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              10. No Investment or Business Guarantees
+              7. Refund and Cancellation
             </h2>
             <p>
-              Startup Showcase provides startup discovery and promotional services. We do not guarantee investment, fundraising, partnerships, sales, leads, website traffic, or commercial success.
+              Refunds and cancellations are governed by our separate{" "}
+              <Link
+                href="/refunds"
+                className="text-brand-600 dark:text-brand-400 hover:underline font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
+              >
+                Refund &amp; Cancellation Policy
+              </Link>
+              .
             </p>
             <p>
-              The platform is not, merely by listing a startup, endorsing that startup or verifying all of its claims.
-            </p>
-            <p>
-              Information on the platform is not investment, legal, tax, or financial advice.
+              Users are encouraged to review that policy before purchasing any service.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              11. Availability and Limitation of Liability
+              8. Intellectual Property
             </h2>
             <p>
-              We aim to maintain a useful and reliable platform but cannot guarantee uninterrupted access or that the website will always be error-free.
+              All website content, including branding, graphics, text, design elements, and platform materials, belongs to Startup Showcase Global or its respective content owners.
             </p>
             <p>
-              To the extent permitted by applicable law, the Company will not be liable for indirect or consequential losses arising from the use of the platform. Nothing in these Terms excludes liability that cannot legally be excluded or restricts mandatory consumer rights.
+              Users retain ownership of their submitted startup information and intellectual property.
+            </p>
+            <p>
+              By submitting content, you grant us a non-exclusive, worldwide, royalty-free license to display, promote, and distribute that content for providing and marketing our services.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              12. Privacy
+              9. Prohibited Activities
             </h2>
+            <p>Users must not:</p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+              <li>Submit false, misleading, or fraudulent information.</li>
+              <li>Upload harmful, illegal, or unauthorized content.</li>
+              <li>Violate the intellectual property rights of others.</li>
+              <li>Attempt unauthorized access to our website or systems.</li>
+              <li>Use the platform for spam, scams, or deceptive activities.</li>
+              <li>Misuse investor or startup contact information.</li>
+            </ul>
             <p>
-              Our collection and use of personal information are explained in our Privacy Policy.
+              We reserve the right to restrict access or remove content in case of violations.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              13. Changes to These Terms
+              10. Limitation of Liability
             </h2>
+            <p>Startup Showcase Global shall not be responsible for:</p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+              <li>Business losses or missed investment opportunities.</li>
+              <li>Decisions made independently by investors or startups.</li>
+              <li>Inaccuracies in information submitted by users.</li>
+              <li>Temporary website interruptions or technical issues.</li>
+              <li>Actions, services, or content provided by third parties.</li>
+            </ul>
             <p>
-              We may update these Terms from time to time. The latest version will be published on this page with its effective date. Changes will apply as permitted by applicable law.
+              To the extent permitted by applicable law, we disclaim liability for indirect, incidental, or consequential damages arising from the use of our platform.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              14. Governing Law
+              11. Third-Party Services
             </h2>
             <p>
-              These Terms are governed by the laws of India. Subject to applicable law and mandatory consumer protections, disputes will be subject to the jurisdiction of the competent courts in Bhopal, Madhya Pradesh.
+              Our website may contain links to external websites, payment gateways, or third-party services.
+            </p>
+            <p>
+              We are not responsible for their content, availability, security, or independent policies. Users access such services at their own discretion.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              15. Contact Information
+              12. Suspension and Termination
             </h2>
             <p>
-              <strong>{legalName}</strong>
+              We reserve the right to suspend or terminate user accounts, remove listings, or restrict access to our services if users violate these Terms &amp; Conditions or misuse the platform.
+            </p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              13. Changes to Terms
+            </h2>
+            <p>
+              We may update these Terms &amp; Conditions from time to time. Revised terms will be published on this page with an updated effective date.
             </p>
             <p>
-              <strong>GSTIN:</strong> {gstin}
+              Continued use of our website after changes are published constitutes acceptance of the revised terms, to the extent permitted by applicable law.
+            </p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              14. Governing Law and Jurisdiction
+            </h2>
+            <p>
+              These Terms &amp; Conditions shall be governed by the applicable laws of India. Any disputes arising from the use of our website or services shall be subject to the jurisdiction of the competent courts in accordance with applicable law.
+            </p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              15. Contact Us
+            </h2>
+            <p>
+              For questions, concerns, or assistance regarding these Terms &amp; Conditions, please contact us through our website.
             </p>
             <p>
-              <strong>Address:</strong> {address}
+              <strong>Website:</strong>{" "}
+              <a
+                href={website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-600 dark:text-brand-400 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
+              >
+                {website}
+              </a>
             </p>
             <p>
-              <strong>Email:</strong>{" "}
+              <strong>Contact:</strong>{" "}
               <a
                 href={`mailto:${contactEmail}`}
                 className="text-brand-600 dark:text-brand-400 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
               >
                 {contactEmail}
               </a>
+            </p>
+            <p className="pt-2 text-xs text-slate-500 dark:text-slate-400">
+              Thank you for choosing Startup Showcase Global. We look forward to supporting your startup journey.
             </p>
           </section>
         </div>

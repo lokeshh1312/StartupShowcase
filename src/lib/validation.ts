@@ -301,15 +301,6 @@ export const addCommentSchema = z.object({
     .max(1500, "Comment must be under 1500 characters"),
 });
 
-// Newsletter Subscription Schema
-export const newsletterSubscribeSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .email("Enter a valid email address")
-    .max(254),
-});
-
 // Password Schema - minimum 10 characters
 export const passwordSchema = z
   .string()

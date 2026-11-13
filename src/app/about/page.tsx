@@ -3,21 +3,17 @@ import Link from "next/link";
 import { ArrowLeft, Globe } from "lucide-react";
 import type { Metadata } from "next";
 import { createMetadata } from "@/lib/seo";
-import { legalName, gstin, address, getContactEmail } from "@/lib/company";
 
 export const metadata: Metadata = createMetadata({
-  title: "About Us | Startup Showcase",
+  title: "About Us | Startup Showcase Global",
   description:
-    "Startup Showcase is a digital platform designed to help people discover startups, explore emerging businesses, and learn about innovative products from around the world.",
+    "Startup Showcase Global is a global platform dedicated to discovering, showcasing, and empowering innovative startups from around the world.",
   path: "/about",
 });
 
 export default function AboutPage() {
-  const contactEmail = getContactEmail();
-
   return (
     <div className="relative isolate min-h-screen">
-
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
         {/* Back button */}
         <div>
@@ -47,14 +43,40 @@ export default function AboutPage() {
         <div className="relative bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 rounded-3xl p-6 sm:p-10 shadow-xs backdrop-blur-md space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
           <section className="space-y-3">
             <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-              Discover Startups. Explore Innovation.
+              Empowering Startups. Connecting Opportunities. Inspiring Innovation.
             </p>
             <p>
-              Startup Showcase is a digital platform designed to help people discover startups, explore emerging businesses, and learn about innovative products, services, and technologies from around the world.
+              <strong>Startup Showcase Global</strong> is a global platform dedicated to discovering, showcasing, and empowering innovative startups from around the world. We provide a space where ambitious founders, emerging businesses, and innovative ideas can gain visibility, connect with opportunities, and become part of a growing global startup ecosystem.
             </p>
             <p>
-              The platform is operated by <strong>{legalName}</strong>, a company incorporated in India.
+              We believe every great business begins with an idea, and every idea deserves the opportunity to be discovered. Our mission is to bridge the gap between promising startups and the opportunities that can help them grow.
             </p>
+          </section>
+
+          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              What We Do
+            </h2>
+            <p>
+              We help startups take their first steps toward greater recognition by providing opportunities to:
+            </p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
+              <li>
+                <strong>Showcase Your Startup:</strong> Present your business, product, or innovative idea to a global audience.
+              </li>
+              <li>
+                <strong>Increase Visibility:</strong> Build your startup&apos;s online presence and reach a wider community.
+              </li>
+              <li>
+                <strong>Connect with Investors:</strong> Explore opportunities to connect with investors and potential funding networks.
+              </li>
+              <li>
+                <strong>Discover Innovation:</strong> Explore emerging startups, new technologies, and innovative business ideas.
+              </li>
+              <li>
+                <strong>Build Credibility:</strong> Establish your startup&apos;s presence within the global entrepreneurial ecosystem.
+              </li>
+            </ul>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
@@ -62,76 +84,22 @@ export default function AboutPage() {
               Our Mission
             </h2>
             <p>
-              Our mission is to make startup discovery easier by bringing startup information together in one accessible platform, helping visitors explore businesses across countries, industries, and innovation categories.
+              Our mission is to make startup discovery and growth opportunities more accessible by connecting innovative founders with a global ecosystem of entrepreneurs, investors, and industry professionals.
+            </p>
+            <p>
+              We aim to give promising startups the visibility and opportunities they need to move forward.
             </p>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              What We Offer
-            </h2>
-            <p>Startup Showcase allows visitors to:</p>
-            <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
-              <li>Discover startups from different countries and industries.</li>
-              <li>Explore trending and recently submitted startups.</li>
-              <li>Browse businesses by sector and geographical location.</li>
-              <li>Discover startups working on innovative technologies and intellectual property.</li>
-              <li>Explore startup profiles and visit their official websites.</li>
-              <li>Submit a startup profile for review and potential publication.</li>
-            </ul>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Startup Submission
+              Be Part of the Global Startup Ecosystem
             </h2>
             <p>
-              Founders, entrepreneurs, and authorized representatives can submit their startups through our website for a <strong>one-time listing fee based on the plan you choose: Startup Listing ($9), Investor Connect ($199) or Investor Ready+Connect ($999), paid in USD by international card, as displayed on our pricing and checkout pages</strong>.
+              Whether you&apos;re an aspiring entrepreneur, an established founder, an investor, or simply passionate about innovation, Startup Showcase Global welcomes you.
             </p>
-            <p>
-              Each submission is subject to our review process. Payment does not automatically guarantee approval or publication.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Our Business Model
-            </h2>
-            <p>
-              We generate revenue through paid startup submissions and other services only where expressly offered on our website.
-            </p>
-            <p>
-              Startup Showcase is a discovery and promotional platform. We do not guarantee funding, investment, customers, traffic, sales, or commercial success.
-            </p>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Legal Entity Details
-            </h2>
-            <p>
-              <strong>Company Name:</strong> {legalName}
-            </p>
-            <p>
-              <strong>Trade Name:</strong> {legalName}
-            </p>
-            <p>
-              <strong>GSTIN:</strong> {gstin}
-            </p>
-            <p>
-              <strong>Principal Place of Business:</strong> {address}
-            </p>
-            <p>
-              <strong>Contact:</strong>{" "}
-              <a
-                href={`mailto:${contactEmail}`}
-                className="text-brand-600 dark:text-brand-400 hover:underline focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
-              >
-                {contactEmail}
-              </a>
-            </p>
-            <p className="pt-2">
-              Startup Showcase aims to provide a transparent and accessible platform for discovering emerging businesses and entrepreneurial ideas.
+            <p className="font-bold text-slate-900 dark:text-white pt-2">
+              Your startup deserves to be seen. Your innovation deserves to be discovered. Let&apos;s build the future together.
             </p>
           </section>
         </div>
