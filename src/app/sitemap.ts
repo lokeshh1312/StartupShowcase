@@ -52,6 +52,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     },
     {
+      url: absoluteUrl("/investors"),
+      lastModified: STATIC_PAGES_LAST_MODIFIED,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
       url: absoluteUrl("/pricing"),
       lastModified: STATIC_PAGES_LAST_MODIFIED,
       changeFrequency: "monthly",

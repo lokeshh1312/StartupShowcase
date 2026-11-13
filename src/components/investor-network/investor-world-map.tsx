@@ -19,6 +19,7 @@ export interface InvestorWorldMapProps {
   countries?: CountryInvestorData[];
   selectedCode?: string | null;
   onSelectCountry?: (code: string) => void;
+  className?: string;
 }
 
 export interface CountryMapInfo {
@@ -104,6 +105,7 @@ export function InvestorWorldMap({
   countries = [],
   selectedCode: _selectedCode = null,
   onSelectCountry,
+  className,
 }: InvestorWorldMapProps) {
   void _selectedCode;
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -356,7 +358,7 @@ export function InvestorWorldMap({
     <div
       ref={containerRef}
       onClick={handleMapBackgroundClick}
-      className="relative w-full h-full bg-slate-50 dark:bg-[#0c0c0c] rounded-none sm:rounded-3xl overflow-hidden select-none border-y sm:border border-slate-200/90 dark:border-white/10"
+      className={`relative w-full h-full bg-slate-50 dark:bg-[#0c0c0c] rounded-2xl sm:rounded-3xl overflow-hidden select-none border border-slate-200/90 dark:border-white/10 ${className || ""}`}
     >
       {/* Zoom Control Buttons */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-1.5 bg-white/90 dark:bg-[#161616]/90 p-1.5 rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-lg backdrop-blur-md">
