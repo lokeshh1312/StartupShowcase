@@ -64,10 +64,10 @@ test.describe("Startup Showcase E2E Smoke Tests", () => {
     await expect(page.locator("h1")).toContainText(/Search/i);
   });
 
-  test("Content pages (About, FAQ, Support, Newsletter) render properly", async ({
+  test("Content pages (About, FAQ, Support, Refunds) render properly", async ({
     page,
   }) => {
-    for (const route of ["/about", "/faq", "/support", "/newsletter", "/refunds"]) {
+    for (const route of ["/about", "/faq", "/support", "/refunds"]) {
       const res = await page.goto(route);
       expect(res?.status()).toBe(200);
     }
@@ -87,7 +87,7 @@ test.describe("Startup Showcase E2E Smoke Tests", () => {
   }) => {
     const pages = [
       { route: "/about", title: "About Us" },
-      { route: "/contact", title: "Contact Us" },
+      { route: "/support", title: "Contact Us" },
       { route: "/pricing", title: "Pricing & Services" },
       { route: "/terms", title: "Terms & Conditions" },
       { route: "/privacy", title: "Privacy Policy" },
@@ -100,7 +100,7 @@ test.describe("Startup Showcase E2E Smoke Tests", () => {
       expect(res?.status(), `Expected ${route} to return 200`).toBe(200);
       await expect(page.locator("h1")).toContainText(title);
       await expect(page.locator("body")).toContainText(
-        "WAVERISE CONSULTANCY PRIVATE LIMITED"
+        "Startup Showcase Global"
       );
     }
   });

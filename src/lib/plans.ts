@@ -21,6 +21,7 @@ export interface PlanDefinition {
   name: string;
   priceCents: number;
   priceFormatted: string;
+  originalPriceFormatted: string;
   billingText: string;
   highlighted?: boolean;
   badge?: string;
@@ -33,6 +34,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     name: "Startup Listing",
     priceCents: 900,
     priceFormatted: "$9",
+    originalPriceFormatted: "$29",
     billingText: "One-time payment",
     features: [
       "Global startup listing",
@@ -45,6 +47,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     name: "Investor Connect",
     priceCents: 19900,
     priceFormatted: "$199",
+    originalPriceFormatted: "$499",
     billingText: "One-time payment",
     features: [
       "Everything in Startup Listing",
@@ -57,6 +60,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     name: "Investor Ready+Connect",
     priceCents: 99900,
     priceFormatted: "$999",
+    originalPriceFormatted: "$1799",
     billingText: "One-time payment",
     highlighted: true,
     badge: "Most Popular",

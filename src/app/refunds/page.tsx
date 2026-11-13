@@ -3,12 +3,12 @@ import Link from "next/link";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import type { Metadata } from "next";
 import { createMetadata } from "@/lib/seo";
-import { legalName, gstin, address, getContactEmail } from "@/lib/company";
+import { getContactEmail } from "@/lib/company";
 
 export const metadata: Metadata = createMetadata({
   title: "Refund & Cancellation Policy | Startup Showcase",
   description:
-    "Refund and Cancellation Policy for startup submission services on Startup Showcase, operated by WAVERISE CONSULTANCY PRIVATE LIMITED.",
+    "Refund and Cancellation Policy for startup submission services on Startup Showcase.",
   path: "/refunds",
 });
 
@@ -50,7 +50,7 @@ export default function RefundsPage() {
         <div className="relative bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 rounded-3xl p-6 sm:p-10 shadow-xs backdrop-blur-md space-y-8 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
           <section className="space-y-3">
             <p>
-              This policy applies to startup submission services purchased through Startup Showcase, operated by {legalName}.
+              This policy applies to startup submission services purchased through Startup Showcase.
             </p>
           </section>
 
@@ -174,15 +174,6 @@ export default function RefundsPage() {
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               9. Contact Details
             </h2>
-            <p>
-              <strong>{legalName}</strong>
-            </p>
-            <p>
-              <strong>GSTIN:</strong> {gstin}
-            </p>
-            <p>
-              <strong>Address:</strong> {address}
-            </p>
             <p>
               <strong>Email:</strong>{" "}
               <a

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { ArrowLeft, Tag } from "lucide-react";
 import type { Metadata } from "next";
 import { createMetadata } from "@/lib/seo";
-import { legalName } from "@/lib/company";
 import { PlanCards } from "@/components/plans/plan-cards";
 
 export const metadata: Metadata = createMetadata({
@@ -66,23 +65,6 @@ export default function PricingPage() {
 
           <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Our Three Plans
-            </h2>
-            <ul className="list-disc pl-5 space-y-2 text-slate-700 dark:text-slate-300">
-              <li>
-                <strong>Startup Listing ($9 USD, one time):</strong> Global startup listing, company profile showcase, and global audience visibility on the platform.
-              </li>
-              <li>
-                <strong>Investor Connect ($199 USD, one time):</strong> Everything in Startup Listing, plus investor networking support and 3 investor meetings (subject to investor availability).
-              </li>
-              <li>
-                <strong>Investor Ready+Connect ($999 USD, one time):</strong> Everything in Investor Connect, plus investor readiness support, pitch deck, market research, financial model &amp; fundraising preparation, and 5 investor meetings (subject to investor availability).
-              </li>
-            </ul>
-          </section>
-
-          <section className="space-y-3 border-t border-slate-100 dark:border-white/5 pt-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               How It Works
             </h2>
             <ol className="list-decimal pl-5 space-y-2 text-slate-700 dark:text-slate-300">
@@ -123,21 +105,12 @@ export default function PricingPage() {
             <p>
               For assistance or questions regarding our plans, visit our{" "}
               <Link
-                href="/contact"
+                href="/support"
                 className="text-brand-600 dark:text-brand-400 hover:underline font-medium focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-sm"
               >
                 Contact Us page
               </Link>
               .
-            </p>
-          </section>
-
-          <section className="pt-6 border-t border-slate-100 dark:border-white/5 space-y-1">
-            <p>
-              <strong>Service Provider:</strong> {legalName}
-            </p>
-            <p>
-              <strong>Platform:</strong> Startup Showcase
             </p>
           </section>
         </div>

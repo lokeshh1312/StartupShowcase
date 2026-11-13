@@ -83,10 +83,16 @@ export function PlanCards({
                   {plan.name}
                 </h3>
                 <div className="mt-2 flex flex-col gap-0.5">
-                  <div className="flex items-baseline gap-1.5">
+                  <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                       {displayedPrice}
                     </span>
+                    {plan.originalPriceFormatted && (
+                      <span className="text-base sm:text-lg font-medium text-slate-400 dark:text-slate-500 line-through">
+                        <span className="sr-only">was </span>
+                        {plan.originalPriceFormatted}
+                      </span>
+                    )}
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                       {plan.billingText}
                     </span>

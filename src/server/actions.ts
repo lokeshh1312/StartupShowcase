@@ -21,12 +21,7 @@ import {
 } from "@/server/startups";
 import { uploadStartupImage } from "@/server/storage";
 import { verifyTurnstileToken, extractCaptchaToken } from "@/server/captcha";
-import {
-  subscribeToNewsletter,
-  confirmNewsletter,
-  unsubscribeNewsletter,
-} from "@/server/newsletter";
-import { createStartupSchema, newsletterSubscribeSchema, investorRegionSchema } from "@/lib/validation";
+import { createStartupSchema, investorRegionSchema } from "@/lib/validation";
 import {
   upsertInvestorRegion,
   deleteInvestorRegion,
@@ -952,97 +947,3 @@ export async function resetPasswordAction(formData: FormData) {
   }
 }
 
-/**
- * Subscribe to Newsletter with rate limiting, CAPTCHA, and double opt-in
- */
-export async function subscribeNewsletterAction(email: string, captchaToken?: string) {
-  try {
-    const ip = await getRequestIp();
-    const captchaRes = await verifyTurnstileToken(captchaToken, ip);
-    if (!captchaRes.success) {
-      return { error: captchaRes.error || "Security verification failed." };
-    }
-
-    const validated = newsletterSubscribeSchema.parse({ email });
-    const emailHash = hashEmail(validated.email);
-    const emailLimit = await checkRateLimit(
-      `newsletter:email:${emailHash}`,
-      5,
-      3600
-    );
-    if (!emailLimit.allowed) {
-      return { error: RATE_LIMIT_MESSAGE };
-    }
-
-    if (ip !== null) {
-      const ipLimit = await checkRateLimit(`newsletter:ip:${ip}`, 5, 3600);
-      if (!ipLimit.allowed) {
-        return { error: RATE_LIMIT_MESSAGE };
-      }
-    } else {
-      const globalLimit = await checkRateLimit("newsletter:global", 200, 3600);
-      if (!globalLimit.allowed) {
-        return { error: RATE_LIMIT_MESSAGE };
-      }
-    }
-
-    const res = await subscribeToNewsletter(validated.email);
-    return { success: true, message: res.message };
-  } catch (err: unknown) {
-    return { error: formatActionError(err) };
-  }
-}
-
-/**
- * Confirm newsletter subscription via POSTed server action (prevents email scanner pre-fetching).
- */
-export async function confirmNewsletterSubscriptionAction(token: string) {
-  if (!token || !token.trim()) {
-    return { error: "No confirmation token provided." };
-  }
-
-  try {
-    const ip = await getRequestIp();
-    const rateLimitKey = ip ? `newsletter:confirm:ip:${ip}` : "newsletter:confirm:global";
-    const limit = await checkRateLimit(rateLimitKey, 20, 3600);
-    if (!limit.allowed) {
-      return { error: RATE_LIMIT_MESSAGE };
-    }
-
-    const result = await confirmNewsletter(token.trim());
-    if (!result.success) {
-      return { error: result.error || "Invalid or expired confirmation link." };
-    }
-
-    return { success: true };
-  } catch (err: unknown) {
-    return { error: formatActionError(err) };
-  }
-}
-
-/**
- * Unsubscribe from newsletter via POSTed server action (stateless HMAC verification).
- */
-export async function unsubscribeNewsletterAction(email: string, token: string) {
-  if (!email || !token || !token.trim()) {
-    return { error: "Missing email address or unsubscribe token." };
-  }
-
-  try {
-    const ip = await getRequestIp();
-    const rateLimitKey = ip ? `newsletter:unsub:ip:${ip}` : "newsletter:unsub:global";
-    const limit = await checkRateLimit(rateLimitKey, 20, 3600);
-    if (!limit.allowed) {
-      return { error: RATE_LIMIT_MESSAGE };
-    }
-
-    const result = await unsubscribeNewsletter(email.trim(), token.trim());
-    if (!result.success) {
-      return { error: result.error || "Invalid or expired unsubscribe link." };
-    }
-
-    return { success: true };
-  } catch (err: unknown) {
-    return { error: formatActionError(err) };
-  }
-}
