@@ -12,6 +12,7 @@ const platformLinks = [
 
 const resourceLinks = [
   { href: "/about", label: "About" },
+  { href: "/thesis", label: "Thesis" },
   { href: "/pricing", label: "Pricing" },
   { href: "/faq", label: "FAQ" },
   { href: "/support", label: "Contact Us" },
@@ -120,6 +121,9 @@ export function Footer() {
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs">
             <Link href="/about" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               About
+            </Link>
+            <Link href="/thesis" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
+              Thesis
             </Link>
             <Link href="/pricing" className="hover:text-brand-600 dark:hover:text-brand-400 hover:underline">
               Pricing
