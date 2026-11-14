@@ -191,7 +191,7 @@ describe("PromoBanner Component", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("contains exact corrected text with 'Result Announcement' and no 'Announcncet'", () => {
+  it("renders new content: Top 10 Startups Shortlisted, Top 5 Startups Will Get $10,000 Grant, (Per Startup), five rows 1st-5th Place each with $10K, Result Announcement", () => {
     render(<PromoBanner />);
 
     act(() => {
@@ -201,21 +201,55 @@ describe("PromoBanner Component", () => {
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeDefined();
 
-    // Content checks
+    // Top pill
     expect(screen.getByText("November 2026")).toBeDefined();
+
+    // Heading
     expect(screen.getByText("Top 10 Startups")).toBeDefined();
     expect(screen.getByText("Shortlisted.")).toBeDefined();
-    expect(screen.getByText("Top 5 Awarded Grants.")).toBeDefined();
-    expect(screen.getByText("USD 10,000")).toBeDefined();
-    expect(screen.getByText("GRANTS")).toBeDefined();
+
+    // Orange bar
+    expect(
+      screen.getByText("Top 5 Startups Will Get $10,000 Grant")
+    ).toBeDefined();
+    expect(screen.getByText("(Per Startup)")).toBeDefined();
+
+    // Five rows 1st Place to 5th Place
+    const expectedPlaces = [
+      "1st Place",
+      "2nd Place",
+      "3rd Place",
+      "4th Place",
+      "5th Place",
+    ];
+    expectedPlaces.forEach((placeText) => {
+      expect(
+        screen.getByText(
+          (_, el) =>
+            el?.tagName.toLowerCase() === "span" &&
+            el?.textContent?.replace(/\s+/g, " ").trim() === placeText
+        )
+      ).toBeDefined();
+    });
+
+    // Each with $10K
+    const amounts = screen.getAllByText("$10K");
+    expect(amounts).toHaveLength(5);
+
+    // Two chips
     expect(screen.getByText("Deadline: 30 Nov 2026")).toBeDefined();
     expect(
       screen.getByText("Result Announcement: 10 Dec 2026")
     ).toBeDefined();
 
-    // Verification of fixed typo
+    // Corrected spelling: Result Announcement present, Announcment and Announcncet absent
     expect(dialog.textContent).toContain("Result Announcement");
+    expect(dialog.textContent).not.toContain("Announcment");
     expect(dialog.textContent).not.toContain("Announcncet");
+
+    // Old text removed
+    expect(dialog.textContent).not.toContain("Top 5 Awarded Grants.");
+    expect(dialog.textContent).not.toContain("USD 10,000");
   });
 
   it("makes zero calls to localStorage and sessionStorage", () => {
