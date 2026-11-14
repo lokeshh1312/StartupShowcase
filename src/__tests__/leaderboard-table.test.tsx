@@ -106,4 +106,62 @@ describe("LeaderboardTable Redesign", () => {
     );
     expect(hasNimbleDeskImg).toBe(true);
   });
+
+  it("renders the real logo <img> with the thumbnail URL in both mobile and desktop layouts when thumbnail is provided", () => {
+    const startupWithLogo: FormattedStartup & { rank?: number } = {
+      ...mockStartups[0],
+      id: "startup-with-logo",
+      name: "NimbleDesk",
+      slug: "nimbledesk",
+      thumbnail: "/startups/nimbledesk-logo.png",
+      coverImage: "/startups/nimbledesk-thumb.png",
+    };
+
+    const { container } = render(<LeaderboardTable startups={[startupWithLogo]} />);
+
+    // Mobile layout: <ul class="lg:hidden ...">
+    const mobileList = container.querySelector("ul.lg\\:hidden");
+    expect(mobileList).not.toBeNull();
+    const mobileLogoContainer = mobileList?.querySelector('[aria-label="NimbleDesk logo"]');
+    expect(mobileLogoContainer).not.toBeNull();
+    const mobileLogoImg = mobileLogoContainer?.querySelector("img");
+    expect(mobileLogoImg).not.toBeNull();
+    expect(decodeURIComponent(mobileLogoImg?.getAttribute("src") || "")).toContain("/startups/nimbledesk-logo.png");
+
+    // Desktop layout: <div class="hidden lg:flex ...">
+    const desktopContainer = container.querySelector(".lg\\:flex");
+    expect(desktopContainer).not.toBeNull();
+    const desktopLogoContainer = desktopContainer?.querySelector('[aria-label="NimbleDesk logo"]');
+    expect(desktopLogoContainer).not.toBeNull();
+    const desktopLogoImg = desktopLogoContainer?.querySelector("img");
+    expect(desktopLogoImg).not.toBeNull();
+    expect(decodeURIComponent(desktopLogoImg?.getAttribute("src") || "")).toContain("/startups/nimbledesk-logo.png");
+  });
+
+  it("renders the icon fallback when thumbnail is empty in both mobile and desktop layouts", () => {
+    const startupWithoutLogo: FormattedStartup & { rank?: number } = {
+      ...mockStartups[0],
+      id: "startup-no-logo",
+      name: "Acme AI",
+      slug: "acme-ai",
+      thumbnail: "",
+      logoType: "cpu",
+    };
+
+    const { container } = render(<LeaderboardTable startups={[startupWithoutLogo]} />);
+
+    // Mobile layout
+    const mobileList = container.querySelector("ul.lg\\:hidden");
+    const mobileLogo = mobileList?.querySelector('[aria-label="Acme AI logo"]');
+    expect(mobileLogo).not.toBeNull();
+    expect(mobileLogo?.querySelector("img")).toBeNull();
+    expect(mobileLogo?.querySelector("svg")).not.toBeNull();
+
+    // Desktop layout
+    const desktopContainer = container.querySelector(".lg\\:flex");
+    const desktopLogo = desktopContainer?.querySelector('[aria-label="Acme AI logo"]');
+    expect(desktopLogo).not.toBeNull();
+    expect(desktopLogo?.querySelector("img")).toBeNull();
+    expect(desktopLogo?.querySelector("svg")).not.toBeNull();
+  });
 });

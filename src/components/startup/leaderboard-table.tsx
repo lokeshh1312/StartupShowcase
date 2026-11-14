@@ -135,6 +135,7 @@ export function LeaderboardTable({
                       category={startup.category}
                       logoType={startup.logoType}
                       logoColor={startup.logoColor}
+                      logoUrl={startup.thumbnail || undefined}
                       className="!w-9 !h-9 text-xs"
                       size="sm"
                     />
@@ -192,6 +193,7 @@ export function LeaderboardTable({
                     category={startup.category}
                     logoType={startup.logoType}
                     logoColor={startup.logoColor}
+                    logoUrl={startup.thumbnail || undefined}
                     className="!w-[44px] !h-[44px] p-1.5 rounded-xl text-sm"
                   />
                   <span
