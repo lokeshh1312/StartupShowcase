@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";
+import { isAllowedImageUrl } from "@/lib/images";
 
 /**
  * Parse and validate the 20-startup import SQL file.
@@ -217,5 +218,39 @@ describe("import_20_startups.sql", () => {
   it("contains a placeholder owner_id for the admin to fill in", () => {
     expect(sql).toContain("00000000-0000-0000-0000-000000000000");
     expect(sql).toMatch(/PASTE.*ADMIN.*UUID/i);
+  });
+
+  it("maps thumbnail to logo.png and cover_image to thumb.png for all startups", () => {
+    for (const insert of inserts) {
+      const slug = extractSlug(insert);
+      const thumbnail = extractColumnValue(insert, "thumbnail");
+      const coverImage = extractColumnValue(insert, "cover_image");
+
+      expect(thumbnail, `thumbnail for ${slug}`).toBe(`/startups/${slug}-logo.png`);
+      expect(coverImage, `cover_image for ${slug}`).toBe(`/startups/${slug}-thumb.png`);
+
+      // Both should be valid according to isAllowedImageUrl
+      expect(isAllowedImageUrl(thumbnail), `isAllowedImageUrl(thumbnail) for ${slug}`).toBe(true);
+      expect(isAllowedImageUrl(coverImage), `isAllowedImageUrl(coverImage) for ${slug}`).toBe(true);
+    }
+  });
+
+  it("ensures every referenced image file exists in public/startups", () => {
+    const publicDir = resolve(__dirname, "../../public");
+
+    for (const insert of inserts) {
+      const slug = extractSlug(insert);
+      const thumbnail = extractColumnValue(insert, "thumbnail");
+      const coverImage = extractColumnValue(insert, "cover_image");
+
+      expect(thumbnail).toBeTruthy();
+      expect(coverImage).toBeTruthy();
+
+      const logoDiskPath = resolve(publicDir, thumbnail!.replace(/^\//, ""));
+      const thumbDiskPath = resolve(publicDir, coverImage!.replace(/^\//, ""));
+
+      expect(existsSync(logoDiskPath), `Logo file on disk for ${slug} at ${logoDiskPath}`).toBe(true);
+      expect(existsSync(thumbDiskPath), `Thumbnail file on disk for ${slug} at ${thumbDiskPath}`).toBe(true);
+    }
   });
 });

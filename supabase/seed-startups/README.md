@@ -58,10 +58,14 @@ After importing, the Next.js cache needs to be refreshed so listings appear imme
 
 The startup logos and thumbnails are committed in `public/startups/`:
 
-- `<slug>-logo.png` — 512×512 logo
-- `<slug>-thumb.png` — 800×520 thumbnail (used as both thumbnail and cover image)
+- `<slug>-logo.png` — 512×512 square logo (stored in `thumbnail` column; rendered by `<StartupLogo logoUrl={startup.thumbnail} />`)
+- `<slug>-thumb.png` — 800×520 landscape image (stored in `cover_image` column; rendered on the startup profile cover and leaderboard table cards)
 
-The SQL references them as site-relative paths: `/startups/<slug>-thumb.png`.
+The SQL references them as safe site-relative paths:
+- `thumbnail` = `'/startups/<slug>-logo.png'`
+- `cover_image` = `'/startups/<slug>-thumb.png'`
+
+Allowed by `src/lib/images.ts` `isAllowedImageUrl()` via the safe pattern `^/startups/[a-z0-9-]+\.(png|webp|jpg|jpeg)$`.
 
 ## Notes
 

@@ -2,15 +2,20 @@
  * Image URL safety validator for next/image.
  *
  * Rules:
- * 1. Must be a valid URL with http: or https: protocol (strictly rejects javascript:, data:, file:, etc.).
- * 2. In non-production environments (NODE_ENV !== "production"), http(s) URLs on the dev
+ * 1. Safe site-relative paths matching ^/startups/[a-z0-9-]+\.(png|webp|jpg|jpeg)$
+ *    are permitted to serve static startup assets from public/startups/.
+ * 2. Absolute URLs must use http: or https: protocol (strictly rejects javascript:, data:, file:, etc.).
+ * 3. In non-production environments (NODE_ENV !== "production"), http(s) URLs on the dev
  *    allowlist (images.unsplash.com) are permitted to support sample/seed data.
- * 3. Our Supabase public storage host (derived from NEXT_PUBLIC_SUPABASE_URL, matching
+ * 4. Our Supabase public storage host (derived from NEXT_PUBLIC_SUPABASE_URL, matching
  *    the exact logic in next.config.ts) is allowed. If NEXT_PUBLIC_SUPABASE_URL is not set,
  *    it defaults to allowing *.supabase.co hosts.
  *
  * Any other host, malformed string, or unapproved protocol returns false.
  */
+
+const SAFE_STARTUP_PATH_REGEX = /^\/startups\/[a-z0-9-]+\.(png|webp|jpg|jpeg)$/;
+
 export function isAllowedImageUrl(url?: string | null): boolean {
   if (!url || typeof url !== "string") {
     return false;
@@ -19,6 +24,11 @@ export function isAllowedImageUrl(url?: string | null): boolean {
   const trimmed = url.trim();
   if (!trimmed) {
     return false;
+  }
+
+  // 1. Allow safe site-relative startup images from public/startups/
+  if (SAFE_STARTUP_PATH_REGEX.test(trimmed)) {
+    return true;
   }
 
   let parsed: URL;
