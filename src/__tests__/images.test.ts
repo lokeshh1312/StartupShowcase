@@ -215,5 +215,61 @@ describe("isAllowedImageUrl Helper", () => {
       expect(element.props.children.type).not.toBe("span");
       expect(element.props.children.props.className).toContain("w-full h-full");
     });
+
+    it("renders image variant with no tint, no border, no shadow, no padding, and object-contain inside overflow-hidden", async () => {
+      const { StartupLogo } = await import("@/components/common/startup-logo");
+      const element = StartupLogo({
+        name: "NimbleDesk",
+        logoUrl: "/startups/nimbledesk-logo.png",
+        logoColor: "#2563EB",
+        className: "!w-[44px] !h-[44px] p-1.5 rounded-xl text-sm border-2 shadow-lg",
+        size: "sm",
+      });
+
+      // No style or backgroundColor (no tint)
+      expect(element.props.style).toBeUndefined();
+
+      // No padding classes (e.g. p-2, p-1.5, etc.)
+      const classList = element.props.className.split(/\s+/);
+      expect(classList.some((c: string) => /^!?p[trblxy]?-/.test(c))).toBe(false);
+
+      // No border or shadow classes
+      expect(classList.some((c: string) => c.includes("border"))).toBe(false);
+      expect(classList.some((c: string) => c.includes("shadow"))).toBe(false);
+
+      // Preserves tile dimensions and overflow-hidden for rounded clipping
+      expect(element.props.className).toContain("overflow-hidden");
+      expect(element.props.className).toContain("rounded-xl");
+      expect(element.props.className).toContain("w-9 h-9");
+
+      // Image has object-contain and correct sizes attribute
+      const imageChild = element.props.children;
+      expect(imageChild.props.className).toBe("object-contain");
+      expect(imageChild.props.fill).toBe(true);
+      expect(imageChild.props.sizes).toBe("(max-width: 1024px) 40px, 64px");
+    });
+
+    it("renders fallback variant with tinted background, border, shadow, and padding when logoUrl is absent", async () => {
+      const { StartupLogo } = await import("@/components/common/startup-logo");
+      const element = StartupLogo({
+        name: "NimbleDesk",
+        logoUrl: undefined,
+        logoColor: "#2563EB",
+        logoType: "rocket",
+        size: "sm",
+      });
+
+      // Has tinted background style
+      expect(element.props.style).toBeDefined();
+      expect(element.props.style.backgroundColor).toBe("#2563EB15");
+      expect(element.props.style.color).toBe("#2563EB");
+
+      // Has border, shadow, and padding classes
+      expect(element.props.className).toContain("border");
+      expect(element.props.className).toContain("shadow-xs");
+      expect(element.props.className).toContain("p-2");
+      expect(element.props.className).toContain("w-9 h-9");
+      expect(element.props.className).toContain("font-bold");
+    });
   });
 });

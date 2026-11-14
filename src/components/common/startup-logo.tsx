@@ -25,6 +25,20 @@ interface StartupLogoProps {
   className?: string;
 }
 
+const tileDimensions = {
+  sm: "w-9 h-9 rounded-xl",
+  md: "w-11 h-11 rounded-xl",
+  lg: "w-16 h-16 rounded-2xl",
+  xl: "w-20 h-20 rounded-3xl",
+};
+
+const fallbackSizeClasses = {
+  sm: "w-9 h-9 p-2 rounded-xl text-sm",
+  md: "w-11 h-11 p-2.5 rounded-xl text-base",
+  lg: "w-16 h-16 p-3.5 rounded-2xl text-xl",
+  xl: "w-20 h-20 p-4 rounded-3xl text-2xl",
+};
+
 export function StartupLogo({
   name,
   category,
@@ -72,34 +86,53 @@ export function StartupLogo({
     return <Rocket className="w-full h-full" />;
   };
 
-  const sizeClasses = {
-    sm: "w-9 h-9 p-2 rounded-xl text-sm",
-    md: "w-11 h-11 p-2.5 rounded-xl text-base",
-    lg: "w-16 h-16 p-3.5 rounded-2xl text-xl",
-    xl: "w-20 h-20 p-4 rounded-3xl text-2xl",
-  };
-
   const initial = (name || "S").charAt(0).toUpperCase();
   const showImage = Boolean(logoUrl && isAllowedImageUrl(logoUrl));
 
+  if (showImage) {
+    // When a valid logo image is shown: display as-is with no tinted background,
+    // no border, no shadow, no padding, and object-contain clipped to the tile's rounded corners.
+    const imageClassName = className
+      ? className
+          .split(/\s+/)
+          .filter(
+            (cls) =>
+              cls &&
+              !/^!?p[trblxy]?-/.test(cls) &&
+              !cls.includes("border") &&
+              !cls.includes("shadow") &&
+              !cls.startsWith("bg-") &&
+              !cls.startsWith("!bg-")
+          )
+          .join(" ")
+      : "";
+
+    return (
+      <div
+        className={`relative flex items-center justify-center shrink-0 overflow-hidden transition-transform duration-200 ${tileDimensions[size]} ${imageClassName}`.trim()}
+        aria-label={`${name} logo`}
+      >
+        <Image
+          src={logoUrl!}
+          alt={name}
+          fill
+          sizes="(max-width: 1024px) 40px, 64px"
+          className="object-contain"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
-      className={`relative flex items-center justify-center shrink-0 font-bold border border-slate-200/80 dark:border-slate-800 shadow-xs transition-transform duration-200 ${sizeClasses[size]} ${className}`}
+      className={`relative flex items-center justify-center shrink-0 font-bold border border-slate-200/80 dark:border-slate-800 shadow-xs transition-transform duration-200 ${fallbackSizeClasses[size]} ${className}`}
       style={{
         backgroundColor: `${logoColor || "#2563EB"}15`,
         color: logoColor || "#2563EB",
       }}
       aria-label={`${name} logo`}
     >
-      {showImage ? (
-        <Image
-          src={logoUrl!}
-          alt={name}
-          fill
-          sizes="(max-width: 768px) 48px, 80px"
-          className="object-cover rounded-inherit"
-        />
-      ) : logoType ? (
+      {logoType ? (
         getIcon()
       ) : (
         <span>{initial}</span>
