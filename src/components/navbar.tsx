@@ -185,6 +185,16 @@ export function Navbar({ user, profile }: NavbarProps) {
                 >
                   About
                 </Link>
+                <Link
+                  href="/thesis"
+                  className={`px-3 xl:px-3.5 py-1.5 text-xs font-medium transition-all select-none ${
+                    pathname.startsWith("/thesis")
+                      ? "text-brand-600 dark:text-brand-300 bg-brand-50/80 dark:bg-white/10 rounded-full dark:border dark:border-white/20 shadow-2xs dark:shadow-none"
+                      : "text-slate-600 hover:text-slate-950 hover:bg-slate-100/70 rounded-full dark:text-slate-300 dark:hover:text-white dark:border dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  }`}
+                >
+                  Thesis
+                </Link>
               </nav>
             </div>
 
@@ -422,6 +432,17 @@ export function Navbar({ user, profile }: NavbarProps) {
                       }`}
                     >
                       About
+                    </Link>
+                    <Link
+                      href="/thesis"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`text-lg font-medium py-3 px-1 transition-colors ${
+                        pathname.startsWith("/thesis")
+                          ? "text-brand-600 dark:text-brand-400"
+                          : "text-slate-900 dark:text-slate-100 hover:text-brand-600 dark:hover:text-brand-400"
+                      }`}
+                    >
+                      Thesis
                     </Link>
                   </nav>
 

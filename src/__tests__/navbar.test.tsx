@@ -171,6 +171,7 @@ describe("Navbar Component", () => {
     expect(screen.getAllByRole("link", { name: "Browse" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Investors" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "About" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Thesis" }).length).toBeGreaterThan(0);
 
     // Sign in and Sign up
     expect(screen.getByRole("link", { name: "Sign in" })).toBeDefined();
@@ -312,7 +313,52 @@ describe("Navbar Component", () => {
     expect(mobileInvestorLinks[1].getAttribute("href")).toBe("/investors");
   });
 
-  it("closes mobile menu when Investors link is clicked", () => {
+  it("renders Thesis link pointing to /thesis right after About on desktop and mobile", () => {
+    render(<Navbar user={null} profile={null} />);
+
+    const desktopNav = screen.getByRole("navigation", { name: "Primary navigation" });
+    const desktopLinks = desktopNav.querySelectorAll("a");
+    const desktopTexts = Array.from(desktopLinks).map((a) => a.textContent?.trim());
+    expect(desktopTexts).toEqual(["Home", "Browse", "Investors", "About", "Thesis"]);
+
+    const thesisLinks = screen.getAllByRole("link", { name: "Thesis" });
+    expect(thesisLinks.length).toBeGreaterThanOrEqual(1);
+    expect(thesisLinks[0].getAttribute("href")).toBe("/thesis");
+
+    // Open mobile menu
+    const hamburger = screen.getByRole("button", { name: "Toggle mobile menu" });
+    fireEvent.click(hamburger);
+
+    const mobileNav = screen.getByRole("navigation", { name: "Mobile primary navigation" });
+    const mobileLinks = mobileNav.querySelectorAll("a");
+    const mobileTexts = Array.from(mobileLinks).map((a) => a.textContent?.trim());
+    expect(mobileTexts).toEqual(["Home", "Browse", "Investors", "About", "Thesis"]);
+
+    const mobileThesisLinks = screen.getAllByRole("link", { name: "Thesis" });
+    expect(mobileThesisLinks.length).toBe(2); // desktop + mobile overlay
+    expect(mobileThesisLinks[1].getAttribute("href")).toBe("/thesis");
+  });
+
+  it("applies active styles when pathname is /thesis", () => {
+    currentPathname = "/thesis";
+    render(<Navbar user={null} profile={null} />);
+
+    const thesisLinks = screen.getAllByRole("link", { name: "Thesis" });
+    const desktopThesis = thesisLinks[0];
+    expect(desktopThesis.className).toContain("text-brand-600");
+    expect(desktopThesis.className).toContain("bg-brand-50/80");
+
+    // Open mobile menu
+    const hamburger = screen.getByRole("button", { name: "Toggle mobile menu" });
+    fireEvent.click(hamburger);
+
+    const mobileNav = screen.getByRole("navigation", { name: "Mobile primary navigation" });
+    const mobileThesis = mobileNav.querySelector('a[href="/thesis"]');
+    expect(mobileThesis?.className).toContain("text-brand-600");
+    expect(mobileThesis?.className).toContain("dark:text-brand-400");
+  });
+
+  it("closes mobile menu when Thesis link is clicked", () => {
     render(<Navbar user={null} profile={null} />);
 
     const hamburger = screen.getByRole("button", { name: "Toggle mobile menu" });
@@ -320,11 +366,56 @@ describe("Navbar Component", () => {
 
     expect(screen.getByRole("dialog", { name: "Main menu" })).toBeDefined();
 
-    // Click Investors link in mobile menu
-    const mobileInvestorLinks = screen.getAllByRole("link", { name: "Investors" });
-    const overlayInvestorLink = mobileInvestorLinks[mobileInvestorLinks.length - 1];
-    fireEvent.click(overlayInvestorLink);
+    const mobileThesisLinks = screen.getAllByRole("link", { name: "Thesis" });
+    const overlayThesisLink = mobileThesisLinks[mobileThesisLinks.length - 1];
+    fireEvent.click(overlayThesisLink);
 
     expect(screen.queryByRole("dialog", { name: "Main menu" })).toBeNull();
+  });
+
+  describe("Responsive viewport checks (320, 390, 768, 1024, 1280, 1440, 1917px)", () => {
+    const desktopViewports = [1024, 1280, 1440];
+    for (const width of desktopViewports) {
+      it(`fits navbar on one row and displays desktop links at ${width}px`, () => {
+        window.innerWidth = width;
+        const { container } = render(<Navbar user={null} profile={null} />);
+        const header = container.querySelector("header");
+        expect(header).not.toBeNull();
+        expect(header?.classList.contains("max-w-6xl")).toBe(true);
+
+        const grid = container.querySelector(".grid-cols-\\[1fr_auto_1fr\\]");
+        expect(grid).not.toBeNull();
+
+        const desktopNav = screen.getByRole("navigation", { name: "Primary navigation" });
+        expect(desktopNav).toBeDefined();
+        const links = desktopNav.querySelectorAll("a");
+        expect(links.length).toBe(5);
+      });
+    }
+
+    it("lists Thesis at 390px in mobile menu", () => {
+      window.innerWidth = 390;
+      render(<Navbar user={null} profile={null} />);
+      const hamburger = screen.getByRole("button", { name: "Toggle mobile menu" });
+      fireEvent.click(hamburger);
+
+      const mobileNav = screen.getByRole("navigation", { name: "Mobile primary navigation" });
+      expect(mobileNav).toBeDefined();
+      const mobileLinks = mobileNav.querySelectorAll("a");
+      const linkTexts = Array.from(mobileLinks).map((a) => a.textContent?.trim());
+      expect(linkTexts).toContain("Thesis");
+      expect(linkTexts.indexOf("Thesis")).toBe(linkTexts.indexOf("About") + 1);
+    });
+
+    const allViewports = [320, 390, 768, 1024, 1280, 1440, 1917];
+    for (const width of allViewports) {
+      it(`does not introduce unconstrained widths causing horizontal scroll at ${width}px`, () => {
+        window.innerWidth = width;
+        const { container } = render(<Navbar user={null} profile={null} />);
+        const header = container.querySelector("header");
+        expect(header?.classList.contains("w-full")).toBe(true);
+        expect(header?.classList.contains("max-w-6xl")).toBe(true);
+      });
+    }
   });
 });
