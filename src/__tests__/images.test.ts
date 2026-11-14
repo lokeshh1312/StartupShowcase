@@ -125,6 +125,46 @@ describe("isAllowedImageUrl Helper", () => {
     });
   });
 
+  describe("Site-Relative Startup Images Validation", () => {
+    it("accepts valid site-relative startup images matching ^/startups/[a-z0-9-]+\\.(png|webp|jpg|jpeg)$", () => {
+      expect(isAllowedImageUrl("/startups/nimbledesk-logo.png")).toBe(true);
+      expect(isAllowedImageUrl("/startups/nimbledesk-thumb.png")).toBe(true);
+      expect(isAllowedImageUrl("/startups/carenest-logo.webp")).toBe(true);
+      expect(isAllowedImageUrl("/startups/sample-123-startup.jpg")).toBe(true);
+      expect(isAllowedImageUrl("/startups/test-image.jpeg")).toBe(true);
+    });
+
+    it("rejects path traversal attempts in site-relative paths", () => {
+      expect(isAllowedImageUrl("/startups/../x.png")).toBe(false);
+      expect(isAllowedImageUrl("/startups/..%2fx.png")).toBe(false);
+      expect(isAllowedImageUrl("/startups/dir/x.png")).toBe(false);
+    });
+
+    it("rejects protocol-relative URLs", () => {
+      expect(isAllowedImageUrl("//evil.com/a.png")).toBe(false);
+      expect(isAllowedImageUrl("//startups/nimbledesk-logo.png")).toBe(false);
+    });
+
+    it("rejects non-startups site-relative paths", () => {
+      expect(isAllowedImageUrl("/other/a.png")).toBe(false);
+      expect(isAllowedImageUrl("/images/a.png")).toBe(false);
+      expect(isAllowedImageUrl("/public/startups/a.png")).toBe(false);
+    });
+
+    it("rejects unsupported extensions such as .svg", () => {
+      expect(isAllowedImageUrl("/startups/a.svg")).toBe(false);
+      expect(isAllowedImageUrl("/startups/a.gif")).toBe(false);
+      expect(isAllowedImageUrl("/startups/a.html")).toBe(false);
+    });
+
+    it("rejects query strings, hashes, uppercase characters, or invalid filenames", () => {
+      expect(isAllowedImageUrl("/startups/nimbledesk-logo.png?v=1")).toBe(false);
+      expect(isAllowedImageUrl("/startups/nimbledesk-logo.png#hash")).toBe(false);
+      expect(isAllowedImageUrl("/startups/NimbleDesk-logo.png")).toBe(false);
+      expect(isAllowedImageUrl("/startups/logo_with_underscore.png")).toBe(false);
+    });
+  });
+
   describe("StartupLogo Fallback Behavior", () => {
     // Dynamic import to test React component in Node environment
     it("renders Image element when logoUrl is allowed", async () => {
@@ -138,6 +178,17 @@ describe("isAllowedImageUrl Helper", () => {
       expect(element.props.children.type).toBeDefined();
       expect(element.props.children.type).not.toBe("span");
       expect(element.props.children.props.src).toBe("https://showcase-app.supabase.co/logo.png");
+    });
+
+    it("renders Image element when logoUrl is a site-relative /startups/ path", async () => {
+      const { StartupLogo } = await import("@/components/common/startup-logo");
+      const element = StartupLogo({
+        name: "NimbleDesk",
+        logoUrl: "/startups/nimbledesk-logo.png",
+      });
+      expect(element.props.children.type).toBeDefined();
+      expect(element.props.children.type).not.toBe("span");
+      expect(element.props.children.props.src).toBe("/startups/nimbledesk-logo.png");
     });
 
     it("falls back to initials when logoUrl is from an unallowed host", async () => {

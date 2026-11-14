@@ -87,4 +87,23 @@ describe("LeaderboardTable Redesign", () => {
     const voteBtn = screen.getAllByTestId("vote-btn-Acme AI")[0];
     expect(voteBtn).toBeDefined();
   });
+
+  it("renders next/image when coverImage is a site-relative /startups/ path", () => {
+    const startupWithSiteRelativeImage: FormattedStartup & { rank?: number } = {
+      ...mockStartups[0],
+      id: "startup-2",
+      name: "NimbleDesk",
+      slug: "nimbledesk",
+      coverImage: "/startups/nimbledesk-thumb.png",
+      thumbnail: "/startups/nimbledesk-logo.png",
+    };
+
+    const { container } = render(<LeaderboardTable startups={[startupWithSiteRelativeImage]} />);
+    const images = container.querySelectorAll("img");
+    expect(images.length).toBeGreaterThan(0);
+    const hasNimbleDeskImg = Array.from(images).some((img) =>
+      img.getAttribute("alt") === "NimbleDesk"
+    );
+    expect(hasNimbleDeskImg).toBe(true);
+  });
 });
