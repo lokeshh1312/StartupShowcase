@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -18,6 +19,8 @@ import {
 } from "@/lib/seo";
 import { JsonLd } from "@/components/common/json-ld";
 import type { Metadata } from "next";
+
+export const HOME_LIST_LIMIT = 500;
 
 interface HomePageProps {
   searchParams?: Promise<{
@@ -50,7 +53,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const activeMonth = resolvedParams.month || months[0]?.id || "2026-10-01";
 
   // Fetch leaderboard for active month
-  const leaderboardData = await getLeaderboard(activeMonth, 1, 10);
+  const leaderboardData = await getLeaderboard(activeMonth, 1, HOME_LIST_LIMIT);
 
   // Fetch categories with counts
   const categories = await listCategories();
@@ -62,7 +65,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const orgJsonLd = buildOrganizationJsonLd();
   const siteJsonLd = buildWebSiteJsonLd();
   const leaderboardJsonLd = buildItemListJsonLd(
-    leaderboardData.items,
+    leaderboardData.items.slice(0, 10),
     `${leaderboardData.monthLabel} Leaderboard`,
     `/?month=${activeMonth}`
   );
