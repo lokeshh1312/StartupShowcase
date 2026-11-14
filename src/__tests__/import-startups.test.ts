@@ -220,14 +220,14 @@ describe("import_20_startups.sql", () => {
     expect(sql).toMatch(/PASTE.*ADMIN.*UUID/i);
   });
 
-  it("maps thumbnail to logo.png and cover_image to thumb.png for all startups", () => {
+  it("maps thumbnail to logo-v2.png and cover_image to thumb-v2.png for all startups", () => {
     for (const insert of inserts) {
       const slug = extractSlug(insert);
       const thumbnail = extractColumnValue(insert, "thumbnail");
       const coverImage = extractColumnValue(insert, "cover_image");
 
-      expect(thumbnail, `thumbnail for ${slug}`).toBe(`/startups/${slug}-logo.png`);
-      expect(coverImage, `cover_image for ${slug}`).toBe(`/startups/${slug}-thumb.png`);
+      expect(thumbnail, `thumbnail for ${slug}`).toBe(`/startups/${slug}-logo-v2.png`);
+      expect(coverImage, `cover_image for ${slug}`).toBe(`/startups/${slug}-thumb-v2.png`);
 
       // Both should be valid according to isAllowedImageUrl
       expect(isAllowedImageUrl(thumbnail), `isAllowedImageUrl(thumbnail) for ${slug}`).toBe(true);
@@ -252,5 +252,49 @@ describe("import_20_startups.sql", () => {
       expect(existsSync(logoDiskPath), `Logo file on disk for ${slug} at ${logoDiskPath}`).toBe(true);
       expect(existsSync(thumbDiskPath), `Thumbnail file on disk for ${slug} at ${thumbDiskPath}`).toBe(true);
     }
+  });
+
+  describe("update_images_v2.sql and revert_images_v2.sql", () => {
+    const updateSqlPath = resolve(__dirname, "../../supabase/seed-startups/update_images_v2.sql");
+    const revertSqlPath = resolve(__dirname, "../../supabase/seed-startups/revert_images_v2.sql");
+    const publicDir = resolve(__dirname, "../../public");
+
+    it("verifies update_images_v2.sql syntax, slug coverage, and image existence", () => {
+      expect(existsSync(updateSqlPath)).toBe(true);
+      const updateSql = readFileSync(updateSqlPath, "utf-8");
+      expect(updateSql).toMatch(/^\s*BEGIN\s*;/m);
+      expect(updateSql).toMatch(/COMMIT\s*;\s*$/m);
+
+      const slugs = inserts.map((i) => extractSlug(i)!);
+      for (const slug of slugs) {
+        expect(updateSql).toContain(`WHERE slug = '${slug}';`);
+        expect(updateSql).toContain(`thumbnail = '/startups/${slug}-logo-v2.png'`);
+        expect(updateSql).toContain(`cover_image = '/startups/${slug}-thumb-v2.png'`);
+
+        const logoPath = resolve(publicDir, `startups/${slug}-logo-v2.png`);
+        const thumbPath = resolve(publicDir, `startups/${slug}-thumb-v2.png`);
+        expect(existsSync(logoPath), `v2 logo exists for ${slug}`).toBe(true);
+        expect(existsSync(thumbPath), `v2 thumb exists for ${slug}`).toBe(true);
+      }
+    });
+
+    it("verifies revert_images_v2.sql syntax, slug coverage, and v1 image existence", () => {
+      expect(existsSync(revertSqlPath)).toBe(true);
+      const revertSql = readFileSync(revertSqlPath, "utf-8");
+      expect(revertSql).toMatch(/^\s*BEGIN\s*;/m);
+      expect(revertSql).toMatch(/COMMIT\s*;\s*$/m);
+
+      const slugs = inserts.map((i) => extractSlug(i)!);
+      for (const slug of slugs) {
+        expect(revertSql).toContain(`WHERE slug = '${slug}';`);
+        expect(revertSql).toContain(`thumbnail = '/startups/${slug}-logo.png'`);
+        expect(revertSql).toContain(`cover_image = '/startups/${slug}-thumb.png'`);
+
+        const logoPath = resolve(publicDir, `startups/${slug}-logo.png`);
+        const thumbPath = resolve(publicDir, `startups/${slug}-thumb.png`);
+        expect(existsSync(logoPath), `v1 logo exists for ${slug}`).toBe(true);
+        expect(existsSync(thumbPath), `v1 thumb exists for ${slug}`).toBe(true);
+      }
+    });
   });
 });
