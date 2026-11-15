@@ -183,7 +183,7 @@ export function LeaderboardTable({
                 aria-label={`View ${startup.name}`}
               />
 
-              <div className="py-[16px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[84px_90px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[100px_100px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
+              <div className="py-[11px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[84px_90px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[100px_100px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
                 {/* Col 1: Logo tile + name */}
                 <div className="flex flex-col items-center justify-center gap-1 min-w-0 text-center">
                   <StartupLogo
@@ -192,7 +192,7 @@ export function LeaderboardTable({
                     logoType={startup.logoType}
                     logoColor={startup.logoColor}
                     logoUrl={startup.thumbnail || undefined}
-                    className="!w-[44px] !h-[44px] p-1.5 rounded-xl text-sm"
+                    className="!w-14 !h-14 !rounded-lg !p-3.5 text-lg"
                   />
                   <span
                     title={`${rank}. ${startup.name}`}

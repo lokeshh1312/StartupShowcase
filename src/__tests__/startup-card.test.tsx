@@ -59,21 +59,16 @@ const mockStartup: FormattedStartup = {
 };
 
 describe("StartupCard Component", () => {
-  it("renders startup logo with 56px (w-14 h-14) and 8px radius (rounded-lg) below lg, and desktop size at lg", () => {
+  it("renders startup logo with 56px (w-14 h-14) and 8px radius (rounded-lg) at all widths", () => {
     const { container } = render(<StartupCard startup={mockStartup} />);
 
     const logo = container.querySelector('[aria-label="FlowSpark logo"]');
     expect(logo).not.toBeNull();
 
-    // Verify mobile classes: 56px size (w-14 h-14) and 8px radius (rounded-lg)
-    expect(logo?.className).toContain("max-lg:!w-14");
-    expect(logo?.className).toContain("max-lg:!h-14");
-    expect(logo?.className).toContain("max-lg:!rounded-lg");
-
-    // Verify desktop classes: 44px size (w-11 h-11) and rounded-xl
-    expect(logo?.className).toContain("w-11");
-    expect(logo?.className).toContain("h-11");
-    expect(logo?.className).toContain("rounded-xl");
+    // Verify classes: 56px size (w-14 h-14) and 8px radius (rounded-lg) at all widths
+    expect(logo?.className).toContain("!w-14");
+    expect(logo?.className).toContain("!h-14");
+    expect(logo?.className).toContain("!rounded-lg");
   });
 
   it("renders VoteButton with heart-only configuration everywhere (no count text, no border/bg/shadow, w-6 h-6 lg:w-7 lg:h-7)", () => {
