@@ -98,7 +98,7 @@ export function StartupLogo({
           .filter(
             (cls) =>
               cls &&
-              !/^!?p[trblxy]?-/.test(cls) &&
+              !/(^|:)!?p[trblxy]?-/.test(cls) &&
               !cls.includes("border") &&
               !cls.includes("shadow") &&
               !cls.startsWith("bg-") &&

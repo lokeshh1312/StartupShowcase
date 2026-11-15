@@ -61,36 +61,47 @@ export function VoteButton({
   const isSmall = size === "sm";
   const isLarge = size === "lg";
 
+  // Desktop container sizing and layout (>= lg)
+  // Outer size/spacing kept visually balanced with inner gap/padding adjusted by 1-2px so row height does not grow
+  const desktopLayoutClasses = isLarge
+    ? "lg:flex-col lg:gap-1 lg:px-5 lg:py-2.5 lg:rounded-2xl lg:min-w-[76px] lg:min-h-[36px]"
+    : isSmall
+    ? "lg:gap-1 lg:px-2.5 lg:py-1 lg:min-h-[36px] lg:rounded-lg lg:text-xs"
+    : "lg:flex-col lg:gap-0.5 lg:px-3.5 lg:py-1.5 lg:rounded-xl lg:min-w-[58px] lg:min-h-[36px] lg:text-xs";
+
+  // Desktop themed background, border, shadow (>= lg)
+  // Below lg: no container, no border, no background (not on hover or liked), no shadow, no rounded box
+  const desktopThemeClasses = liked
+    ? "lg:bg-rose-50 lg:dark:bg-rose-950/30 lg:text-rose-600 lg:dark:text-rose-400 lg:border lg:border-rose-300 lg:dark:border-rose-800 lg:shadow-xs"
+    : "lg:bg-white/90 lg:dark:bg-white/[0.04] lg:hover:bg-slate-50 lg:dark:hover:bg-white/[0.08] lg:text-slate-700 lg:dark:text-slate-300 lg:border lg:border-slate-200/90 lg:dark:border-white/10 lg:shadow-2xs";
+
+  // Heart icon sizing:
+  // Below lg: about 24px (w-6 h-6) across all sizes
+  // At/above lg: sm -> 18px (w-[18px] h-[18px]), default -> 20px (w-5 h-5), lg -> 24px (w-6 h-6)
+  const heartSizeClasses = isLarge
+    ? "w-6 h-6"
+    : isSmall
+    ? "w-6 h-6 lg:w-[18px] lg:h-[18px]"
+    : "w-6 h-6 lg:w-5 lg:h-5";
+
   return (
     <button
       onClick={handleVote}
       disabled={isPending}
       type="button"
-      className={`group/vote flex items-center justify-center transition-all duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-95 disabled:opacity-75 ${
-        isLarge
-          ? "flex-col gap-1 px-5 py-3 rounded-2xl min-w-[76px] min-h-[36px]"
-          : isSmall
-          ? "gap-1.5 px-2.5 py-1 min-h-[36px] rounded-lg text-xs"
-          : "flex-col gap-0.5 px-3.5 py-2 rounded-xl min-w-[58px] min-h-[36px] text-xs"
-      } ${
-        liked
-          ? "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-300 dark:border-rose-800 shadow-xs"
-          : "bg-white/90 dark:bg-white/[0.04] hover:bg-slate-50 dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 border border-slate-200/90 dark:border-white/10 shadow-2xs"
-      } ${className}`}
+      className={`group/vote relative flex items-center justify-center transition-colors duration-200 select-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:active:scale-95 disabled:opacity-75 w-11 h-11 lg:w-auto lg:h-auto p-0 border-0 bg-transparent shadow-none rounded-none ${desktopLayoutClasses} ${desktopThemeClasses} ${className}`}
       title={liked ? "Liked! Click to undo" : "Like this startup"}
       aria-label={`Like ${startupName}, currently ${likes} likes`}
     >
       <Heart
-        className={`transition-colors duration-200 ${
-          isLarge ? "w-5 h-5" : isSmall ? "w-3.5 h-3.5" : "w-4 h-4"
-        } ${
+        className={`transition-colors duration-200 shrink-0 ${heartSizeClasses} ${
           liked
             ? "text-rose-500 dark:text-rose-400 fill-current"
             : "text-slate-400 dark:text-slate-500 fill-none group-hover/vote:text-slate-900 dark:group-hover/vote:text-white"
         }`}
       />
       <span
-        className={`font-semibold font-mono tracking-tight ${
+        className={`max-lg:hidden font-semibold font-mono tracking-tight ${
           isLarge ? "text-sm font-bold" : isSmall ? "text-[10px]" : "text-[11px]"
         } ${
           liked
@@ -102,7 +113,7 @@ export function VoteButton({
       </span>
       {isLarge && (
         <span
-          className={`text-[10px] font-bold uppercase tracking-wider ${
+          className={`max-lg:hidden text-[10px] font-bold uppercase tracking-wider ${
             liked ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"
           }`}
         >

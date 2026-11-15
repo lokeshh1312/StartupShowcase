@@ -128,19 +128,17 @@ export function LeaderboardTable({
                 </div>
 
                 {/* RIGHT COLUMN: Logo on top, VoteButton directly below, spanning both rows */}
-                <div className="col-start-3 row-span-2 flex flex-col items-end gap-1 shrink-0">
-                  <div className="p-0.5">
-                    <StartupLogo
-                      name={startup.name}
-                      category={startup.category}
-                      logoType={startup.logoType}
-                      logoColor={startup.logoColor}
-                      logoUrl={startup.thumbnail || undefined}
-                      className="!w-9 !h-9 text-xs"
-                      size="sm"
-                    />
-                  </div>
-                  <div className="relative z-20">
+                <div className="col-start-3 row-span-2 flex flex-col items-center gap-1 shrink-0 w-14">
+                  <StartupLogo
+                    name={startup.name}
+                    category={startup.category}
+                    logoType={startup.logoType}
+                    logoColor={startup.logoColor}
+                    logoUrl={startup.thumbnail || undefined}
+                    className="!w-14 !h-14 !rounded-lg !p-3.5 text-lg"
+                    size="sm"
+                  />
+                  <div className="relative z-20 flex items-center justify-center">
                     <VoteButton
                       startupIdOrSlug={startup.slug}
                       initialLikes={startup.likes}
