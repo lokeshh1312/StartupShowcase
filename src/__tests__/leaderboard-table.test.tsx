@@ -79,13 +79,19 @@ describe("LeaderboardTable Redesign", () => {
     expect(card?.classList.contains("max-w-[1510px]")).toBe(true);
   });
 
-  it("renders VoteButton with relative z-20 so it sits above the stretched link", () => {
+  it("renders VoteButton with relative z-20 centered in its cell in both mobile and desktop layouts", () => {
     const { container } = render(<LeaderboardTable startups={mockStartups} />);
 
     const voteWrapper = container.querySelectorAll(".z-20");
     expect(voteWrapper.length).toBeGreaterThan(0);
     const voteBtn = screen.getAllByTestId("vote-btn-Acme AI")[0];
     expect(voteBtn).toBeDefined();
+
+    // Desktop Col 7 centers the heart in its cell
+    const desktopContainer = container.querySelector(".lg\\:flex");
+    const desktopVoteCell = desktopContainer?.querySelector(".z-20");
+    expect(desktopVoteCell?.classList.contains("justify-center")).toBe(true);
+    expect(desktopVoteCell?.classList.contains("items-center")).toBe(true);
   });
 
   it("renders next/image when coverImage is a site-relative /startups/ path", () => {
