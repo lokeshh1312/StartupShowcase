@@ -35,7 +35,7 @@ export function StartupCard({ startup }: StartupCardProps) {
               logoType={startup.logoType}
               logoColor={startup.logoColor}
               logoUrl={startup.thumbnail || undefined}
-              className="max-lg:!w-14 max-lg:!h-14 max-lg:!rounded-lg max-lg:!p-3.5 text-lg lg:text-base"
+              className="!w-14 !h-14 !rounded-lg !p-3.5 text-lg"
               size="md"
             />
             <div className="min-w-0">

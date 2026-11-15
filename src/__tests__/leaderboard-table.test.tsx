@@ -171,7 +171,7 @@ describe("LeaderboardTable Redesign", () => {
     expect(desktopLogo?.querySelector("svg")).not.toBeNull();
   });
 
-  it("renders mobile logo at 56px (w-14 h-14) with 8px radius (rounded-lg) and centers heart below it", () => {
+  it("renders logo at 56px (w-14 h-14) with 8px radius (rounded-lg) in both mobile and desktop layouts", () => {
     const { container } = render(<LeaderboardTable startups={mockStartups} />);
 
     // Mobile layout
@@ -197,12 +197,12 @@ describe("LeaderboardTable Redesign", () => {
     expect(voteWrapper?.classList.contains("items-center")).toBe(true);
     expect(voteWrapper?.classList.contains("justify-center")).toBe(true);
 
-    // Desktop layout logo remains unchanged: 44px (w-[44px] h-[44px] rounded-xl)
+    // Desktop layout logo also uses 56px (w-14 h-14) with 8px radius (rounded-lg)
     const desktopContainer = container.querySelector(".lg\\:flex");
     const desktopLogo = desktopContainer?.querySelector('[aria-label="Acme AI logo"]');
     expect(desktopLogo).not.toBeNull();
-    expect(desktopLogo?.className).toContain("!w-[44px]");
-    expect(desktopLogo?.className).toContain("!h-[44px]");
-    expect(desktopLogo?.className).toContain("rounded-xl");
+    expect(desktopLogo?.className).toContain("!w-14");
+    expect(desktopLogo?.className).toContain("!h-14");
+    expect(desktopLogo?.className).toContain("!rounded-lg");
   });
 });
