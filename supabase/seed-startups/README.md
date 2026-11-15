@@ -9,6 +9,8 @@ This directory contains SQL scripts to import, update images for, and remove 20 
 | `import_20_startups.sql` | Inserts 20 approved startups with v2 images (idempotent — safe to run twice) |
 | `update_images_v2.sql` | Updates live startup records to use v2 rebranded logo and cover images |
 | `revert_images_v2.sql` | Reverts startup records back to v1 logo and cover images |
+| `update_logos_v3.sql` | Updates live startup records to use v3 square logos for 14 startups |
+| `revert_logos_v3.sql` | Reverts the 14 startup records back to v2 logos |
 | `remove_20_startups.sql` | Deletes all 20 startups by slug (cascade-deletes votes, saves, comments, views) |
 
 ## How to Import
@@ -62,6 +64,38 @@ To upgrade the live 20 startups from the initial (v1) pictures to the new rebran
 
 3. **Image Cache Invalidation:**
    The v2 files use versioned filenames (`-logo-v2.png`, `-thumb-v2.png`), ensuring browsers, CDN caches, and Next.js image optimization immediately fetch and display the new images without stale cache issues.
+
+## Changing logos
+
+To update the logos (`thumbnail` column only) of 14 startups to new square PNGs (`public/startups/<slug>-logo-v3.png`) while keeping `cover_image` and the other 6 startups untouched:
+
+1. **Run `update_logos_v3.sql`:**
+   - Go to **Dashboard → SQL Editor** in Supabase
+   - Paste the entire contents of `update_logos_v3.sql`
+   - Click **Run**
+   This sets `thumbnail = '/startups/<slug>-logo-v3.png'` and `updated_at = now()` for:
+   - AgriNext (`agrinext`)
+   - CareNest (`carenest`)
+   - EcoSphere (`ecosphere`)
+   - FieldNote AI (`fieldnote-ai`)
+   - FuelSmart (`fuelsmart`)
+   - HomeEase (`homeease`)
+   - LedgerLeaf (`ledgerleaf`)
+   - MindfulMe (`mindfulme`)
+   - OrbitLearn (`orbitlearn`)
+   - Patchwork (`patchwork`)
+   - ReForm Materials (`reform-materials`)
+   - StreamForge (`streamforge`)
+   - TalkEase (`talkease`)
+   - TerraTrack (`terratrack`)
+   The verification check confirms `v3_logo_count = 14`.
+
+2. **Reverting back to v2 logos:**
+   If you ever need to restore the v2 logos:
+   - Go to **Dashboard → SQL Editor** in Supabase
+   - Paste the contents of `revert_logos_v3.sql`
+   - Click **Run**
+
 
 ## How to Undo (Full Deletion)
 

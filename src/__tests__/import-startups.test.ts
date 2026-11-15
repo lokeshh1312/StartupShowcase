@@ -297,4 +297,118 @@ describe("import_20_startups.sql", () => {
       }
     });
   });
+
+  describe("update_logos_v3.sql and revert_logos_v3.sql (14 square logos)", () => {
+    const updateSqlPath = resolve(__dirname, "../../supabase/seed-startups/update_logos_v3.sql");
+    const revertSqlPath = resolve(__dirname, "../../supabase/seed-startups/revert_logos_v3.sql");
+    const publicDir = resolve(__dirname, "../../public");
+
+    const V3_SLUGS = [
+      "fuelsmart",
+      "fieldnote-ai",
+      "ecosphere",
+      "carenest",
+      "agrinext",
+      "streamforge",
+      "terratrack",
+      "talkease",
+      "reform-materials",
+      "patchwork",
+      "orbitlearn",
+      "mindfulme",
+      "ledgerleaf",
+      "homeease",
+    ] as const;
+
+    const UNTOUCHED_SLUGS = [
+      "nimbledesk",
+      "looplocal",
+      "quiethours",
+      "profitpilot",
+      "healthbridge",
+      "buildgrid",
+    ] as const;
+
+    it("has exactly 14 targeted startups and 6 untouched startups among the 20", () => {
+      expect(V3_SLUGS).toHaveLength(14);
+      expect(UNTOUCHED_SLUGS).toHaveLength(6);
+      const allSlugs = new Set([...V3_SLUGS, ...UNTOUCHED_SLUGS]);
+      expect(allSlugs.size).toBe(20);
+    });
+
+    it("asserts every v3 file exists in public/startups, is a square PNG, and passes isAllowedImageUrl", () => {
+      for (const slug of V3_SLUGS) {
+        const imagePath = `/startups/${slug}-logo-v3.png`;
+        const diskPath = resolve(publicDir, `startups/${slug}-logo-v3.png`);
+
+        // 1. Exists in public/startups
+        expect(existsSync(diskPath), `v3 logo exists at ${diskPath}`).toBe(true);
+
+        // 2. Passes isAllowedImageUrl
+        expect(isAllowedImageUrl(imagePath), `isAllowedImageUrl passes for ${imagePath}`).toBe(true);
+
+        // 3. Valid square PNG format
+        const buf = readFileSync(diskPath);
+        expect(buf.length, `${diskPath} is not empty`).toBeGreaterThan(24);
+
+        // PNG signature: 89 50 4E 47 0D 0A 1A 0A
+        const signature = buf.subarray(0, 8).toString("hex");
+        expect(signature, `${slug} has valid PNG signature`).toBe("89504e470d0a1a0a");
+
+        // IHDR chunk header
+        const ihdr = buf.subarray(12, 16).toString("ascii");
+        expect(ihdr, `${slug} has valid IHDR chunk`).toBe("IHDR");
+
+        // Width and height in IHDR chunk (offset 16 and 20, 32-bit big-endian unsigned integers)
+        const width = buf.readUInt32BE(16);
+        const height = buf.readUInt32BE(20);
+        expect(width, `${slug} width is positive`).toBeGreaterThan(0);
+        expect(height, `${slug} height is positive`).toBeGreaterThan(0);
+        expect(width, `${slug} logo is square (${width}x${height})`).toBe(height);
+      }
+    });
+
+    it("verifies update_logos_v3.sql updates only thumbnail for the 14 slugs", () => {
+      expect(existsSync(updateSqlPath)).toBe(true);
+      const updateSql = readFileSync(updateSqlPath, "utf-8");
+      expect(updateSql).toMatch(/^\s*BEGIN\s*;/m);
+      expect(updateSql).toMatch(/COMMIT\s*;/m);
+
+      // Must NOT touch cover_image
+      expect(updateSql).not.toMatch(/cover_image\s*=/i);
+
+      // Updates only thumbnail for the 14 slugs
+      for (const slug of V3_SLUGS) {
+        expect(updateSql).toContain(`WHERE slug = '${slug}';`);
+        expect(updateSql).toContain(`thumbnail = '/startups/${slug}-logo-v3.png'`);
+      }
+
+      // Untouched slugs must not be in the update file
+      for (const slug of UNTOUCHED_SLUGS) {
+        expect(updateSql).not.toContain(`'${slug}'`);
+      }
+
+      // Includes count check
+      expect(updateSql).toContain("SELECT count(*)");
+      expect(updateSql).toContain("LIKE '%-logo-v3.png'");
+    });
+
+    it("verifies revert_logos_v3.sql restores v2 thumbnails for the 14 slugs", () => {
+      expect(existsSync(revertSqlPath)).toBe(true);
+      const revertSql = readFileSync(revertSqlPath, "utf-8");
+      expect(revertSql).toMatch(/^\s*BEGIN\s*;/m);
+      expect(revertSql).toMatch(/COMMIT\s*;/m);
+
+      expect(revertSql).not.toMatch(/cover_image\s*=/i);
+
+      for (const slug of V3_SLUGS) {
+        expect(revertSql).toContain(`WHERE slug = '${slug}';`);
+        expect(revertSql).toContain(`thumbnail = '/startups/${slug}-logo-v2.png'`);
+      }
+
+      for (const slug of UNTOUCHED_SLUGS) {
+        expect(revertSql).not.toContain(`'${slug}'`);
+      }
+    });
+  });
 });
