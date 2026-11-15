@@ -76,21 +76,28 @@ describe("StartupCard Component", () => {
     expect(logo?.className).toContain("rounded-xl");
   });
 
-  it("renders VoteButton with heart-only configuration below lg and count hidden with max-lg:hidden", () => {
+  it("renders VoteButton with heart-only configuration everywhere (no count text, no border/bg/shadow, w-6 h-6 lg:w-7 lg:h-7)", () => {
     render(<StartupCard startup={mockStartup} />);
 
     const voteButton = screen.getByRole("button", { name: "Like FlowSpark, currently 88 likes" });
     expect(voteButton).toBeDefined();
 
-    // Count is present in DOM but hidden below lg
-    const count = voteButton.querySelector("span");
-    expect(count?.textContent).toBe("88");
-    expect(count?.classList.contains("max-lg:hidden")).toBe(true);
+    // No visible count text and no span elements
+    expect(voteButton.querySelector("span")).toBeNull();
+    expect(voteButton.textContent).toBe("");
 
-    // Button container styling is scoped to lg:
-    expect(voteButton.classList.contains("border-0")).toBe(true);
-    expect(voteButton.classList.contains("bg-transparent")).toBe(true);
-    expect(voteButton.className).toContain("lg:border");
+    // No border, background, or shadow classes at any breakpoint
+    expect(voteButton.className).not.toMatch(/\bborder\b/);
+    expect(voteButton.className).not.toMatch(/\bbg-/);
+    expect(voteButton.className).not.toMatch(/\bshadow\b/);
+
+    // Heart icon sizing: w-6 h-6 lg:w-7 lg:h-7
+    const heart = voteButton.querySelector("svg");
+    expect(heart).not.toBeNull();
+    expect(heart?.classList.contains("w-6")).toBe(true);
+    expect(heart?.classList.contains("h-6")).toBe(true);
+    expect(heart?.classList.contains("lg:w-7")).toBe(true);
+    expect(heart?.classList.contains("lg:h-7")).toBe(true);
   });
 
   it("renders startup information correctly without overflow", () => {

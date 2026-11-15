@@ -261,8 +261,8 @@ export function LeaderboardTable({
                   <StageBadge stage={startup.stage} />
                 </div>
 
-                {/* Col 7: Like (heart + count) button right-aligned flush to right padding */}
-                <div className="flex items-center justify-end relative z-20">
+                {/* Col 7: Like (heart) button centered in cell */}
+                <div className="flex items-center justify-center relative z-20">
                   <VoteButton
                     startupIdOrSlug={startup.slug}
                     initialLikes={startup.likes}
