@@ -164,4 +164,39 @@ describe("LeaderboardTable Redesign", () => {
     expect(desktopLogo?.querySelector("img")).toBeNull();
     expect(desktopLogo?.querySelector("svg")).not.toBeNull();
   });
+
+  it("renders mobile logo at 56px (w-14 h-14) with 8px radius (rounded-lg) and centers heart below it", () => {
+    const { container } = render(<LeaderboardTable startups={mockStartups} />);
+
+    // Mobile layout
+    const mobileList = container.querySelector("ul.lg\\:hidden");
+    expect(mobileList).not.toBeNull();
+
+    // Logo size: 56px (w-14 h-14) with 8px radius (rounded-lg)
+    const mobileLogo = mobileList?.querySelector('[aria-label="Acme AI logo"]');
+    expect(mobileLogo).not.toBeNull();
+    expect(mobileLogo?.className).toContain("!w-14");
+    expect(mobileLogo?.className).toContain("!h-14");
+    expect(mobileLogo?.className).toContain("!rounded-lg");
+
+    // Right column: centered under logo, w-14 width
+    const rightCol = mobileLogo?.closest(".col-start-3");
+    expect(rightCol).not.toBeNull();
+    expect(rightCol?.classList.contains("items-center")).toBe(true);
+    expect(rightCol?.classList.contains("w-14")).toBe(true);
+
+    // Vote button wrapper is centered
+    const voteWrapper = rightCol?.querySelector(".relative.z-20");
+    expect(voteWrapper?.classList.contains("flex")).toBe(true);
+    expect(voteWrapper?.classList.contains("items-center")).toBe(true);
+    expect(voteWrapper?.classList.contains("justify-center")).toBe(true);
+
+    // Desktop layout logo remains unchanged: 44px (w-[44px] h-[44px] rounded-xl)
+    const desktopContainer = container.querySelector(".lg\\:flex");
+    const desktopLogo = desktopContainer?.querySelector('[aria-label="Acme AI logo"]');
+    expect(desktopLogo).not.toBeNull();
+    expect(desktopLogo?.className).toContain("!w-[44px]");
+    expect(desktopLogo?.className).toContain("!h-[44px]");
+    expect(desktopLogo?.className).toContain("rounded-xl");
+  });
 });

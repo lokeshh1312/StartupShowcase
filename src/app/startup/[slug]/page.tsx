@@ -186,7 +186,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
 
               {/* Action buttons */}
               <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="grow sm:grow-0">
+                <div className="shrink-0 lg:grow lg:sm:grow-0">
                   <VoteButton
                     startupId={startup.id}
                     initialLikes={startup.likes}
