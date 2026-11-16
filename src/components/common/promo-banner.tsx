@@ -48,13 +48,37 @@ export function PromoBanner() {
 
     const timer = setTimeout(() => {
       if (!hasDismissedRef.current && isPromoBannerActive() && !isAdmin) {
+        // Session-based show rules:
+        // - First load in this tab session (flag not set) → always show, set flag
+        // - Subsequent loads with flag set → show only on home page "/"
+        const STORAGE_KEY = "promo-banner-session-shown";
+        let flagSet = false;
+        try {
+          flagSet = sessionStorage.getItem(STORAGE_KEY) === "1";
+        } catch {
+          // sessionStorage unavailable (private mode, blocked, etc.)
+          // Fall through: flagSet stays false, so banner opens once
+        }
+
+        if (flagSet && pathname !== "/") {
+          return;
+        }
+
+        if (!flagSet) {
+          try {
+            sessionStorage.setItem(STORAGE_KEY, "1");
+          } catch {
+            // Silently ignore — banner still opens this once
+          }
+        }
+
         previousActiveElementRef.current = document.activeElement as HTMLElement | null;
         setIsOpen(true);
       }
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [mounted, isAdmin]);
+  }, [mounted, isAdmin, pathname]);
 
   // Lock page scroll while open and restore on close
   useEffect(() => {

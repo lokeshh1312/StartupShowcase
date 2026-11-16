@@ -252,7 +252,7 @@ describe("PromoBanner Component", () => {
     expect(dialog.textContent).not.toContain("USD 10,000");
   });
 
-  it("makes zero calls to localStorage and sessionStorage", () => {
+  it("makes zero calls to localStorage", () => {
     const localGetSpy = vi.spyOn(Storage.prototype, "getItem");
     const localSetSpy = vi.spyOn(Storage.prototype, "setItem");
 
@@ -267,10 +267,97 @@ describe("PromoBanner Component", () => {
       fireEvent.click(closeBtn);
     });
 
-    expect(localGetSpy).not.toHaveBeenCalled();
-    expect(localSetSpy).not.toHaveBeenCalled();
+    // Should only touch sessionStorage, never localStorage
+    const localCalls = [...localGetSpy.mock.calls, ...localSetSpy.mock.calls].filter(
+      (call) => {
+        // In jsdom both localStorage and sessionStorage share Storage.prototype,
+        // so we just verify the key used is the expected sessionStorage key
+        return call[0] !== "promo-banner-session-shown";
+      }
+    );
+    expect(localCalls).toHaveLength(0);
 
     localGetSpy.mockRestore();
     localSetSpy.mockRestore();
+  });
+
+  describe("session-based show rules", () => {
+    beforeEach(() => {
+      sessionStorage.clear();
+    });
+
+    it("first load on /about with empty sessionStorage -> opens and sets the flag", () => {
+      currentPathname = "/about";
+
+      render(<PromoBanner />);
+
+      act(() => {
+        vi.advanceTimersByTime(1250);
+      });
+
+      expect(screen.getByRole("dialog")).toBeDefined();
+      expect(sessionStorage.getItem("promo-banner-session-shown")).toBe("1");
+    });
+
+    it("reload on /about with flag set -> does NOT open", () => {
+      currentPathname = "/about";
+      sessionStorage.setItem("promo-banner-session-shown", "1");
+
+      render(<PromoBanner />);
+
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("reload on '/' with flag set -> opens", () => {
+      currentPathname = "/";
+      sessionStorage.setItem("promo-banner-session-shown", "1");
+
+      render(<PromoBanner />);
+
+      act(() => {
+        vi.advanceTimersByTime(1250);
+      });
+
+      expect(screen.getByRole("dialog")).toBeDefined();
+    });
+
+    it("/admin never opens even with empty sessionStorage", () => {
+      currentPathname = "/admin";
+
+      render(<PromoBanner />);
+
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    it("sessionStorage throwing -> no crash and banner still opens once", () => {
+      currentPathname = "/pricing";
+
+      vi.spyOn(sessionStorage, "getItem").mockImplementation(() => {
+        throw new Error("SecurityError: storage is disabled");
+      });
+      vi.spyOn(sessionStorage, "setItem").mockImplementation(() => {
+        throw new Error("SecurityError: storage is disabled");
+      });
+
+      render(<PromoBanner />);
+
+      act(() => {
+        vi.advanceTimersByTime(1250);
+      });
+
+      // Banner should still open despite storage errors
+      expect(screen.getByRole("dialog")).toBeDefined();
+
+      vi.restoreAllMocks();
+      vi.useFakeTimers();
+    });
   });
 });
