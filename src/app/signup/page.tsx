@@ -101,6 +101,9 @@ export default function SignUpPage() {
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               We sent a confirmation link to {successNotice}. Please verify your email to activate your account and start submitting.
             </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              Can&apos;t find it? Please check your spam or junk folder.
+            </p>
             <div className="pt-2">
               <Link
                 href={
