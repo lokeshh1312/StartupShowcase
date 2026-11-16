@@ -808,7 +808,15 @@ export async function signInAction(formData: FormData) {
       password,
     });
 
-    if (error || !data.user) {
+    if (error) {
+      const msg = error.message?.toLowerCase() || "";
+      if (msg.includes("email not confirmed")) {
+        return { error: "Email not confirmed. Please verify your email before signing in." };
+      }
+      return { error: "Email or password is incorrect." };
+    }
+
+    if (!data.user) {
       return { error: "Email or password is incorrect." };
     }
 
@@ -910,6 +918,115 @@ export async function signUpAction(formData: FormData) {
       message: "If an account exists, we sent an email.",
     };
   } catch (err: unknown) {
+    return { error: formatActionError(err) };
+  }
+}
+
+const NEUTRAL_RESEND_MESSAGE =
+  "If this email is registered and not yet verified, we've sent a new link.";
+
+/**
+ * Resend email verification link (protected by CAPTCHA & rate limits)
+ */
+export async function resendVerificationAction(
+  input: FormData | { email: string; captchaToken?: string; [key: string]: unknown }
+) {
+  try {
+    let email: string | undefined;
+    let captchaToken: string | undefined;
+
+    if (input instanceof FormData) {
+      email = input.get("email")?.toString()?.trim();
+      captchaToken = extractCaptchaToken(input);
+    } else if (input && typeof input === "object") {
+      email = typeof input.email === "string" ? input.email.trim() : undefined;
+      captchaToken = extractCaptchaToken(input);
+    }
+
+    if (!email) {
+      return { error: "Email is required." };
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return { error: "Please enter a valid email address." };
+    }
+
+    const ip = await getRequestIp();
+    const captchaRes = await verifyTurnstileToken(captchaToken, ip);
+    if (!captchaRes.success) {
+      return { error: captchaRes.error || "Security verification failed." };
+    }
+
+    const emailHash = hashEmail(email);
+    const emailLimit = await checkRateLimit(
+      `auth:resend:email:${emailHash}`,
+      3,
+      3600
+    );
+    if (!emailLimit.allowed) {
+      return { error: RATE_LIMIT_MESSAGE };
+    }
+
+    if (ip !== null) {
+      const ipLimit = await checkRateLimit(`auth:resend:ip:${ip}`, 10, 3600);
+      if (!ipLimit.allowed) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
+    } else {
+      const globalLimit = await checkRateLimit("auth:resend:global", 200, 3600);
+      if (!globalLimit.allowed) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
+    }
+
+    const supabase = await createClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    });
+
+    if (error) {
+      const msg = error.message?.toLowerCase() || "";
+
+      // If email is already confirmed or account not found, keep response neutral
+      if (
+        msg.includes("already confirmed") ||
+        msg.includes("already verified") ||
+        msg.includes("user not found") ||
+        msg.includes("not found")
+      ) {
+        return {
+          success: true,
+          message: NEUTRAL_RESEND_MESSAGE,
+        };
+      }
+
+      // Log real error on server WITHOUT leaking email address
+      console.error("[Resend Verification Supabase Error]:", error.message);
+
+      // Map Supabase rate limits to friendly message without leaking raw Supabase text
+      if (
+        msg.includes("rate limit") ||
+        msg.includes("rate_limit") ||
+        msg.includes("too many") ||
+        msg.includes("over_email_send") ||
+        msg.includes("security purposes")
+      ) {
+        return { error: RATE_LIMIT_MESSAGE };
+      }
+
+      // Map any other send failure to friendly message
+      return { error: "Something went wrong. Please try again." };
+    }
+
+    return {
+      success: true,
+      message: NEUTRAL_RESEND_MESSAGE,
+    };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("[Resend Verification Unexpected Error]:", errorMsg);
     return { error: formatActionError(err) };
   }
 }

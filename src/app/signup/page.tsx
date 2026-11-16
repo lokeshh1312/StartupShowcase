@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, User, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
-import { signUpAction } from "@/server/actions";
+import { signUpAction, resendVerificationAction } from "@/server/actions";
 import { safeRedirectPath } from "@/lib/redirect";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { TurnstileWidget } from "@/components/common/turnstile";
@@ -23,6 +23,53 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [resendPending, setResendPending] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
+  const [resendError, setResendError] = useState("");
+  const [resendTurnstileToken, setResendTurnstileToken] = useState("");
+  const [resendResetSignal, setResendResetSignal] = useState(0);
+
+  useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const timer = setTimeout(() => {
+      setResendCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [resendCountdown]);
+
+  const handleResend = async () => {
+    if (!successNotice || resendCountdown > 0 || resendPending) return;
+    setResendError("");
+    setResendMessage("");
+    setResendPending(true);
+
+    try {
+      const res = await resendVerificationAction({
+        email: successNotice,
+        captchaToken: resendTurnstileToken,
+      });
+
+      if (res?.error) {
+        setResendError(res.error);
+        setResendResetSignal((prev) => prev + 1);
+        setResendTurnstileToken("");
+      } else {
+        setResendMessage(
+          res?.message ||
+            "If this email is registered and not yet verified, we've sent a new link."
+        );
+        setResendCountdown(60);
+        setResendResetSignal((prev) => prev + 1);
+        setResendTurnstileToken("");
+      }
+    } catch {
+      setResendError("Something went wrong. Please try again.");
+    } finally {
+      setResendPending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +151,48 @@ export default function SignUpPage() {
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
               Can&apos;t find it? Please check your spam or junk folder.
             </p>
+
+            {resendMessage && (
+              <div
+                role="status"
+                className="p-3 rounded-xl bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-xs font-medium"
+              >
+                {resendMessage}
+              </div>
+            )}
+
+            {resendError && (
+              <div
+                role="alert"
+                className="p-3 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-xs text-rose-600 dark:text-rose-400 font-medium"
+              >
+                {resendError}
+              </div>
+            )}
+
+            <div className="flex justify-center">
+              <TurnstileWidget
+                onVerify={(token) => setResendTurnstileToken(token)}
+                onExpire={() => setResendTurnstileToken("")}
+                resetSignal={resendResetSignal}
+              />
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resendPending || resendCountdown > 0}
+                className="text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 underline disabled:opacity-60 disabled:no-underline cursor-pointer disabled:cursor-not-allowed focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-sm"
+              >
+                {resendCountdown > 0
+                  ? `Resend in ${resendCountdown}s`
+                  : resendPending
+                  ? "Sending..."
+                  : "Didn't get the email? Resend verification email"}
+              </button>
+            </div>
+
             <div className="pt-2">
               <Link
                 href={

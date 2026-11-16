@@ -4,9 +4,10 @@ import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
-import { signInAction } from "@/server/actions";
+import { signInAction, resendVerificationAction } from "@/server/actions";
 import { safeRedirectPath } from "@/lib/redirect";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { TurnstileWidget } from "@/components/common/turnstile";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,6 +20,54 @@ export default function LoginPage() {
   const [error, setError] = useState(urlError || "");
   const [isPending, startTransition] = useTransition();
 
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [resendPending, setResendPending] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
+  const [resendError, setResendError] = useState("");
+  const [resendTurnstileToken, setResendTurnstileToken] = useState("");
+  const [resendResetSignal, setResendResetSignal] = useState(0);
+
+  React.useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const timer = setTimeout(() => {
+      setResendCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [resendCountdown]);
+
+  const handleResend = async () => {
+    const targetEmail = email.trim();
+    if (!targetEmail || resendCountdown > 0 || resendPending) return;
+    setResendError("");
+    setResendMessage("");
+    setResendPending(true);
+
+    try {
+      const res = await resendVerificationAction({
+        email: targetEmail,
+        captchaToken: resendTurnstileToken,
+      });
+
+      if (res?.error) {
+        setResendError(res.error);
+        setResendResetSignal((prev) => prev + 1);
+        setResendTurnstileToken("");
+      } else {
+        setResendMessage(
+          res?.message ||
+            "If this email is registered and not yet verified, we've sent a new link."
+        );
+        setResendCountdown(60);
+        setResendResetSignal((prev) => prev + 1);
+        setResendTurnstileToken("");
+      }
+    } catch {
+      setResendError("Something went wrong. Please try again.");
+    } finally {
+      setResendPending(false);
+    }
+  };
+
   React.useEffect(() => {
     const err = searchParams.get("error");
     if (err) {
@@ -29,6 +78,8 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setResendError("");
+    setResendMessage("");
 
     const formData = new FormData();
     formData.append("email", email);
@@ -58,9 +109,48 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {resendMessage && (
+          <div
+            role="status"
+            className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-xs text-emerald-700 dark:text-emerald-300 font-medium"
+          >
+            {resendMessage}
+          </div>
+        )}
+
+        {resendError && (
+          <div
+            role="alert"
+            className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-xs text-rose-600 dark:text-rose-400 font-medium"
+          >
+            {resendError}
+          </div>
+        )}
+
         {error && (
-          <div className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-xs text-rose-600 dark:text-rose-400 font-medium">
-            {error}
+          <div className="p-3.5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/60 text-xs text-rose-600 dark:text-rose-400 font-medium space-y-2">
+            <div>{error}</div>
+            {error.toLowerCase().includes("email not confirmed") && (
+              <div className="pt-1 flex flex-col items-start gap-2">
+                <TurnstileWidget
+                  onVerify={(token) => setResendTurnstileToken(token)}
+                  onExpire={() => setResendTurnstileToken("")}
+                  resetSignal={resendResetSignal}
+                />
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resendPending || resendCountdown > 0 || !email.trim()}
+                  className="text-xs font-semibold text-rose-700 dark:text-rose-300 underline hover:text-rose-800 dark:hover:text-rose-200 disabled:opacity-60 disabled:no-underline cursor-pointer disabled:cursor-not-allowed focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-rose-500 rounded-sm"
+                >
+                  {resendCountdown > 0
+                    ? `Resend in ${resendCountdown}s`
+                    : resendPending
+                    ? "Sending..."
+                    : "Resend verification email"}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
