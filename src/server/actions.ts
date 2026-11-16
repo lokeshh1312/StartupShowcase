@@ -702,6 +702,77 @@ export async function chooseInitialRoleAction(role: "founder" | "investor") {
 }
 
 /**
+ * Allow a Google / OAuth user with 'community' role who wishes to remain 'community' to record their choice.
+ * Sets role_chosen_at = now() only if role === "community" and role_chosen_at IS NULL.
+ * Can only be performed once (same guards, audit-log like the existing action, never touches admin).
+ */
+export async function chooseCommunityRoleAction() {
+  const authData = await getCurrentUserProfile();
+  if (!authData) {
+    return { error: "unauthenticated" };
+  }
+
+  if (authData.profile.role === "admin") {
+    return { error: "Forbidden: Admin accounts cannot change their role." };
+  }
+
+  try {
+    const [freshProfile] = await db
+      .select({
+        role: profiles.role,
+        roleChosenAt: profiles.roleChosenAt,
+      })
+      .from(profiles)
+      .where(eq(profiles.id, authData.user.id))
+      .limit(1);
+
+    if (!freshProfile) {
+      return { error: "Profile not found." };
+    }
+
+    if (freshProfile.role === "admin") {
+      return { error: "Forbidden: Admin accounts cannot change their role." };
+    }
+
+    if (freshProfile.role !== "community") {
+      return { error: "Role cannot be changed once established." };
+    }
+
+    if (freshProfile.roleChosenAt) {
+      return { error: "Initial role has already been chosen." };
+    }
+
+    const now = new Date();
+    await db
+      .update(profiles)
+      .set({
+        roleChosenAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(profiles.id, authData.user.id),
+          eq(profiles.role, "community"),
+          sql`${profiles.roleChosenAt} IS NULL`
+        )
+      );
+
+    await db.insert(auditLog).values({
+      actorId: authData.user.id,
+      action: "profile.initial_role:community",
+      targetType: "profile",
+      targetId: authData.user.id,
+      metadata: { previous_role: "community", new_role: "community" },
+    });
+
+    revalidatePath("/", "layout");
+    return { success: true, role: "community" };
+  } catch (err: unknown) {
+    return { error: formatActionError(err) };
+  }
+}
+
+/**
  * Sign In with email & password
  */
 export async function signInAction(formData: FormData) {

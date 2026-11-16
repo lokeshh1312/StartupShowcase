@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { chooseInitialRoleAction } from "@/server/actions";
+import {
+  chooseInitialRoleAction,
+  chooseCommunityRoleAction,
+} from "@/server/actions";
 import * as supabaseServer from "@/lib/supabase/server";
 import { db } from "@/db";
 
@@ -152,6 +155,104 @@ describe("chooseInitialRoleAction (Onboarding Role Selection)", () => {
       expect.objectContaining({
         role: "founder",
         roleChosenAt: expect.any(Date),
+      })
+    );
+  });
+});
+
+describe("chooseCommunityRoleAction (Onboarding Community Role Confirmation)", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("strictly rejects admin accounts from setting community role", async () => {
+    vi.spyOn(supabaseServer, "getCurrentUserProfile").mockResolvedValue(
+      mockAuth("admin-123", "admin")
+    );
+
+    const res = await chooseCommunityRoleAction();
+    expect(res).toEqual({
+      error: "Forbidden: Admin accounts cannot change their role.",
+    });
+  });
+
+  it("rejects users whose role is not community (e.g. already founder)", async () => {
+    vi.spyOn(supabaseServer, "getCurrentUserProfile").mockResolvedValue(
+      mockAuth("founder-123", "founder", new Date())
+    );
+
+    const mockLimit = vi.fn().mockResolvedValue([
+      { role: "founder", roleChosenAt: new Date() },
+    ]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock in unit test
+    vi.spyOn(db, "select").mockReturnValue({ from: mockFrom } as any);
+
+    const res = await chooseCommunityRoleAction();
+    expect(res).toEqual({
+      error: "Role cannot be changed once established.",
+    });
+  });
+
+  it("rejects users who have already chosen their initial role (role_chosen_at IS NOT NULL)", async () => {
+    vi.spyOn(supabaseServer, "getCurrentUserProfile").mockResolvedValue(
+      mockAuth("user-123", "community", new Date())
+    );
+
+    const mockLimit = vi.fn().mockResolvedValue([
+      { role: "community", roleChosenAt: new Date() },
+    ]);
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle query builder mock in unit test
+    vi.spyOn(db, "select").mockReturnValue({ from: mockFrom } as any);
+
+    const res = await chooseCommunityRoleAction();
+    expect(res).toEqual({
+      error: "Initial role has already been chosen.",
+    });
+  });
+
+  it("successfully sets role_chosen_at once for uncommitted community member", async () => {
+    vi.spyOn(supabaseServer, "getCurrentUserProfile").mockResolvedValue(
+      mockAuth("user-fresh", "community", null)
+    );
+
+    const mockLimit = vi.fn().mockResolvedValue([
+      { role: "community", roleChosenAt: null },
+    ]);
+    const mockWhereSelect = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhereSelect });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle mock in unit test
+    vi.spyOn(db, "select").mockReturnValue({ from: mockFrom } as any);
+
+    const mockWhereUpdate = vi.fn().mockResolvedValue(undefined);
+    const mockSet = vi.fn().mockReturnValue({ where: mockWhereUpdate });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle mock in unit test
+    vi.spyOn(db, "update").mockReturnValue({ set: mockSet } as any);
+
+    const mockValues = vi.fn().mockResolvedValue(undefined);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle mock in unit test
+    vi.spyOn(db, "insert").mockReturnValue({ values: mockValues } as any);
+
+    const res = await chooseCommunityRoleAction();
+    expect(res).toEqual({
+      success: true,
+      role: "community",
+    });
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roleChosenAt: expect.any(Date),
+      })
+    );
+    expect(mockValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: "user-fresh",
+        action: "profile.initial_role:community",
+        targetType: "profile",
+        targetId: "user-fresh",
+        metadata: { previous_role: "community", new_role: "community" },
       })
     );
   });

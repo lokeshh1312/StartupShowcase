@@ -2,6 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { safeRedirectPath } from "@/lib/redirect";
 import { getBaseUrl } from "@/lib/urls";
+import { db } from "@/db";
+import { profiles } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -25,12 +28,30 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       console.error("[OAuth Callback Error]:", error.message);
       return NextResponse.redirect(
         new URL(`/login?error=${encodeURIComponent(error.message)}`, baseUrl)
       );
+    }
+
+    const user = data?.user;
+    if (user && user.app_metadata?.provider !== "email") {
+      const [profile] = await db
+        .select({
+          role: profiles.role,
+          roleChosenAt: profiles.roleChosenAt,
+        })
+        .from(profiles)
+        .where(eq(profiles.id, user.id))
+        .limit(1);
+
+      if (profile && profile.role === "community" && profile.roleChosenAt === null) {
+        const onboardingUrl = new URL("/onboarding/role", baseUrl);
+        onboardingUrl.searchParams.set("redirect", targetPath);
+        return NextResponse.redirect(onboardingUrl);
+      }
     }
   }
 
