@@ -151,7 +151,7 @@ export function PromoBanner() {
         style={{
           containerType: "inline-size",
         }}
-        className="relative bg-[#fcf6ef] rounded-2xl sm:rounded-3xl shadow-2xl overflow-y-auto overflow-x-hidden sm:overflow-hidden flex flex-col items-center justify-start sm:justify-center text-center select-text transition-all duration-300 ease-out motion-reduce:transition-none motion-reduce:transform-none w-[92vw] max-w-[92vw] sm:max-w-none sm:w-[min(92vw,760px,calc(88vh*16/9))] max-h-[88vh] sm:max-h-none aspect-auto sm:aspect-[16/9] py-5 sm:py-0 px-3 sm:px-[3cqw]"
+        className="relative bg-[#fcf6ef] rounded-2xl sm:rounded-3xl shadow-2xl overflow-y-auto overflow-x-hidden sm:overflow-hidden flex flex-col items-center justify-start sm:justify-center text-center select-text transition-all duration-300 ease-out motion-reduce:transition-none motion-reduce:transform-none w-[92vw] max-w-[92vw] sm:max-w-none sm:w-[min(92vw,760px,calc(88vh*16/9))] lg:w-[min(92vw,980px,calc(88vh*16/9))] max-h-[88vh] sm:max-h-none aspect-auto sm:aspect-[16/9] py-5 sm:py-0 px-3 sm:px-[3cqw]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Decorative corner graphics: soft pale-orange quarter-circles */}
