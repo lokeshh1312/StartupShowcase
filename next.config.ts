@@ -57,35 +57,45 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "3mb",
     },
   },
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.startupshowcaseglobal.com" }],
+        destination: "https://startupshowcaseglobal.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       ...(supabaseHost
         ? [
-            {
-              protocol: supabaseProtocol,
-              hostname: supabaseHost,
-              port: supabasePort,
-              pathname: "/storage/v1/object/public/**",
-            },
-          ]
+          {
+            protocol: supabaseProtocol,
+            hostname: supabaseHost,
+            port: supabasePort,
+            pathname: "/storage/v1/object/public/**",
+          },
+        ]
         : [
-            {
-              protocol: "https" as const,
-              hostname: "*.supabase.co",
-              pathname: "/storage/v1/object/public/**",
-            },
-          ]),
+          {
+            protocol: "https" as const,
+            hostname: "*.supabase.co",
+            pathname: "/storage/v1/object/public/**",
+          },
+        ]),
       ...(process.env.NODE_ENV !== "production"
         ? [
-            {
-              protocol: "https" as const,
-              hostname: "images.unsplash.com",
-            },
-            {
-              protocol: "http" as const,
-              hostname: "images.unsplash.com",
-            },
-          ]
+          {
+            protocol: "https" as const,
+            hostname: "images.unsplash.com",
+          },
+          {
+            protocol: "http" as const,
+            hostname: "images.unsplash.com",
+          },
+        ]
         : []),
     ],
   },
