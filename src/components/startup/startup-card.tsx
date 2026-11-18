@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, MapPin, Eye } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
 import { StartupLogo } from "@/components/common/startup-logo";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { VoteButton } from "@/components/startup/vote-button";
@@ -90,13 +90,6 @@ export function StartupCard({ startup }: StartupCardProps) {
           >
             <MapPin className="w-3 h-3 text-slate-400" />
             <span>{startup.countryCode}</span>
-          </span>
-          <span
-            className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-mono"
-            title="Total Views"
-          >
-            <Eye className="w-3 h-3 text-slate-400" />
-            <span>{startup.views}</span>
           </span>
         </div>
 

@@ -102,6 +102,6 @@ describe("StartupCard Component", () => {
     expect(screen.getByText("Automated data workflows for modern teams")).toBeDefined();
     expect(screen.getByText("Developer Tools")).toBeDefined();
     expect(screen.getByText("MVP")).toBeDefined();
-    expect(screen.getByText("1200")).toBeDefined();
+    expect(screen.queryByText("1200")).toBeNull();
   });
 });
