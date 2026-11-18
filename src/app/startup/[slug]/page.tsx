@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   ExternalLink,
-  Eye,
   MapPin,
   Calendar,
   Sparkles,
@@ -220,11 +219,6 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
               <div className="inline-flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                 <span>Cohort {startup.monthLabel}</span>
-              </div>
-
-              <div className="inline-flex items-center gap-1.5">
-                <Eye className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <span>{startup.views} views</span>
               </div>
             </div>
           </div>
