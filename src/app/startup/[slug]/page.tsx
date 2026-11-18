@@ -15,7 +15,7 @@ import {
   BarChart3,
   Quote,
 } from "lucide-react";
-import { getStartupBySlug, listStartups } from "@/server/startups";
+import { getStartupBySlug, listStartups, getAdminStartupVoteStats } from "@/server/startups";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { formatLocation, getCountryName } from "@/lib/validation";
 import type { FounderInfo } from "@/db/schema";
@@ -81,6 +81,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
   const { slug } = await params;
   const authData = await getCurrentUserProfile();
   const user = authData?.user;
+  const isAdmin = authData?.profile?.role === "admin";
 
   const data = await getStartupBySlug(slug, user?.id);
 
@@ -89,6 +90,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
   }
 
   const { startup, comments } = data;
+  const adminVoteStats = isAdmin ? await getAdminStartupVoteStats(startup.id) : null;
 
   // Fetch 3 related startups from same category
   const relatedResult = await listStartups(
@@ -177,6 +179,18 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
                     </h1>
                     <StageBadge stage={startup.stage} />
                     <Badge variant="default">{startup.category}</Badge>
+                    {isAdmin && adminVoteStats && (
+                      <span
+                        data-testid="admin-vote-badge"
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                        title="Admin only: Counted likes (total votes)"
+                      >
+                        <span>{adminVoteStats.countedLikes}</span>
+                        <span className="text-slate-400 dark:text-slate-500 font-normal">
+                          ({adminVoteStats.totalLikes} total)
+                        </span>
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 font-normal max-w-2xl leading-relaxed">
                     {startup.tagline || startup.ideaTitle}

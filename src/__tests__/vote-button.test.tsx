@@ -188,7 +188,7 @@ describe("VoteButton Component - Heart-Only Everywhere (All Widths & Sizes)", ()
     expect(heart?.classList.contains("fill-current")).toBe(true);
 
     await waitFor(() => {
-      expect(voteSpy).toHaveBeenCalledWith("test-slug");
+      expect(voteSpy).toHaveBeenCalledWith("test-slug", true);
     });
   });
 
@@ -217,6 +217,91 @@ describe("VoteButton Component - Heart-Only Everywhere (All Widths & Sizes)", ()
       expect(button.getAttribute("aria-label")).toBe("Like Acme, currently 5 likes");
       expect(button.getAttribute("title")).toBe("Like this startup");
       expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("/login?redirect="));
+    });
+  });
+
+  it("displays error bubble and reverts optimistic update on founder self-vote error", async () => {
+    vi.spyOn(actions, "voteAction").mockResolvedValue({
+      error: "Founders can't like their own startup.",
+    });
+
+    render(
+      <VoteButton
+        startupIdOrSlug="my-own-startup"
+        startupName="My Own"
+        initialLikes={10}
+        initialLiked={false}
+      />
+    );
+
+    const button = screen.getByRole("button");
+    fireEvent.click(button);
+
+    // After failure response, bubble shows and heart reverts
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toBeDefined();
+      expect(screen.getByText("Founders can't like their own startup.")).toBeDefined();
+      expect(button.getAttribute("aria-label")).toBe("Like My Own, currently 10 likes");
+      expect(button.getAttribute("title")).toBe("Like this startup");
+    });
+
+    // Dismisses on click elsewhere
+    fireEvent.click(document.body);
+    await waitFor(() => {
+      expect(screen.queryByRole("status")).toBeNull();
+    });
+  });
+
+  it("displays error bubble and reverts optimistic update on unverified email error", async () => {
+    vi.spyOn(actions, "voteAction").mockResolvedValue({
+      error: "Please verify your email first.",
+    });
+
+    render(
+      <VoteButton
+        startupIdOrSlug="test-startup"
+        startupName="Test"
+        initialLikes={3}
+        initialLiked={false}
+      />
+    );
+
+    const button = screen.getByRole("button");
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      const bubble = screen.getByRole("status");
+      expect(bubble).toBeDefined();
+      expect(bubble.getAttribute("aria-live")).toBe("polite");
+      expect(screen.getByText("Please verify your email first.")).toBeDefined();
+      expect(button.getAttribute("aria-label")).toBe("Like Test, currently 3 likes");
+    });
+  });
+
+  it("displays error bubble and reverts optimistic update on rate limit error", async () => {
+    vi.spyOn(actions, "voteAction").mockResolvedValue({
+      error: "Too many attempts, try again later.",
+    });
+
+    render(
+      <VoteButton
+        startupIdOrSlug="test-startup"
+        startupName="Test"
+        initialLikes={8}
+        initialLiked={true}
+      />
+    );
+
+    const button = screen.getByRole("button");
+    // Click to unlike (desiredLiked = false)
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toBeDefined();
+      expect(screen.getByText("Too many attempts, try again later.")).toBeDefined();
+      // Reverted to initially liked
+      expect(button.getAttribute("aria-label")).toBe("Like Test, currently 8 likes");
+      expect(button.getAttribute("title")).toBe("Liked! Click to undo");
     });
   });
 });
