@@ -70,7 +70,7 @@ export function LeaderboardTable({
           return (
             <li
               key={`m-${startup.id}`}
-              className="relative w-full py-2 px-3.5 border-y border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] backdrop-blur-md transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.05] cursor-pointer group"
+              className="relative w-full py-0.1 px-3.5 border-y border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] backdrop-blur-md transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.05] cursor-pointer group"
             >
               {/* Stretched Link overlay */}
               <Link
@@ -162,7 +162,7 @@ export function LeaderboardTable({
       </ul>
 
       {/* Desktop Layout (>= lg): Individual rounded-3xl containers per startup */}
-      <div className="hidden lg:flex lg:flex-col gap-2.5">
+      <div className="hidden lg:flex lg:flex-col gap-1">
         {startups.map((startup, index) => {
           const rank = startup.rank || index + 1;
           const country = getCountryName(startup.countryCode);
@@ -183,7 +183,7 @@ export function LeaderboardTable({
                 aria-label={`View ${startup.name}`}
               />
 
-              <div className="py-[11px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[84px_90px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[100px_100px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
+              <div className="py-[0.5px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[84px_90px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[100px_100px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
                 {/* Col 1: Logo tile + name */}
                 <div className="flex flex-col items-center justify-center gap-1 min-w-0 text-center">
                   <StartupLogo
