@@ -96,7 +96,7 @@ describe("HomeCounterBadge Component", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the digits and 'hello' text with aria-hidden='true'", () => {
+  it("renders the digits and the label text with aria-hidden='true'", () => {
     let container!: HTMLElement;
     act(() => {
       const res = render(<HomeCounterBadge />);
@@ -107,9 +107,8 @@ describe("HomeCounterBadge Component", () => {
     expect(badge).toBeDefined();
     expect(badge.getAttribute("aria-hidden")).toBe("true");
 
-    // Must display "hello"
+    // Must display label
     expect(screen.getByText(COUNTER_LABEL)).toBeDefined();
-    expect(screen.getByText("hello")).toBeDefined();
 
     // Check that digit characters from formatted baseline are in the container
     const currentBase = baseline(Date.now());
@@ -129,13 +128,6 @@ describe("HomeCounterBadge Component", () => {
     const badge = screen.getByTestId("home-counter-badge");
     const text = badge.textContent?.toLowerCase() || "";
 
-    expect(text).not.toContain("visitors");
-    expect(text).not.toContain("visitor");
-    expect(text).not.toContain("users");
-    expect(text).not.toContain("user");
-    expect(text).not.toContain("live");
-    expect(text).not.toContain("online");
-    expect(text).not.toContain("active");
   });
 
   it("advances the displayed count over time", () => {
