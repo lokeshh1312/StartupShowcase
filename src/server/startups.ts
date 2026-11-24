@@ -64,7 +64,7 @@ export async function getLikedStartupIds(
     SELECT startup_id
     FROM public.startup_votes
     WHERE user_id = ${userId}::uuid
-      AND startup_id = ANY(${validIds}::uuid[])
+            AND startup_id IN (${sql.join(validIds.map((id) => sql`${id}::uuid`), sql`, `)})
   `);
   return new Set(rows.map((r) => String(r.startup_id)));
 }
@@ -251,13 +251,12 @@ export async function listStartups(
     SELECT
       startups.*,
       COALESCE(vote_agg.count, 0)::int AS vote_count
-      ${
-        currentUserId
-          ? sql`,
+      ${currentUserId
+      ? sql`,
             EXISTS(SELECT 1 FROM public.startup_votes v WHERE v.startup_id = startups.id AND v.user_id = ${currentUserId}::uuid) AS is_liked,
             EXISTS(SELECT 1 FROM public.saved_startups s WHERE s.startup_id = startups.id AND s.user_id = ${currentUserId}::uuid) AS is_saved`
-          : sql``
-      }
+      : sql``
+    }
     FROM public.startups
     LEFT JOIN (
       SELECT v.startup_id, count(*)::int AS count
@@ -918,10 +917,10 @@ export async function deleteStartup(
 
   // Delete orphaned images from storage (checking targetOwnerId and references)
   if (existing.thumbnail) {
-    deleteStartupImage(existing.thumbnail, targetOwnerId, startupId).catch(() => {});
+    deleteStartupImage(existing.thumbnail, targetOwnerId, startupId).catch(() => { });
   }
   if (existing.coverImage && existing.coverImage !== existing.thumbnail) {
-    deleteStartupImage(existing.coverImage, targetOwnerId, startupId).catch(() => {});
+    deleteStartupImage(existing.coverImage, targetOwnerId, startupId).catch(() => { });
   }
 
   // Audit log
@@ -985,7 +984,7 @@ export async function updateStartup(
 
   // If thumbnail changed, clean up previous thumbnail
   if (validated.thumbnail && validated.thumbnail !== existing.thumbnail && existing.thumbnail) {
-    deleteStartupImage(existing.thumbnail, targetOwnerId, startupId).catch(() => {});
+    deleteStartupImage(existing.thumbnail, targetOwnerId, startupId).catch(() => { });
   }
   // If coverImage changed, clean up previous coverImage
   if (
@@ -994,7 +993,7 @@ export async function updateStartup(
     existing.coverImage &&
     existing.coverImage !== existing.thumbnail
   ) {
-    deleteStartupImage(existing.coverImage, targetOwnerId, startupId).catch(() => {});
+    deleteStartupImage(existing.coverImage, targetOwnerId, startupId).catch(() => { });
   }
 
   const [updated] = await db
@@ -1559,10 +1558,10 @@ export async function listAdminStartups(
   const startupIds = rows.map((r) => r.startup.id);
   const voteRows = startupIds.length > 0
     ? await db.execute<{
-        startup_id: string;
-        counted_likes: number;
-        total_votes: number;
-      }>(sql`
+      startup_id: string;
+      counted_likes: number;
+      total_votes: number;
+    }>(sql`
         SELECT
           v.startup_id,
           count(CASE WHEN voter.id IS NOT NULL THEN 1 END)::int AS counted_likes,
@@ -1570,7 +1569,7 @@ export async function listAdminStartups(
         FROM public.startup_votes v
         LEFT JOIN public.profiles voter
           ON voter.id = v.user_id AND voter.created_at <= (now() - interval '24 hours')
-        WHERE v.startup_id = ANY(${startupIds}::uuid[])
+                WHERE v.startup_id IN (${sql.join(startupIds.map((id) => sql`${id}::uuid`), sql`, `)})
         GROUP BY v.startup_id
       `)
     : [];
