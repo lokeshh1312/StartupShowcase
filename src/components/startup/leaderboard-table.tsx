@@ -82,7 +82,7 @@ export function LeaderboardTable({
               <div className="grid grid-cols-[auto_1fr_auto] gap-x-2.5 gap-y-1 items-start">
                 {/* LEFT: Startup Image (w-16 h-10) */}
                 <div
-                  className="col-start-1 row-start-1 relative w-16 h-10 rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs"
+                  className="col-start-1 row-start-1 relative w-16 h-10 mt-1.5 rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs"
                   aria-label={`${startup.name} image`}
                 >
                   {hasImage ? (
@@ -128,14 +128,14 @@ export function LeaderboardTable({
                 </div>
 
                 {/* RIGHT COLUMN: Logo on top, VoteButton directly below, spanning both rows */}
-                <div className="col-start-3 row-span-2 flex flex-col items-center gap-1 shrink-0 w-14">
+                <div className="col-start-3 row-span-2 flex flex-col items-center gap-1 shrink-0 w-[50px] mt-1.5">
                   <StartupLogo
                     name={startup.name}
                     category={startup.category}
                     logoType={startup.logoType}
                     logoColor={startup.logoColor}
                     logoUrl={startup.thumbnail || undefined}
-                    className="!w-14 !h-14 !rounded-lg !p-3.5 text-lg"
+                    className="!w-[50px] !h-[50px] !rounded-lg !p-3 text-lg"
                     size="sm"
                   />
                   <div className="relative z-20 flex items-center justify-center">
@@ -185,14 +185,14 @@ export function LeaderboardTable({
 
               <div className="py-[0.5px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[84px_90px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[100px_100px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
                 {/* Col 1: Logo tile + name */}
-                <div className="flex flex-col items-center justify-center gap-1 min-w-0 text-center">
+                <div className="flex flex-col items-center justify-center gap-1 min-w-0 text-center mt-1.5">
                   <StartupLogo
                     name={startup.name}
                     category={startup.category}
                     logoType={startup.logoType}
                     logoColor={startup.logoColor}
                     logoUrl={startup.thumbnail || undefined}
-                    className="!w-14 !h-14 !rounded-lg !p-3.5 text-lg"
+                    className="!w-[50px] !h-[50px] !rounded-lg !p-3 text-lg"
                   />
                   <span
                     title={`${rank}. ${startup.name}`}
@@ -203,7 +203,7 @@ export function LeaderboardTable({
                 </div>
 
                 {/* Col 2: Startup Image Thumbnail (84x56 at lg, 92x62 at xl) */}
-                <div className="flex justify-center min-w-0">
+                <div className="flex justify-center min-w-0 mt-1.5">
                   <div
                     className="relative w-[84px] h-[56px] xl:w-[92px] xl:h-[62px] rounded-lg overflow-hidden border border-slate-200/80 dark:border-white/10 shrink-0 shadow-2xs"
                     aria-label={`${startup.name} image`}

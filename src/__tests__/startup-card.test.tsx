@@ -59,15 +59,15 @@ const mockStartup: FormattedStartup = {
 };
 
 describe("StartupCard Component", () => {
-  it("renders startup logo with 56px (w-14 h-14) and 8px radius (rounded-lg) at all widths", () => {
+  it("renders startup logo with 50px (!w-[50px] !h-[50px]) and 8px radius (rounded-lg) at all widths", () => {
     const { container } = render(<StartupCard startup={mockStartup} />);
 
     const logo = container.querySelector('[aria-label="FlowSpark logo"]');
     expect(logo).not.toBeNull();
 
-    // Verify classes: 56px size (w-14 h-14) and 8px radius (rounded-lg) at all widths
-    expect(logo?.className).toContain("!w-14");
-    expect(logo?.className).toContain("!h-14");
+    // Verify classes: 50px size (!w-[50px] !h-[50px]) and 8px radius (rounded-lg) at all widths
+    expect(logo?.className).toContain("!w-[50px]");
+    expect(logo?.className).toContain("!h-[50px]");
     expect(logo?.className).toContain("!rounded-lg");
   });
 
