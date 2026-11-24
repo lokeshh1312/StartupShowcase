@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Calendar, Trophy } from "lucide-react";
 import { getLeaderboard, listMonths, getApprovedNonSampleStats } from "@/server/startups";
-import { getCurrentUser } from "@/lib/supabase/server";
 import { normalizeMonthToDate, formatMonthLabel } from "@/lib/validation";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
 import { MonthSelector } from "@/components/discovery/month-selector";
@@ -63,9 +62,8 @@ export default async function MonthLeaderboardPage({ params }: MonthPageProps) {
     notFound();
   }
 
-  const user = await getCurrentUser();
   const [leaderboardResult, months] = await Promise.all([
-    getLeaderboard(monthDate, 1, 50, user?.id),
+    getLeaderboard(monthDate, 1, 50),
     listMonths(),
   ]);
 

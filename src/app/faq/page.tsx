@@ -25,7 +25,7 @@ const FAQ_SECTIONS = [
       },
       {
         q: "How does voting work?",
-        a: "To maintain leaderboard integrity, voting requires an email-verified account. Founders can't like their own startups, and each user is limited to at most 30 vote toggles per hour.",
+        a: "To maintain leaderboard integrity, voting requires an email-verified account. Founders cannot vote for their own startups, and each user is limited to at most 30 vote toggles per hour.",
       },
       {
         q: "When does a vote count toward the public leaderboard rank (24-hour rule)?",
