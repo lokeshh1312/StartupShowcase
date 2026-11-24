@@ -127,17 +127,11 @@ export function HomeCounterBadge() {
         return;
       }
 
-      let reduced = false;
-      if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
-        try {
-          reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        } catch {
-          reduced = false;
-        }
-      }
-      const minDelay = reduced ? 3000 : 1000;
-      const maxDelay = reduced ? 3500 : 2000;
-      const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+      // Usually 5-8 seconds, sometimes (about 1 in 7) a longer 10-second pause
+      const delay =
+        Math.random() < 0.15
+          ? 10000
+          : Math.floor(Math.random() * (8000 - 5000 + 1)) + 5000;
 
       timeoutId = setTimeout(() => {
         if (isCancelled) return;

@@ -11,8 +11,8 @@
  */
 
 export const START_VALUE = 2000;
-export const START_AT = "2026-11-24T09:48:00.000Z";
-export const RATE_PER_SECOND = 5 / 3;
+export const START_AT = "2026-11-24T11:00:00.000Z";
+export const RATE_PER_SECOND = 0.356;
 export const COUNTER_LABEL = "hello";
 
 /**

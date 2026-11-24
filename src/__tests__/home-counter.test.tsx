@@ -43,14 +43,14 @@ describe("baseline(now) Pure Function", () => {
     }
   });
 
-  it("is roughly 100 higher after 60 seconds (between 95 and 105)", () => {
+  it("is roughly 21 higher after 60 seconds (between 20 and 22)", () => {
     const after60s = baseline(startAtMs + 60 * 1000);
     const increase = after60s - START_VALUE;
 
-    expect(increase).toBeGreaterThanOrEqual(95);
-    expect(increase).toBeLessThanOrEqual(105);
-    // With 5/3 rate: 60 * 5/3 = 100 exactly
-    expect(after60s).toBe(2100);
+    expect(increase).toBeGreaterThanOrEqual(20);
+    expect(increase).toBeLessThanOrEqual(22);
+    // 60 * 0.356 = 21.36, floored to 21
+    expect(after60s).toBe(2021);
   });
 
   it("is deterministic (same input produces exact same output)", () => {
