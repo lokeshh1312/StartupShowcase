@@ -19,6 +19,7 @@ import {
   DEFAULT_SITE_DESCRIPTION,
 } from "@/lib/seo";
 import { JsonLd } from "@/components/common/json-ld";
+import { HomeCounterBadge } from "@/components/common/home-counter-badge";
 import type { Metadata } from "next";
 
 export const HOME_LIST_LIMIT = 500;
@@ -153,6 +154,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           emptyMessage={`No approved startups found for ${leaderboardData.monthLabel}.`}
         />
       </section>
+
+      {/* Floating live counter badge */}
+      <HomeCounterBadge />
     </div>
   );
 }
