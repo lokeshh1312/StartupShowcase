@@ -70,7 +70,7 @@ export function LeaderboardTable({
           return (
             <li
               key={`m-${startup.id}`}
-              className="relative w-full py-0.1 px-3.5 border-y border-slate-200/90 dark:border-white/10 bg-white/90 dark:bg-white/[0.03] backdrop-blur-md transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.05] cursor-pointer group"
+              className="relative w-full py-0.1 px-3.5 border-y border-white dark:border-[#151515] hover:border-slate-50 dark:hover:border-[#1a1a1a] bg-white/90 dark:bg-white/[0.03] backdrop-blur-md transition-colors hover:bg-slate-50/70 dark:hover:bg-white/[0.05] cursor-pointer group"
             >
               {/* Stretched Link overlay */}
               <Link
@@ -174,7 +174,7 @@ export function LeaderboardTable({
           return (
             <div
               key={startup.id}
-              className="relative w-[calc(100%-32px)] max-w-[1510px] mx-auto rounded-3xl bg-white dark:bg-[#161616] border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-[#1c1c1c] hover:border-slate-300 dark:hover:border-white/20 transition-colors duration-150 cursor-pointer group"
+              className="relative w-[calc(100%-32px)] max-w-[1510px] mx-auto rounded-3xl bg-white dark:bg-[#161616] border border-white dark:border-[#161616] hover:bg-slate-50 dark:hover:bg-[#1c1c1c] hover:border-slate-50 dark:hover:border-[#1c1c1c] transition-colors duration-150 cursor-pointer group"
             >
               {/* Stretched Link overlay: Whole container clickable */}
               <Link
