@@ -13,7 +13,7 @@
 export const START_VALUE = 2000;
 export const START_AT = "2026-11-24T11:00:00.000Z";
 export const RATE_PER_SECOND = 0.356;
-export const COUNTER_LABEL = "hello";
+export const COUNTER_LABEL = "visitors";
 
 /**
  * Pure baseline calculation function.
