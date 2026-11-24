@@ -169,6 +169,7 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
                   logoType={startup.logoType}
                   logoColor={startup.logoColor}
                   logoUrl={startup.thumbnail || undefined}
+                  className="!w-[50px] !h-[50px] !rounded-lg !p-3 text-lg"
                   size="xl"
                 />
                 <div className="space-y-1.5">
