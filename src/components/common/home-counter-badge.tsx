@@ -65,7 +65,7 @@ function DigitBox({ digit, prefersReducedMotion }: DigitBoxProps) {
 
   return (
     <span
-      className="relative inline-flex items-center justify-center overflow-hidden w-[18px] h-[24px] sm:w-[22px] sm:h-[28px] rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 font-bold text-[#ff6600] text-[13px] sm:text-[17px] tabular-nums select-none shrink-0"
+      className="relative inline-flex items-start justify-center overflow-hidden w-[18px] h-[24px] sm:w-[22px] sm:h-[28px] rounded-md bg-slate-100 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 font-bold text-[#ff6600] text-[13px] sm:text-[17px] tabular-nums select-none shrink-0"
     >
       <span
         className="flex flex-col items-center w-full"
