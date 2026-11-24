@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, Rocket, ArrowLeft } from "lucide-react";
 import { getUserPublicProfile } from "@/server/startups";
-import { getCurrentUser } from "@/lib/supabase/server";
 import { StartupCard } from "@/components/startup/startup-card";
 import type { Metadata } from "next";
 
@@ -29,8 +28,7 @@ export async function generateMetadata({
 
 export default async function UserProfilePage({ params }: UserProfilePageProps) {
   const { id } = await params;
-  const user = await getCurrentUser();
-  const data = await getUserPublicProfile(id, user?.id);
+  const data = await getUserPublicProfile(id);
 
   if (!data) {
     notFound();
@@ -107,7 +105,11 @@ export default async function UserProfilePage({ params }: UserProfilePageProps) 
               {startups.map((startup) => (
                 <StartupCard
                   key={startup.id}
-                  startup={startup}
+                  startup={{
+                    ...startup,
+                    views: startup.viewsCount,
+                    likes: 0,
+                  }}
                 />
               ))}
             </div>

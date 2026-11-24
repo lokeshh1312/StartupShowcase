@@ -165,32 +165,5 @@ describe("AdminPanel Component - Approved Tab & Moderation", () => {
       )
     ).toBeDefined();
   });
-
-  it("displays counted likes and total votes in the Likes column for approved startups", () => {
-    const startupWithLikes = {
-      ...dummyApprovedStartup,
-      countedLikes: 12,
-      totalLikes: 14,
-    };
-
-    render(
-      <AdminPanel
-        initialPending={[]}
-        initialApproved={[startupWithLikes]}
-        initialRejected={[]}
-        auditLogs={[]}
-      />
-    );
-
-    // Switch to Approved tab
-    fireEvent.click(screen.getByRole("button", { name: /Approved \(1\)/i }));
-
-    // Check Likes column is displayed with "12" and "(14 total)"
-    const likesContainer = screen.getByTestId("admin-startup-likes");
-    expect(likesContainer).toBeDefined();
-    expect(likesContainer.textContent).toContain("12");
-    expect(likesContainer.textContent).toContain("(14 total)");
-    expect(likesContainer.textContent).toContain("Likes");
-  });
 });
 

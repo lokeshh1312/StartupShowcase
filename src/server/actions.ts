@@ -46,7 +46,7 @@ const planEnumSchema = z.enum(PLAN_KEYS);
 /**
  * Vote on a startup (authenticated & verified only)
  */
-export async function voteAction(startupIdOrSlug: string, desiredLiked: boolean = true) {
+export async function voteAction(startupIdOrSlug: string) {
   const user = await getCurrentUser();
   if (!user) {
     return { error: "unauthenticated" };
@@ -63,7 +63,7 @@ export async function voteAction(startupIdOrSlug: string, desiredLiked: boolean 
       return { error: RATE_LIMIT_MESSAGE };
     }
 
-    const result = await toggleVote(startupIdOrSlug, user.id, desiredLiked);
+    const result = await toggleVote(startupIdOrSlug, user.id);
     revalidatePath("/startup/[slug]", "page");
     revalidatePath("/", "page");
     revalidatePath("/browse", "page");
