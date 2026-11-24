@@ -44,6 +44,32 @@ export { buildSafePrefixTsQuery } from "@/lib/search";
 export { hideComment } from "@/server/comments";
 
 /**
+ * Return the set of startup IDs that a given user has liked.
+ * One query, no N+1 – call once per page with the full ID list.
+ */
+export async function getLikedStartupIds(
+  userId: string,
+  startupIds: string[]
+): Promise<Set<string>> {
+  if (!userId || !startupIds || startupIds.length === 0) return new Set();
+  const validIds = Array.from(
+    new Set(
+      startupIds.filter((id) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+      )
+    )
+  );
+  if (validIds.length === 0) return new Set();
+  const rows = await db.execute<{ startup_id: string }>(sql`
+    SELECT startup_id
+    FROM public.startup_votes
+    WHERE user_id = ${userId}::uuid
+            AND startup_id IN (${sql.join(validIds.map((id) => sql`${id}::uuid`), sql`, `)})
+  `);
+  return new Set(rows.map((r) => String(r.startup_id)));
+}
+
+/**
  * Checks if a user has confirmed their email address in auth.users.
  */
 export async function isUserEmailVerified(userId: string): Promise<boolean> {
@@ -225,13 +251,12 @@ export async function listStartups(
     SELECT
       startups.*,
       COALESCE(vote_agg.count, 0)::int AS vote_count
-      ${
-        currentUserId
-          ? sql`,
+      ${currentUserId
+      ? sql`,
             EXISTS(SELECT 1 FROM public.startup_votes v WHERE v.startup_id = startups.id AND v.user_id = ${currentUserId}::uuid) AS is_liked,
             EXISTS(SELECT 1 FROM public.saved_startups s WHERE s.startup_id = startups.id AND s.user_id = ${currentUserId}::uuid) AS is_saved`
-          : sql``
-      }
+      : sql``
+    }
     FROM public.startups
     LEFT JOIN (
       SELECT v.startup_id, count(*)::int AS count
@@ -247,6 +272,20 @@ export async function listStartups(
   const items: FormattedStartup[] = rows.map((row) =>
     formatStartupRow(row as unknown as Record<string, unknown>)
   );
+
+  if (currentUserId && items.length > 0) {
+    const likedIds = await getLikedStartupIds(
+      currentUserId,
+      items.map((i) => i.id)
+    );
+    for (const item of items) {
+      item.isLiked = likedIds.has(item.id);
+    }
+  } else {
+    for (const item of items) {
+      item.isLiked = false;
+    }
+  }
 
   return {
     items,
@@ -411,7 +450,8 @@ export async function getStartupBySlug(
 export async function getLeaderboard(
   monthInput: string | Date,
   page = 1,
-  pageSize = 20
+  pageSize = 20,
+  currentUserId?: string
 ): Promise<
   PaginatedResult<
     FormattedStartup & { rank: number; votesCount: number }
@@ -463,6 +503,17 @@ export async function getLeaderboard(
       rank: Number(r.rank),
     };
   });
+
+  // Stamp isLiked for the current user (one extra query, no N+1)
+  if (currentUserId && items.length > 0) {
+    const likedIds = await getLikedStartupIds(
+      currentUserId,
+      items.map((i) => i.id)
+    );
+    for (const item of items) {
+      item.isLiked = likedIds.has(item.id);
+    }
+  }
 
   return {
     items,
@@ -866,10 +917,10 @@ export async function deleteStartup(
 
   // Delete orphaned images from storage (checking targetOwnerId and references)
   if (existing.thumbnail) {
-    deleteStartupImage(existing.thumbnail, targetOwnerId, startupId).catch(() => {});
+    deleteStartupImage(existing.thumbnail, targetOwnerId, startupId).catch(() => { });
   }
   if (existing.coverImage && existing.coverImage !== existing.thumbnail) {
-    deleteStartupImage(existing.coverImage, targetOwnerId, startupId).catch(() => {});
+    deleteStartupImage(existing.coverImage, targetOwnerId, startupId).catch(() => { });
   }
 
   // Audit log
@@ -933,7 +984,7 @@ export async function updateStartup(
 
   // If thumbnail changed, clean up previous thumbnail
   if (validated.thumbnail && validated.thumbnail !== existing.thumbnail && existing.thumbnail) {
-    deleteStartupImage(existing.thumbnail, targetOwnerId, startupId).catch(() => {});
+    deleteStartupImage(existing.thumbnail, targetOwnerId, startupId).catch(() => { });
   }
   // If coverImage changed, clean up previous coverImage
   if (
@@ -942,7 +993,7 @@ export async function updateStartup(
     existing.coverImage &&
     existing.coverImage !== existing.thumbnail
   ) {
-    deleteStartupImage(existing.coverImage, targetOwnerId, startupId).catch(() => {});
+    deleteStartupImage(existing.coverImage, targetOwnerId, startupId).catch(() => { });
   }
 
   const [updated] = await db
@@ -980,22 +1031,17 @@ export async function updateStartup(
 }
 
 /**
- * Toggle vote on a startup
+ * Toggle vote on a startup with desired target state
  */
 export async function toggleVote(
   startupIdOrSlug: string,
-  userId: string
+  userId: string,
+  desiredLiked: boolean = true
 ): Promise<{ liked: boolean; likesCount: number }> {
   // 1. Enforce verified user
   const isVerified = await isUserEmailVerified(userId);
   if (!isVerified) {
     throw new Error("Please verify your email first.");
-  }
-
-  // 2. Enforce per-user rate limit: at most 30 vote toggles per hour
-  const rateLimitRes = await checkRateLimit(`vote:user:${userId}`, 30, 3600);
-  if (!rateLimitRes.allowed) {
-    throw new Error(RATE_LIMIT_MESSAGE);
   }
 
   const isUuid =
@@ -1017,28 +1063,24 @@ export async function toggleVote(
     throw new Error("Startup not found or not approved for voting.");
   }
 
-  // 3. Founder self-vote restriction
+  // 2. Founder self-vote restriction
   if (startup[0].ownerId && startup[0].ownerId === userId) {
-    throw new Error("Founders cannot vote for their own startup.");
+    throw new Error("Founders can't like their own startup.");
   }
 
   const startupId = startup[0].id;
 
-  // Atomic toggle: INSERT ON CONFLICT DO NOTHING RETURNING inside one transaction
+  // Set vote to exact desired state
   const result = await db.transaction(async (tx) => {
-    const inserted = await tx.execute<{ user_id: string }>(sql`
-      INSERT INTO public.startup_votes (user_id, startup_id)
-      VALUES (${userId}::uuid, ${startupId}::uuid)
-      ON CONFLICT (user_id, startup_id) DO NOTHING
-      RETURNING user_id
-    `);
-
     let liked: boolean;
-    if (inserted.length > 0) {
-      // Row was inserted → vote created
+    if (desiredLiked) {
+      await tx.execute(sql`
+        INSERT INTO public.startup_votes (user_id, startup_id)
+        VALUES (${userId}::uuid, ${startupId}::uuid)
+        ON CONFLICT (user_id, startup_id) DO NOTHING
+      `);
       liked = true;
     } else {
-      // Row already existed → remove vote
       await tx
         .delete(startupVotes)
         .where(
@@ -1262,6 +1304,16 @@ export async function getSaved(
     isSaved: true,
   }));
 
+  if (userId && items.length > 0) {
+    const likedIds = await getLikedStartupIds(
+      userId,
+      items.map((i) => i.id)
+    );
+    for (const item of items) {
+      item.isLiked = likedIds.has(item.id);
+    }
+  }
+
   return {
     items,
     total,
@@ -1393,7 +1445,35 @@ export type AdminStartupItem = Startup & {
   plan?: PlanKey | null;
   ownerEmail?: string | null;
   upgradePaidCents?: number | null;
+  countedLikes?: number;
+  totalLikes?: number;
 };
+
+/**
+ * Admin-only: get counted and total likes for a single startup.
+ */
+export async function getAdminStartupVoteStats(startupId: string): Promise<{
+  countedLikes: number;
+  totalLikes: number;
+}> {
+  const voteRows = await db.execute<{
+    counted_likes: number;
+    total_votes: number;
+  }>(sql`
+    SELECT
+      count(CASE WHEN voter.id IS NOT NULL THEN 1 END)::int AS counted_likes,
+      count(*)::int AS total_votes
+    FROM public.startup_votes v
+    LEFT JOIN public.profiles voter
+      ON voter.id = v.user_id AND voter.created_at <= (now() - interval '24 hours')
+    WHERE v.startup_id = ${startupId}::uuid
+  `);
+
+  return {
+    countedLikes: Number(voteRows[0]?.counted_likes ?? 0),
+    totalLikes: Number(voteRows[0]?.total_votes ?? 0),
+  };
+}
 
 /**
  * List startups for admin review queue by status ('pending' | 'approved' | 'rejected')
@@ -1475,12 +1555,40 @@ export async function listAdminStartups(
     .limit(pageSize)
     .offset(offset);
 
+  const startupIds = rows.map((r) => r.startup.id);
+  const voteRows = startupIds.length > 0
+    ? await db.execute<{
+      startup_id: string;
+      counted_likes: number;
+      total_votes: number;
+    }>(sql`
+        SELECT
+          v.startup_id,
+          count(CASE WHEN voter.id IS NOT NULL THEN 1 END)::int AS counted_likes,
+          count(*)::int AS total_votes
+        FROM public.startup_votes v
+        LEFT JOIN public.profiles voter
+          ON voter.id = v.user_id AND voter.created_at <= (now() - interval '24 hours')
+                WHERE v.startup_id IN (${sql.join(startupIds.map((id) => sql`${id}::uuid`), sql`, `)})
+        GROUP BY v.startup_id
+      `)
+    : [];
+
+  const voteMap = new Map<string, { countedLikes: number; totalLikes: number }>();
+  for (const vr of voteRows) {
+    voteMap.set(String(vr.startup_id), {
+      countedLikes: Number(vr.counted_likes),
+      totalLikes: Number(vr.total_votes),
+    });
+  }
+
   const itemsToReturn: AdminStartupItem[] = await Promise.all(
     rows.map(async ({ startup, payment, ownerEmail, effectivePlan, upgradePaidCents }) => {
       const warning =
         status === "pending"
           ? await checkStartupDuplicate(startup.name, startup.websiteUrl, startup.id)
           : null;
+      const votes = voteMap.get(startup.id) ?? { countedLikes: 0, totalLikes: 0 };
       return {
         ...startup,
         duplicateWarning: warning,
@@ -1491,6 +1599,8 @@ export async function listAdminStartups(
         plan: ((effectivePlan ?? payment?.plan) as PlanKey | undefined) ?? null,
         ownerEmail: ownerEmail ?? null,
         upgradePaidCents: upgradePaidCents ?? 0,
+        countedLikes: votes.countedLikes,
+        totalLikes: votes.totalLikes,
       };
     })
   );
@@ -1552,7 +1662,7 @@ export async function getAdminAuditLog(
 /**
  * Get public user profile and their approved startups
  */
-export async function getUserPublicProfile(userId: string) {
+export async function getUserPublicProfile(userId: string, currentUserId?: string) {
   const [profile] = await db
     .select({
       id: profiles.id,
@@ -1572,9 +1682,22 @@ export async function getUserPublicProfile(userId: string) {
     .where(and(eq(startups.ownerId, userId), eq(startups.status, "approved")))
     .orderBy(desc(startups.createdAt));
 
+  let likedIds = new Set<string>();
+  if (currentUserId && startupsList.length > 0) {
+    likedIds = await getLikedStartupIds(
+      currentUserId,
+      startupsList.map((s) => s.id)
+    );
+  }
+
+  const formattedStartups: FormattedStartup[] = startupsList.map((s) => ({
+    ...formatStartupRow(s as unknown as Record<string, unknown>),
+    isLiked: likedIds.has(s.id),
+  }));
+
   return {
     profile,
-    startups: startupsList,
+    startups: formattedStartups,
   };
 }
 
