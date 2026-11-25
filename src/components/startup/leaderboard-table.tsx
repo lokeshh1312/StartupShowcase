@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { FittedImage } from "@/components/common/fitted-image";
 import { StartupLogo } from "@/components/common/startup-logo";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { VoteButton } from "@/components/startup/vote-button";
@@ -86,11 +86,9 @@ export function LeaderboardTable({
                   aria-label={`${startup.name} image`}
                 >
                   {hasImage ? (
-                    <Image
+                    <FittedImage
                       src={rawImage!}
                       alt={startup.name}
-                      fill
-                      className="object-cover"
                       sizes="64px"
                     />
                   ) : (
@@ -209,11 +207,9 @@ export function LeaderboardTable({
                     aria-label={`${startup.name} image`}
                   >
                     {hasImage ? (
-                      <Image
+                      <FittedImage
                         src={rawImage!}
                         alt={startup.name}
-                        fill
-                        className="object-cover"
                         sizes="(min-width: 1280px) 92px, 84px"
                       />
                     ) : (

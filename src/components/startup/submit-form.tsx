@@ -24,6 +24,7 @@ import {
 import { openRazorpayCheckout } from "@/lib/razorpay-client";
 import { CATEGORIES, STAGES } from "@/lib/validation";
 import { TurnstileWidget } from "@/components/common/turnstile";
+import { FittedImage } from "@/components/common/fitted-image";
 import { isAllowedImageUrl } from "@/lib/images";
 import { CreditCard } from "lucide-react";
 import { PlanPickerModal } from "@/components/plans/plan-picker-modal";
@@ -598,12 +599,12 @@ export function SubmitStartupForm({
             </label>
 
             {logoUrl && isAllowedImageUrl(logoUrl) ? (
-              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-white/5 group shadow-xs">
+              <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200/90 dark:border-white/10 bg-white dark:bg-white/5 group shadow-xs">
                 <Image
                   src={logoUrl}
                   alt="Uploaded Logo"
                   fill
-                  className="object-cover"
+                  className="object-contain"
                 />
                 <button
                   type="button"
@@ -652,11 +653,10 @@ export function SubmitStartupForm({
 
             {coverUrl && isAllowedImageUrl(coverUrl) ? (
               <div className="relative w-full h-24 rounded-2xl overflow-hidden border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-white/5 group shadow-xs">
-                <Image
+                <FittedImage
                   src={coverUrl}
                   alt="Uploaded Cover"
-                  fill
-                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, 400px"
                 />
                 <button
                   type="button"

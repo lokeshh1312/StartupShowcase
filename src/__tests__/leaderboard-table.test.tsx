@@ -94,7 +94,7 @@ describe("LeaderboardTable Redesign", () => {
     expect(desktopVoteCell?.classList.contains("items-center")).toBe(true);
   });
 
-  it("renders next/image when coverImage is a site-relative /startups/ path", () => {
+  it("renders FittedImage (object-cover background + object-contain foreground) for cover thumbnails in both mobile and desktop layouts", () => {
     const startupWithSiteRelativeImage: FormattedStartup & { rank?: number } = {
       ...mockStartups[0],
       id: "startup-2",
@@ -105,12 +105,28 @@ describe("LeaderboardTable Redesign", () => {
     };
 
     const { container } = render(<LeaderboardTable startups={[startupWithSiteRelativeImage]} />);
-    const images = container.querySelectorAll("img");
-    expect(images.length).toBeGreaterThan(0);
-    const hasNimbleDeskImg = Array.from(images).some((img) =>
-      img.getAttribute("alt") === "NimbleDesk"
-    );
-    expect(hasNimbleDeskImg).toBe(true);
+
+    // Mobile layout cover container
+    const mobileList = container.querySelector("ul.lg\\:hidden");
+    const mobileCoverContainer = mobileList?.querySelector('[aria-label="NimbleDesk image"]');
+    expect(mobileCoverContainer).not.toBeNull();
+    const mobileCoverImgs = mobileCoverContainer?.querySelectorAll("img") ?? [];
+    expect(mobileCoverImgs).toHaveLength(2);
+    expect(mobileCoverImgs[0].className).toContain("object-cover");
+    expect(mobileCoverImgs[0].getAttribute("aria-hidden")).toBe("true");
+    expect(mobileCoverImgs[1].className).toContain("object-contain");
+    expect(mobileCoverImgs[1].getAttribute("alt")).toBe("NimbleDesk");
+
+    // Desktop layout cover container
+    const desktopContainer = container.querySelector(".lg\\:flex");
+    const desktopCoverContainer = desktopContainer?.querySelector('[aria-label="NimbleDesk image"]');
+    expect(desktopCoverContainer).not.toBeNull();
+    const desktopCoverImgs = desktopCoverContainer?.querySelectorAll("img") ?? [];
+    expect(desktopCoverImgs).toHaveLength(2);
+    expect(desktopCoverImgs[0].className).toContain("object-cover");
+    expect(desktopCoverImgs[0].getAttribute("aria-hidden")).toBe("true");
+    expect(desktopCoverImgs[1].className).toContain("object-contain");
+    expect(desktopCoverImgs[1].getAttribute("alt")).toBe("NimbleDesk");
   });
 
   it("renders the real logo <img> with the thumbnail URL in both mobile and desktop layouts when thumbnail is provided", () => {

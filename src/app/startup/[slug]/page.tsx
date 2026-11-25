@@ -1,6 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -19,6 +18,7 @@ import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { formatLocation, getCountryName } from "@/lib/validation";
 import type { FounderInfo } from "@/db/schema";
 import { StartupLogo } from "@/components/common/startup-logo";
+import { FittedImage } from "@/components/common/fitted-image";
 import { isAllowedImageUrl } from "@/lib/images";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { VoteButton } from "@/components/startup/vote-button";
@@ -150,13 +150,11 @@ export default async function StartupDetailPage({ params }: StartupPageProps) {
         <div className="overflow-hidden rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 shadow-xs backdrop-blur-md">
           {startup.coverImage && isAllowedImageUrl(startup.coverImage) && (
             <div className="relative w-full h-48 sm:h-64 bg-slate-100 dark:bg-slate-900 border-b border-slate-200/90 dark:border-white/10">
-              <Image
+              <FittedImage
                 src={startup.coverImage}
                 alt={`${startup.name} cover`}
-                fill
                 priority
                 sizes="(max-width: 1200px) 100vw, 1152px"
-                className="object-cover"
               />
             </div>
           )}
