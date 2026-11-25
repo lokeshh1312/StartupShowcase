@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   COUNTER_LABEL,
   baseline,
+  nextTickAt,
 } from "@/lib/home-counter";
 
 const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -91,8 +92,13 @@ function DigitBox({ digit, prefersReducedMotion }: DigitBoxProps) {
   );
 }
 
+interface CounterState {
+  count: number;
+  resetEpoch: number;
+}
+
 export function HomeCounterBadge() {
-  const [count, setCount] = useState<number | null>(null);
+  const [state, setState] = useState<CounterState | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
@@ -114,60 +120,50 @@ export function HomeCounterBadge() {
       }
     }
 
+    const syncToNow = () => {
+      const nextCount = baseline(Date.now());
+      setState((prev) => {
+        if (prev === null) {
+          return { count: nextCount, resetEpoch: 0 };
+        }
+        if (nextCount === prev.count) {
+          return prev;
+        }
+        // On midnight reset (drop), increment resetEpoch so digit boxes remount directly without rolling
+        const didDrop = nextCount < prev.count;
+        return {
+          count: nextCount,
+          resetEpoch: didDrop ? prev.resetEpoch + 1 : prev.resetEpoch,
+        };
+      });
+    };
+
     // Initialize immediately on client mount with baseline(now)
-    const initialBaseline = baseline(Date.now());
-    setCount(initialBaseline);
+    syncToNow();
 
     let timeoutId: NodeJS.Timeout | null = null;
     let isCancelled = false;
 
     const scheduleNextTick = () => {
-      if (isCancelled) return;
-      if (document.visibilityState === "hidden") {
+      if (isCancelled || document.visibilityState === "hidden") {
         return;
       }
 
-      // Usually 5-8 seconds, sometimes (about 1 in 7) a longer 10-second pause
-      const delay =
-        Math.random() < 0.15
-          ? 10000
-          : Math.floor(Math.random() * (8000 - 5000 + 1)) + 5000;
+      const now = Date.now();
+      const targetTime = nextTickAt(now);
+      const delay = Math.max(10, targetTime - now);
 
       timeoutId = setTimeout(() => {
-        if (isCancelled) return;
-        if (document.visibilityState === "hidden") return;
+        if (isCancelled || document.visibilityState === "hidden") return;
 
-        setCount((prev) => {
-          const now = Date.now();
-          const base = baseline(now);
-          if (prev === null) {
-            scheduleNextTick();
-            return base;
-          }
-
-          // If more than ~30 ahead of baseline, skip this tick
-          if (prev - base > 30) {
-            scheduleNextTick();
-            return prev;
-          }
-
-          // If falls more than ~30 behind, jump to baseline
-          if (base - prev > 30) {
-            scheduleNextTick();
-            return base;
-          }
-
-          // Random increment of 2 or 3
-          const inc = Math.random() < 0.5 ? 2 : 3;
-          scheduleNextTick();
-          return prev + inc;
-        });
+        syncToNow();
+        scheduleNextTick();
       }, delay);
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        setCount(baseline(Date.now()));
+        syncToNow();
         scheduleNextTick();
       } else {
         if (timeoutId) {
@@ -191,11 +187,11 @@ export function HomeCounterBadge() {
   }, []);
 
   // Avoid hydration mismatch: render nothing until client mount
-  if (count === null) {
+  if (state === null) {
     return null;
   }
 
-  const formatted = count.toLocaleString("en-US");
+  const formatted = state.count.toLocaleString("en-US");
   const chars = formatted.split("");
 
   return (
@@ -213,7 +209,7 @@ export function HomeCounterBadge() {
       {/* Digits & commas */}
       <div className="flex items-center gap-0.5 sm:gap-1 tabular-nums">
         {chars.map((ch, idx) => {
-          const key = `char-${chars.length - 1 - idx}`;
+          const key = `${state.resetEpoch}-char-${chars.length - 1 - idx}`;
           if (ch === ",") {
             return (
               <span
