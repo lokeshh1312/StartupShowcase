@@ -6,6 +6,7 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
+import { getCountryName } from "@/lib/validation";
 import type { FormattedStartup } from "@/server/startups";
 
 // Mock VoteButton to check its placement and event handling
@@ -220,5 +221,44 @@ describe("LeaderboardTable Redesign", () => {
     expect(desktopLogo?.className).toContain("!w-[50px]");
     expect(desktopLogo?.className).toContain("!h-[50px]");
     expect(desktopLogo?.className).toContain("!rounded-lg");
+  });
+
+  it("renders rank as its own left-positioned element in desktop layout without name text under the logo", () => {
+    const startup: FormattedStartup & { rank?: number } = {
+      ...mockStartups[0],
+      id: "startup-mirsho",
+      name: "Mirsho",
+      slug: "mirsho",
+      rank: 1,
+    };
+
+    const { container } = render(<LeaderboardTable startups={[startup]} />);
+
+    const desktopContainer = container.querySelector(".lg\\:flex");
+    expect(desktopContainer).not.toBeNull();
+
+    // Rank "1." is rendered once as its own element on the left
+    const rankSpans = Array.from(desktopContainer?.querySelectorAll("span") ?? []).filter(
+      (el) => el.textContent?.trim() === "1."
+    );
+    expect(rankSpans).toHaveLength(1);
+    expect(rankSpans[0].className).toContain("absolute");
+    expect(rankSpans[0].className).toContain("left-3");
+    expect(rankSpans[0].className).toContain("xl:left-[28px]");
+    expect(rankSpans[0].getAttribute("aria-hidden")).toBeNull();
+
+    // Logo column does NOT contain "1. Mirsho" or "Mirsho" text
+    const desktopLogo = desktopContainer?.querySelector('[aria-label="Mirsho logo"]');
+    expect(desktopLogo).not.toBeNull();
+    const logoCol = desktopLogo?.parentElement;
+    expect(logoCol).not.toBeNull();
+    expect(logoCol?.textContent?.trim()).toBe("");
+    expect(desktopContainer?.querySelector('[title="1. Mirsho"]')).toBeNull();
+
+    // Country column wrapper has pl-3 xl:pl-4
+    const countryTitleEl = desktopContainer?.querySelector(`[title="${getCountryName(startup.countryCode)}"]`);
+    const countryCol = countryTitleEl?.parentElement;
+    expect(countryCol?.className).toContain("pl-3");
+    expect(countryCol?.className).toContain("xl:pl-4");
   });
 });

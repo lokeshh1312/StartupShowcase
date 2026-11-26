@@ -181,8 +181,12 @@ export function LeaderboardTable({
                 aria-label={`View ${startup.name}`}
               />
 
-              <div className="py-[0.5px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[84px_90px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[100px_100px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
-                {/* Col 1: Logo tile + name */}
+              <div className="relative py-[0.5px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[84px_90px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[100px_100px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
+                <span className="absolute left-3 xl:left-[28px] top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                  {rank}.
+                </span>
+
+                {/* Col 1: Logo tile */}
                 <div className="flex flex-col items-center justify-center gap-1 min-w-0 text-center mt-1.5">
                   <StartupLogo
                     name={startup.name}
@@ -192,12 +196,6 @@ export function LeaderboardTable({
                     logoUrl={startup.thumbnail || undefined}
                     className="!w-[50px] !h-[50px] !rounded-lg !p-3 text-lg"
                   />
-                  <span
-                    title={`${rank}. ${startup.name}`}
-                    className="text-[11px] font-medium text-slate-700 dark:text-slate-300 line-clamp-1 break-words max-w-full text-center leading-tight group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors"
-                  >
-                    {rank}. {startup.name}
-                  </span>
                 </div>
 
                 {/* Col 2: Startup Image Thumbnail (84x56 at lg, 92x62 at xl) */}
@@ -240,7 +238,7 @@ export function LeaderboardTable({
                 </div>
 
                 {/* Col 5: Country with Pin Icon, NO flag, no truncation, may wrap */}
-                <div className="min-w-0">
+                <div className="min-w-0 pl-3 xl:pl-4">
                   <div
                     className="inline-flex items-start gap-1.5 min-w-0 max-w-full text-xs text-slate-600 dark:text-slate-300"
                     title={country}
