@@ -6,8 +6,9 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { db } from "@/db";
+import * as startupServer from "@/server/startups";
 import { listStartups, getLeaderboard, setStartupPinned } from "@/server/startups";
-import { pinStartupAction } from "@/server/actions";
+import { pinStartupAction, updateStartupAction } from "@/server/actions";
 import * as supabaseServer from "@/lib/supabase/server";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
 import { AdminPanel } from "@/components/admin/admin-panel";
@@ -341,6 +342,26 @@ describe("Admin Pin Startups - Ordering, Actions, Privacy & UI", () => {
           targetId: startupId,
         })
       );
+    });
+
+    it("updateStartupAction strips sortPriority and does not include isPinned in returned startup", async () => {
+      vi.spyOn(supabaseServer, "getCurrentUserProfile").mockResolvedValue({
+        user: { id: nonAdminId } as never,
+        profile: { id: nonAdminId, role: "founder" } as never,
+      });
+
+      vi.spyOn(startupServer, "updateStartup").mockResolvedValue({
+        id: startupId,
+        slug: "novaflow",
+        name: "NovaFlow",
+        sortPriority: 42,
+      } as never);
+
+      const res = await updateStartupAction(startupId, { name: "NovaFlow" });
+      expect(res.success).toBe(true);
+      expect(res.startup).toBeDefined();
+      expect("sortPriority" in (res.startup as Record<string, unknown>)).toBe(false);
+      expect("isPinned" in (res.startup as Record<string, unknown>)).toBe(false);
     });
   });
 

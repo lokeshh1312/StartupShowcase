@@ -488,10 +488,15 @@ export async function updateStartupAction(startupId: string, rawData: unknown) {
   try {
     const isAdmin = authData.profile.role === "admin";
     const updated = await updateStartup(startupId, rawData, authData.user.id, isAdmin);
+    const { sortPriority: _sortPriority, ...publicUpdated } = updated as typeof updated & {
+      isPinned?: unknown;
+    };
+    void _sortPriority;
+    delete publicUpdated.isPinned;
     revalidatePath("/me/submissions");
     revalidatePath(`/startup/${updated.slug}`);
     revalidatePath("/admin");
-    return { success: true, startup: updated };
+    return { success: true, startup: publicUpdated };
   } catch (err: unknown) {
     return { error: formatActionError(err) };
   }
