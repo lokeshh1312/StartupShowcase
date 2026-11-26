@@ -94,6 +94,7 @@ export const startups = pgTable(
       .default([]),
     traction: text("traction").notNull().default(""),
     viewsCount: integer("views_count").notNull().default(0),
+    sortPriority: integer("sort_priority").notNull().default(0),
     reviewedBy: uuid("reviewed_by").references(() => profiles.id, {
       onDelete: "set null",
     }),

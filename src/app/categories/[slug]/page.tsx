@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Layers, Sparkles } from "lucide-react";
 import { listStartups, getApprovedNonSampleStats } from "@/server/startups";
 import { CATEGORIES, type Category } from "@/lib/validation";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { StartupCard } from "@/components/startup/startup-card";
 import {
   createMetadata,
@@ -56,10 +56,13 @@ export default async function CategoryDetailPage({ params }: CategoryPageProps) 
     notFound();
   }
 
-  const user = await getCurrentUser();
+  const authData = await getCurrentUserProfile();
+  const user = authData?.user;
+  const isAdmin = authData?.profile?.role === "admin";
   const startupsResult = await listStartups(
     { category, pageSize: 50 },
-    user?.id
+    user?.id,
+    isAdmin ? { includePinned: true } : undefined
   );
 
   // JSON-LD Structured Data: ItemList (excluding sample startups) & BreadcrumbList

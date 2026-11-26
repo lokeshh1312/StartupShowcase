@@ -15,6 +15,7 @@ import {
   addComment,
   createStartup,
   moderateStartup,
+  setStartupPinned,
   hideComment,
   deleteStartup,
   updateStartup,
@@ -487,10 +488,15 @@ export async function updateStartupAction(startupId: string, rawData: unknown) {
   try {
     const isAdmin = authData.profile.role === "admin";
     const updated = await updateStartup(startupId, rawData, authData.user.id, isAdmin);
+    const { sortPriority: _sortPriority, ...publicUpdated } = updated as typeof updated & {
+      isPinned?: unknown;
+    };
+    void _sortPriority;
+    delete publicUpdated.isPinned;
     revalidatePath("/me/submissions");
     revalidatePath(`/startup/${updated.slug}`);
     revalidatePath("/admin");
-    return { success: true, startup: updated };
+    return { success: true, startup: publicUpdated };
   } catch (err: unknown) {
     return { error: formatActionError(err) };
   }
@@ -539,6 +545,42 @@ export async function moderateStartupAction(
     return { success: true, startup: updated };
   } catch (err: unknown) {
     return { error: formatActionError(err) };
+  }
+}
+
+const pinStartupInputSchema = z.object({
+  startupId: z.string().uuid("Invalid startup ID."),
+  pinned: z.boolean(),
+});
+
+/**
+ * Pin or unpin an approved startup (admin only)
+ */
+export async function pinStartupAction(
+  startupId: string,
+  pinned: boolean
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authData = await getCurrentUserProfile();
+  if (!authData || authData.profile.role !== "admin") {
+    return { ok: false, error: "Forbidden: Admin privileges required." };
+  }
+
+  const parsed = pinStartupInputSchema.safeParse({ startupId, pinned });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message || "Invalid input." };
+  }
+
+  try {
+    await setStartupPinned(parsed.data.startupId, parsed.data.pinned, authData.user.id);
+    revalidatePath("/admin");
+    revalidatePath("/");
+    revalidatePath("/browse");
+    revalidatePath("/months", "layout");
+    revalidatePath("/categories", "layout");
+    revalidatePath("/countries", "layout");
+    return { ok: true };
+  } catch (err: unknown) {
+    return { ok: false, error: formatActionError(err) };
   }
 }
 
