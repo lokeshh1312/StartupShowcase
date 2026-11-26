@@ -26,6 +26,7 @@ import {
 } from "@/lib/validation";
 import { buildSafePrefixTsQuery } from "@/lib/search";
 import { toUtcDateString } from "@/lib/dates";
+import { getContactEmail } from "@/lib/company";
 import { headers } from "next/headers";
 import { checkRateLimit, extractClientIp, RATE_LIMIT_MESSAGE } from "@/server/rate-limit";
 import { isBotOrPrefetchFromHeaders, computeViewerHash } from "@/server/views";
@@ -977,7 +978,15 @@ export async function updateStartup(
   }
 
   if (!isAdmin && existing.status !== "pending" && existing.status !== "awaiting_payment") {
-    throw new Error("Only pending or awaiting payment submissions can be edited.");
+    const contactEmail = getContactEmail();
+    if (existing.status === "approved") {
+      throw new Error(
+        `Live listings can be updated by our team. Email ${contactEmail} with your changes.`
+      );
+    }
+    throw new Error(
+      `This submission can no longer be edited here. Email ${contactEmail} for help.`
+    );
   }
 
   // Validate input

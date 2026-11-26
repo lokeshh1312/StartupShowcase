@@ -1,9 +1,10 @@
 import React from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ClipboardList, Plus, ExternalLink, AlertCircle } from "lucide-react";
+import { ClipboardList, Plus, ExternalLink, AlertCircle, Info } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { getMySubmissions } from "@/server/startups";
+import { getContactEmail, getStartupUpdateMailto } from "@/lib/company";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { formatMoney } from "@/lib/money";
 import { getPlan, DEFAULT_PLAN } from "@/lib/plans";
@@ -46,6 +47,10 @@ export default async function MySubmissionsPage() {
   }
 
   const submissionsResult = await getMySubmissions(user.id, 1, 50);
+  const contactEmail = getContactEmail();
+  const hasApprovedStartup = submissionsResult.items.some(
+    (startup) => startup.status === "approved"
+  );
 
   return (
     <div className="relative isolate min-h-screen">
@@ -99,6 +104,22 @@ export default async function MySubmissionsPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            {hasApprovedStartup && (
+              <div className="p-4 rounded-2xl bg-brand-50/80 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-800/60 flex items-start gap-3 text-xs sm:text-sm text-slate-700 dark:text-slate-200">
+                <Info className="w-4 h-4 text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
+                <p className="leading-relaxed min-w-0 break-words">
+                  Live listings can be updated by our team. Email{" "}
+                  <a
+                    href={`mailto:${contactEmail}`}
+                    className="font-medium text-brand-700 dark:text-brand-300 underline underline-offset-2 hover:text-brand-600 dark:hover:text-brand-200 break-all"
+                  >
+                    {contactEmail}
+                  </a>{" "}
+                  with your changes.
+                </p>
+              </div>
+            )}
+
             {submissionsResult.items.map((startup) => {
               const statusInfo =
                 statusConfig[startup.status as keyof typeof statusConfig] ||
@@ -139,6 +160,18 @@ export default async function MySubmissionsPage() {
                       <StageBadge stage={startup.stage} />
                       <Badge variant="default">{startup.category}</Badge>
                     </div>
+
+                    {startup.status === "approved" && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                        <span>Live. To change anything, email us your changes.</span>
+                        <a
+                          href={getStartupUpdateMailto(startup.name)}
+                          className="font-medium text-brand-600 dark:text-brand-400 hover:underline underline-offset-2 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 rounded-xs"
+                        >
+                          Email changes
+                        </a>
+                      </p>
+                    )}
 
                     <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">
                       {startup.tagline}

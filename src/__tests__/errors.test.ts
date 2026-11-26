@@ -82,6 +82,18 @@ describe("formatActionError Helper", () => {
     }
   });
 
+  it("passes through live listing and non-editable submission messages unchanged", () => {
+    const messages = [
+      "Live listings can be updated by our team. Email contact@startupshowcaseglobal.com with your changes.",
+      "This submission can no longer be edited here. Email contact@startupshowcaseglobal.com for help.",
+    ];
+
+    for (const msg of messages) {
+      expect(formatActionError(new Error(msg))).toBe(msg);
+      expect(formatActionError(msg)).toBe(msg);
+    }
+  });
+
   it("masks unexpected database or system errors and logs to console.error", () => {
     const consoleErrorSpy = vi
       .spyOn(console, "error")
