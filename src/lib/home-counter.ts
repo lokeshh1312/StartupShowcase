@@ -25,7 +25,7 @@ export const COUNTER_UTC_OFFSET_MINUTES = 330; // Indian Standard Time (UTC+05:3
 export const DAILY_START_VALUE = 0;
 export const DAILY_TARGET_MIN = 50000;
 export const DAILY_TARGET_MAX = 65000;
-export const COUNTER_LABEL = "visitors";
+export const COUNTER_LABEL = "daily visits";
 
 const MS_PER_DAY = 86_400_000;
 const GAP_JITTER_MS = 500;
