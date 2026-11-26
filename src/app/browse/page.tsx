@@ -7,7 +7,7 @@ import {
   listCountries,
   listCategories,
 } from "@/server/startups";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { type SortOption } from "@/lib/validation";
 import { FilterBar } from "@/components/discovery/filter-bar";
 import { StartupCard } from "@/components/startup/startup-card";
@@ -69,7 +69,9 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     redirect(qs ? `/browse?${qs}` : "/browse");
   }
 
-  const user = await getCurrentUser();
+  const authData = await getCurrentUserProfile();
+  const user = authData?.user;
+  const isAdmin = authData?.profile?.role === "admin";
 
   const page = Math.max(1, parseInt(params.page || "1", 10));
   const pageSize = 12;
@@ -87,7 +89,8 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         page,
         pageSize,
       },
-      user?.id
+      user?.id,
+      isAdmin ? { includePinned: true } : undefined
     ),
     listCountries(),
     listCategories(),

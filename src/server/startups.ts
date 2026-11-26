@@ -79,11 +79,12 @@ export async function isUserEmailVerified(userId: string): Promise<boolean> {
   return Boolean(rows[0]?.email_confirmed_at);
 }
 
-export type FormattedStartup = Startup & {
+export type FormattedStartup = Omit<Startup, "sortPriority"> & {
   likes: number;
   views: number;
   isLiked?: boolean;
   isSaved?: boolean;
+  isPinned?: boolean;
   rank?: number;
   paymentStatus?: "created" | "paid" | "failed" | "refunded" | "partially_refunded" | null;
   paymentAmountCents?: number | null;
@@ -163,7 +164,8 @@ export function formatStartupRow(row: Record<string, unknown>): FormattedStartup
  */
 export async function listStartups(
   rawFilters: ListStartupsFilters = {},
-  currentUserId?: string
+  currentUserId?: string,
+  options?: { includePinned?: boolean }
 ): Promise<PaginatedResult<FormattedStartup>> {
   const filter = listStartupsFilterSchema.parse(rawFilters);
   const page = filter.page;
@@ -236,7 +238,7 @@ export async function listStartups(
       break;
     case "votes":
     default:
-      orderByClause = sql`COALESCE(vote_agg.count, 0) DESC, COALESCE(startups.approved_at, startups.created_at) ASC, startups.name ASC`;
+      orderByClause = sql`startups.sort_priority DESC, COALESCE(vote_agg.count, 0) DESC, COALESCE(startups.approved_at, startups.created_at) ASC, startups.name ASC`;
       break;
   }
 
@@ -269,9 +271,15 @@ export async function listStartups(
     LIMIT ${pageSize} OFFSET ${offset}
   `);
 
-  const items: FormattedStartup[] = rows.map((row) =>
-    formatStartupRow(row as unknown as Record<string, unknown>)
-  );
+  const includePinned = options?.includePinned === true;
+  const items: FormattedStartup[] = rows.map((row) => {
+    const formatted = formatStartupRow(row as unknown as Record<string, unknown>);
+    if (includePinned) {
+      const rawPriority = (row as unknown as Record<string, unknown>).sort_priority ?? (row as unknown as Record<string, unknown>).sortPriority ?? 0;
+      formatted.isPinned = Number(rawPriority) > 0;
+    }
+    return formatted;
+  });
 
   if (currentUserId && items.length > 0) {
     const likedIds = await getLikedStartupIds(
@@ -432,9 +440,12 @@ export async function getStartupBySlug(
     date: c.createdAt,
   }));
 
+  const { sortPriority: _sortPriority, ...publicStartup } = startup;
+  void _sortPriority;
+
   return {
     startup: {
-      ...startup,
+      ...publicStartup,
       views: startup.viewsCount,
       likes,
       isLiked,
@@ -451,7 +462,8 @@ export async function getLeaderboard(
   monthInput: string | Date,
   page = 1,
   pageSize = 20,
-  currentUserId?: string
+  currentUserId?: string,
+  options?: { includePinned?: boolean }
 ): Promise<
   PaginatedResult<
     FormattedStartup & { rank: number; votesCount: number }
@@ -495,8 +507,13 @@ export async function getLeaderboard(
     LIMIT ${pageSize} OFFSET ${offset}
   `);
 
+  const includePinned = options?.includePinned === true;
   const items = rows.map((r) => {
     const formatted = formatStartupRow(r as unknown as Record<string, unknown>);
+    if (includePinned) {
+      const rawPriority = (r as unknown as Record<string, unknown>).sort_priority ?? (r as unknown as Record<string, unknown>).sortPriority ?? 0;
+      formatted.isPinned = Number(rawPriority) > 0;
+    }
     return {
       ...formatted,
       votesCount: formatted.likes,
@@ -1437,6 +1454,7 @@ export async function listCountries(): Promise<
 }
 
 export type AdminStartupItem = Startup & {
+  isPinned?: boolean;
   duplicateWarning?: DuplicateWarning | null;
   paymentAmountCents?: number | null;
   paymentCurrency?: string | null;
@@ -1473,6 +1491,73 @@ export async function getAdminStartupVoteStats(startupId: string): Promise<{
     countedLikes: Number(voteRows[0]?.counted_likes ?? 0),
     totalLikes: Number(voteRows[0]?.total_votes ?? 0),
   };
+}
+
+/**
+ * Admin-only: pin or unpin an approved startup to the top of default lists.
+ * Pinning atomically sets sort_priority = COALESCE(MAX(sort_priority), 0) + 1.
+ * Unpinning sets sort_priority = 0.
+ */
+export async function setStartupPinned(
+  startupId: string,
+  pinned: boolean,
+  adminUserId: string
+): Promise<{ sortPriority: number }> {
+  const reviewerProfile = await db
+    .select({ role: profiles.role })
+    .from(profiles)
+    .where(eq(profiles.id, adminUserId))
+    .limit(1);
+
+  if (!reviewerProfile[0] || reviewerProfile[0].role !== "admin") {
+    throw new Error("Forbidden: only admins can pin startups.");
+  }
+
+  return await db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ id: startups.id, status: startups.status })
+      .from(startups)
+      .where(eq(startups.id, startupId))
+      .limit(1);
+
+    if (!existing[0]) {
+      throw new Error("Startup not found.");
+    }
+    if (existing[0].status !== "approved") {
+      throw new Error("Only approved startups can be pinned.");
+    }
+
+    const updatedRows = pinned
+      ? await tx.execute<{ id: string; sort_priority: number }>(sql`
+          UPDATE public.startups
+          SET sort_priority = COALESCE((SELECT MAX(s2.sort_priority) FROM public.startups s2), 0) + 1,
+              updated_at = now()
+          WHERE id = ${startupId}::uuid AND status = 'approved'
+          RETURNING id, sort_priority
+        `)
+      : await tx.execute<{ id: string; sort_priority: number }>(sql`
+          UPDATE public.startups
+          SET sort_priority = 0,
+              updated_at = now()
+          WHERE id = ${startupId}::uuid AND status = 'approved'
+          RETURNING id, sort_priority
+        `);
+
+    const newSortPriority = Number(updatedRows[0]?.sort_priority ?? (pinned ? 1 : 0));
+
+    await tx.insert(auditLog).values({
+      actorId: adminUserId,
+      action: pinned ? "startup.pin" : "startup.unpin",
+      targetType: "startup",
+      targetId: startupId,
+      metadata: {
+        pinned,
+        sort_priority: newSortPriority,
+      },
+    });
+
+    return { sortPriority: newSortPriority };
+  });
 }
 
 /**
@@ -1591,6 +1676,7 @@ export async function listAdminStartups(
       const votes = voteMap.get(startup.id) ?? { countedLikes: 0, totalLikes: 0 };
       return {
         ...startup,
+        isPinned: Number(startup.sortPriority ?? 0) > 0,
         duplicateWarning: warning,
         paymentAmountCents: payment?.amountCents ?? null,
         paymentCurrency: payment?.currency ?? null,

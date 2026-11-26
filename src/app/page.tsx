@@ -7,7 +7,7 @@ import {
   listMonths,
   listCategories,
 } from "@/server/startups";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { MonthSelector } from "@/components/discovery/month-selector";
 import { LeaderboardTable } from "@/components/startup/leaderboard-table";
 import {
@@ -51,14 +51,18 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     redirect(resolvedParams.month ? `/?month=${resolvedParams.month}` : "/");
   }
 
-  const user = await getCurrentUser();
+  const authData = await getCurrentUserProfile();
+  const user = authData?.user;
+  const isAdmin = authData?.profile?.role === "admin";
   const months = await listMonths();
   const activeMonth = resolvedParams.month || months[0]?.id || "2026-10-01";
 
   // Fetch leaderboard for active month
-  const leaderboardData = user?.id
-    ? await getLeaderboard(activeMonth, 1, HOME_LIST_LIMIT, user.id)
-    : await getLeaderboard(activeMonth, 1, HOME_LIST_LIMIT);
+  const leaderboardData = isAdmin
+    ? await getLeaderboard(activeMonth, 1, HOME_LIST_LIMIT, user?.id, { includePinned: true })
+    : user?.id
+      ? await getLeaderboard(activeMonth, 1, HOME_LIST_LIMIT, user.id)
+      : await getLeaderboard(activeMonth, 1, HOME_LIST_LIMIT);
 
   // Fetch categories with counts
   const categories = await listCategories();

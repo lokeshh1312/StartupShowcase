@@ -15,6 +15,7 @@ import {
   addComment,
   createStartup,
   moderateStartup,
+  setStartupPinned,
   hideComment,
   deleteStartup,
   updateStartup,
@@ -539,6 +540,42 @@ export async function moderateStartupAction(
     return { success: true, startup: updated };
   } catch (err: unknown) {
     return { error: formatActionError(err) };
+  }
+}
+
+const pinStartupInputSchema = z.object({
+  startupId: z.string().uuid("Invalid startup ID."),
+  pinned: z.boolean(),
+});
+
+/**
+ * Pin or unpin an approved startup (admin only)
+ */
+export async function pinStartupAction(
+  startupId: string,
+  pinned: boolean
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authData = await getCurrentUserProfile();
+  if (!authData || authData.profile.role !== "admin") {
+    return { ok: false, error: "Forbidden: Admin privileges required." };
+  }
+
+  const parsed = pinStartupInputSchema.safeParse({ startupId, pinned });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message || "Invalid input." };
+  }
+
+  try {
+    await setStartupPinned(parsed.data.startupId, parsed.data.pinned, authData.user.id);
+    revalidatePath("/admin");
+    revalidatePath("/");
+    revalidatePath("/browse");
+    revalidatePath("/months", "layout");
+    revalidatePath("/categories", "layout");
+    revalidatePath("/countries", "layout");
+    return { ok: true };
+  } catch (err: unknown) {
+    return { ok: false, error: formatActionError(err) };
   }
 }
 

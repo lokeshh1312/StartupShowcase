@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Search as SearchIcon, X } from "lucide-react";
 import { listStartups, listCategories, listCountries } from "@/server/startups";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { StartupCard } from "@/components/startup/startup-card";
 import { FilterBar } from "@/components/discovery/filter-bar";
 import { type Category, type Stage, type SortOption } from "@/lib/validation";
@@ -47,7 +47,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const sort = typeof resolvedParams.sort === "string" ? (resolvedParams.sort as SortOption) : "trending";
   const page = typeof resolvedParams.page === "string" ? parseInt(resolvedParams.page, 10) || 1 : 1;
 
-  const user = await getCurrentUser();
+  const authData = await getCurrentUserProfile();
+  const user = authData?.user;
+  const isAdmin = authData?.profile?.role === "admin";
   const [startupsResult, categories, countries] = await Promise.all([
     listStartups(
       {
@@ -59,7 +61,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         page,
         pageSize: 18,
       },
-      user?.id
+      user?.id,
+      isAdmin ? { includePinned: true } : undefined
     ),
     listCategories(),
     listCountries(),

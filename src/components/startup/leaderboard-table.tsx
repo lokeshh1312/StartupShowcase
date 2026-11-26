@@ -5,7 +5,7 @@ import { StartupLogo } from "@/components/common/startup-logo";
 import { Badge, StageBadge } from "@/components/common/badge";
 import { VoteButton } from "@/components/startup/vote-button";
 import { CountryFlag } from "@/components/common/country-flag";
-import { MapPin, Image as ImageIcon } from "lucide-react";
+import { MapPin, Image as ImageIcon, Pin } from "lucide-react";
 import { getCountryName } from "@/lib/validation";
 import { isAllowedImageUrl } from "@/lib/images";
 import type { FormattedStartup } from "@/server/startups";
@@ -110,6 +110,15 @@ export function LeaderboardTable({
                       code={startup.countryCode}
                       className="ml-1.5 shrink-0"
                     />
+                    {startup.isPinned && (
+                      <span
+                        className="inline-flex shrink-0 ml-1"
+                        aria-label="Pinned (admin only)"
+                        title="Pinned (admin only)"
+                      >
+                        <Pin className="w-3 h-3 text-brand-500 opacity-80" aria-hidden="true" />
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-1.5 min-w-0 overflow-hidden flex-nowrap">
                     <Badge
@@ -222,9 +231,20 @@ export function LeaderboardTable({
 
                 {/* Col 3: Startup Idea Title + Description clamped to 2 lines */}
                 <div className="min-w-0 pr-2">
-                  <h4 className="font-semibold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors text-base line-clamp-1">
-                    {startup.ideaTitle || startup.name}
-                  </h4>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <h4 className="font-semibold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors text-base line-clamp-1">
+                      {startup.ideaTitle || startup.name}
+                    </h4>
+                    {startup.isPinned && (
+                      <span
+                        className="inline-flex shrink-0"
+                        aria-label="Pinned (admin only)"
+                        title="Pinned (admin only)"
+                      >
+                        <Pin className="w-3 h-3 text-brand-500 opacity-80" aria-hidden="true" />
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs xl:text-sm leading-snug text-slate-600 dark:text-slate-400 break-words [overflow-wrap:anywhere] mt-0.5 line-clamp-2">
                     {startup.description || startup.tagline}
                   </p>
