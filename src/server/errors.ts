@@ -35,7 +35,9 @@ function isUserFacingError(message: string): boolean {
     lower.includes("startups with paid or refunded payments cannot be deleted") ||
     lower.includes("payment records cannot be deleted unless older than 7 days") ||
     lower.includes("we've received your payment") ||
-    lower.includes("your submission is moving to review")
+    lower.includes("your submission is moving to review") ||
+    lower.includes("live listings can be updated by our team") ||
+    lower.includes("can no longer be edited here")
   ) {
     return true;
   }

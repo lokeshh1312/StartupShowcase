@@ -1,9 +1,10 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ShieldAlert, ArrowLeft } from "lucide-react";
+import { ShieldAlert, ArrowLeft, Lock, Mail } from "lucide-react";
 import { getCurrentUserProfile } from "@/lib/supabase/server";
 import { getAvailableCountries } from "@/lib/validation";
+import { getContactEmail, getStartupUpdateMailto } from "@/lib/company";
 import { getStartupBySlug } from "@/server/startups";
 import { SubmitStartupForm } from "@/components/startup/submit-form";
 import type { Metadata } from "next";
@@ -43,6 +44,14 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
     }
   }
 
+  const isLockedForOwner = Boolean(
+    editingStartup &&
+      profile.role !== "admin" &&
+      editingStartup.status !== "pending" &&
+      editingStartup.status !== "awaiting_payment"
+  );
+  const contactEmail = getContactEmail();
+
   return (
     <div className="relative isolate min-h-screen">
 
@@ -61,14 +70,20 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
         {/* Header */}
         <div className="space-y-3">
           <h1 className="text-[30px] sm:text-[36px] font-semibold leading-[1.15] text-slate-900 dark:text-white tracking-tight">
-            {editingStartup ? `Edit: ${editingStartup.name}` : "Submit Your Startup"}
+            {editingStartup
+              ? isLockedForOwner
+                ? "This listing is live"
+                : `Edit: ${editingStartup.name}`
+              : "Submit Your Startup"}
           </h1>
 
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-            {editingStartup
-              ? "Update your pending submission details. Any uploaded replacement images will automatically replace existing files."
-              : "Showcase your product, prototype, or early venture. Submissions are reviewed for authenticity and placed in the upcoming monthly cohort rankings."}
-          </p>
+          {!isLockedForOwner && (
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              {editingStartup
+                ? "Update your pending submission details. Any uploaded replacement images will automatically replace existing files."
+                : "Showcase your product, prototype, or early venture. Submissions are reviewed for authenticity and placed in the upcoming monthly cohort rankings."}
+            </p>
+          )}
         </div>
 
         {!isFounderOrAdmin ? (
@@ -83,6 +98,38 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
             <p className="text-xs text-amber-700 dark:text-amber-300">
               If you are a founder and registered under another role, please register or sign in with a founder account.
             </p>
+          </div>
+        ) : isLockedForOwner && editingStartup ? (
+          <div className="p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-white/[0.03] border border-slate-200/90 dark:border-white/10 space-y-5 shadow-xs backdrop-blur-md">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-brand-50 dark:bg-brand-950/40 border border-brand-200/60 dark:border-brand-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  This listing is live
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed break-words">
+                  Live listings can be updated by our team. Email {contactEmail} with your changes.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+              <a
+                href={getStartupUpdateMailto(editingStartup.name)}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white dark:text-[#0e0d0d] font-medium text-xs sm:text-sm transition-colors shadow-xs focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 w-full sm:w-auto"
+              >
+                <Mail className="w-4 h-4 shrink-0" />
+                <span>Email us your changes</span>
+              </a>
+              <Link
+                href="/me/submissions"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 transition-colors border border-slate-200/60 dark:border-white/10 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500 w-full sm:w-auto"
+              >
+                <span>Back to My Submissions</span>
+              </Link>
+            </div>
           </div>
         ) : (
           <SubmitStartupForm
