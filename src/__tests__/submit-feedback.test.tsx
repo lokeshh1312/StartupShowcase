@@ -235,4 +235,11 @@ describe("SubmitStartupForm feedback & error handling", () => {
       expect(err).toBeDefined();
     });
   });
+
+  it("displays recommended pixel size hints on the logo and cover upload boxes", () => {
+    render(<SubmitStartupForm countries={dummyCountries} />);
+
+    expect(screen.getByText(/512 × 512/)).toBeDefined();
+    expect(screen.getByText(/1600 × 900/)).toBeDefined();
+  });
 });

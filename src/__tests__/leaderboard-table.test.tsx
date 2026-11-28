@@ -261,4 +261,22 @@ describe("LeaderboardTable Redesign", () => {
     expect(countryCol?.className).toContain("pl-3");
     expect(countryCol?.className).toContain("xl:pl-4");
   });
+
+  it("displays short country name 'USA' with full name 'United States of America' in title tooltip", () => {
+    const usStartup: FormattedStartup & { rank?: number } = {
+      ...mockStartups[0],
+      id: "startup-us",
+      name: "US Startup",
+      slug: "us-startup",
+      countryCode: "US",
+      rank: 1,
+    };
+
+    const { container } = render(<LeaderboardTable startups={[usStartup]} />);
+    const desktopContainer = container.querySelector(".lg\\:flex");
+    const countryEl = desktopContainer?.querySelector('[title="United States of America"]');
+    expect(countryEl).not.toBeNull();
+    expect(countryEl?.textContent).toContain("USA");
+    expect(countryEl?.textContent).not.toContain("United States of America");
+  });
 });

@@ -136,6 +136,59 @@ export function getCountryName(code?: string | null, lang = "en"): string {
   return countries.getName(code.toUpperCase(), lang) || code.toUpperCase();
 }
 
+const SHORT_COUNTRY_NAMES: Record<string, string> = {
+  US: "USA",
+  AE: "UAE",
+  GB: "UK",
+  KR: "South Korea",
+  KP: "North Korea",
+  RU: "Russia",
+  CZ: "Czechia",
+  CD: "DR Congo",
+  CG: "Congo",
+  CF: "CAR",
+  BA: "Bosnia",
+  TT: "T&T",
+  PG: "PNG",
+  VA: "Vatican",
+  ST: "Sao Tome",
+  SZ: "Eswatini",
+  MK: "North Macedonia",
+  SA: "Saudi Arabia",
+  NZ: "New Zealand",
+  ZA: "South Africa",
+  LK: "Sri Lanka",
+  PS: "Palestine",
+  VN: "Vietnam",
+  TZ: "Tanzania",
+  IR: "Iran",
+  SY: "Syria",
+  LA: "Laos",
+  MD: "Moldova",
+  BO: "Bolivia",
+  VE: "Venezuela",
+  BN: "Brunei",
+  CV: "Cape Verde",
+  TW: "Taiwan",
+  HK: "Hong Kong",
+  MO: "Macao",
+  FM: "Micronesia",
+  KN: "St Kitts & Nevis",
+  VC: "St Vincent",
+  AG: "Antigua & Barbuda",
+  DO: "Dominican Rep.",
+};
+
+// Helper to look up short country name for compact list displays
+export function getShortCountryName(code?: string | null, lang = "en"): string {
+  if (!code || typeof code !== "string") return "";
+  if (lang === "en") {
+    const short = SHORT_COUNTRY_NAMES[code.toUpperCase()];
+    if (short) return short;
+  }
+  return getCountryName(code, lang);
+}
+
 // Helper to list all valid countries
 export function getAvailableCountries(lang = "en"): Array<{ code: string; name: string }> {
   const names = countries.getNames(lang);

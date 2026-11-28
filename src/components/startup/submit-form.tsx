@@ -628,14 +628,17 @@ export function SubmitStartupForm({
                   type="button"
                   disabled={logoUploading}
                   onClick={() => logoFileInputRef.current?.click()}
-                  className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-400 rounded-2xl bg-slate-50/50 dark:bg-white/[0.02] transition-colors text-slate-600 dark:text-slate-300 cursor-pointer disabled:opacity-60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                  className="w-full min-h-[144px] flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-400 rounded-2xl bg-slate-50/50 dark:bg-white/[0.02] transition-colors text-slate-600 dark:text-slate-300 cursor-pointer disabled:opacity-60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                   <Upload className="w-6 h-6 mb-2 text-slate-400" />
                   <span className="text-xs font-bold">
                     {logoUploading ? "Uploading & Verifying..." : "Upload Logo Image"}
                   </span>
-                  <span className="text-[11px] text-slate-400 mt-1">
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 text-center">
                     PNG, JPEG, WebP up to 2MB
+                  </span>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 text-center">
+                    Recommended: 512 × 512 px (square). Minimum 256 × 256 px.
                   </span>
                 </button>
               </div>
@@ -680,14 +683,17 @@ export function SubmitStartupForm({
                   type="button"
                   disabled={coverUploading}
                   onClick={() => coverFileInputRef.current?.click()}
-                  className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-400 rounded-2xl bg-slate-50/50 dark:bg-white/[0.02] transition-colors text-slate-600 dark:text-slate-300 cursor-pointer disabled:opacity-60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
+                  className="w-full min-h-[144px] flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-white/10 hover:border-brand-500 dark:hover:border-brand-400 rounded-2xl bg-slate-50/50 dark:bg-white/[0.02] transition-colors text-slate-600 dark:text-slate-300 cursor-pointer disabled:opacity-60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                   <Upload className="w-6 h-6 mb-2 text-slate-400" />
                   <span className="text-xs font-bold">
                     {coverUploading ? "Uploading & Verifying..." : "Upload Cover Image"}
                   </span>
-                  <span className="text-[11px] text-slate-400 mt-1">
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 text-center">
                     Landscape banner image up to 2MB
+                  </span>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 text-center">
+                    Recommended: 1600 × 900 px (16:9). Minimum 1200 × 675 px.
                   </span>
                 </button>
               </div>

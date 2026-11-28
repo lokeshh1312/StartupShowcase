@@ -6,7 +6,7 @@ import { Badge, StageBadge } from "@/components/common/badge";
 import { VoteButton } from "@/components/startup/vote-button";
 import { CountryFlag } from "@/components/common/country-flag";
 import { MapPin, Image as ImageIcon, Pin } from "lucide-react";
-import { getCountryName } from "@/lib/validation";
+import { getCountryName, getShortCountryName } from "@/lib/validation";
 import { isAllowedImageUrl } from "@/lib/images";
 import type { FormattedStartup } from "@/server/startups";
 
@@ -172,7 +172,8 @@ export function LeaderboardTable({
       <div className="hidden lg:flex lg:flex-col gap-1">
         {startups.map((startup, index) => {
           const rank = startup.rank || index + 1;
-          const country = getCountryName(startup.countryCode);
+          const country = getShortCountryName(startup.countryCode);
+          const fullCountry = getCountryName(startup.countryCode);
           const rawImage = startup.coverImage || startup.thumbnail;
           const hasImage = Boolean(rawImage && isAllowedImageUrl(rawImage));
           const gradientClass =
@@ -190,7 +191,7 @@ export function LeaderboardTable({
                 aria-label={`View ${startup.name}`}
               />
 
-              <div className="relative py-[0.5px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[84px_90px_minmax(0,1fr)_100px_170px_96px_56px] xl:grid-cols-[100px_100px_minmax(0,1fr)_134px_295px_155px_60px] gap-4 xl:gap-6">
+              <div className="relative py-[0.5px] pl-6 pr-6 xl:pl-[56px] xl:pr-[61px] grid items-center grid-cols-[84px_90px_minmax(0,1fr)_100px_110px_96px_56px] xl:grid-cols-[100px_100px_minmax(0,1fr)_134px_150px_155px_60px] gap-4 xl:gap-6">
                 <span className="absolute left-3 xl:left-[28px] top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
                   {rank}.
                 </span>
@@ -257,14 +258,14 @@ export function LeaderboardTable({
                   </Badge>
                 </div>
 
-                {/* Col 5: Country with Pin Icon, NO flag, no truncation, may wrap */}
+                {/* Col 5: Country with Pin Icon, NO flag, single-line with tooltip for full name */}
                 <div className="min-w-0 pl-3 xl:pl-4">
                   <div
-                    className="inline-flex items-start gap-1.5 min-w-0 max-w-full text-xs text-slate-600 dark:text-slate-300"
-                    title={country}
+                    className="inline-flex items-center gap-1.5 min-w-0 max-w-full text-xs text-slate-600 dark:text-slate-300"
+                    title={fullCountry}
                   >
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                    <span className="leading-snug whitespace-normal break-words">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="leading-snug whitespace-nowrap truncate">
                       {country}
                     </span>
                   </div>
