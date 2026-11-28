@@ -1,6 +1,6 @@
 # Startup Showcase - Payments & Submissions Architecture
 
-Startup Showcase enforces a mandatory, one-time payment of **Rs 999 INR** (via UPI, QR, PhonePe, netbanking, Indian cards) or **$10.00 USD** (international cards) before any submitted startup enters the administrative review queue.
+Startup Showcase enforces a mandatory, one-time payment for one of three USD plans defined in `src/lib/plans.ts` — **Startup Listing ($9 USD)**, **Investor Connect ($199 USD)**, or **Investor Ready + Connect ($999 USD)** — charged in USD by international card via Razorpay before any submitted startup enters the administrative review queue.
 
 ---
 
@@ -16,7 +16,7 @@ Startup Showcase enforces a mandatory, one-time payment of **Rs 999 INR** (via U
      │                               │                                  │ 3. Create startup                 │                              │
      │                               │                                  │    (status = 'awaiting_payment')  │                              │
      │                               │                                  ├─────────────────────────────────────────────────────────────────>│
-     │                               │                                  │ 4. Create Order ($10.00 USD)      │                              │
+     │                               │                                  │ 4. Create Order (plan price in USD)│                              │
      │                               │                                  ├──────────────────────────────────>│                              │
      │                               │                                  │    (order_id: order_xxx)          │                              │
      │                               │                                  │<──────────────────────────────────┤                              │
@@ -56,9 +56,8 @@ Startup Showcase enforces a mandatory, one-time payment of **Rs 999 INR** (via U
 ## 2. Server-Side and Database Invariants
 
 1. **Pricing Invariance**:
-   - USD fee is defined by `SUBMISSION_PRICE_USD_CENTS=1000` (default $10.00 USD).
-   - INR fee is defined by `SUBMISSION_PRICE_INR_PAISE=99900` (default Rs 999.00).
-   - The client **never** specifies an amount; the client may only select currency enum `INR` | `USD`. Amounts are strictly computed server-side.
+   - Plan prices are defined in `src/lib/plans.ts` (`Startup Listing` at **$9 USD**, `Investor Connect` at **$199 USD**, and `Investor Ready + Connect` at **$999 USD**) and are charged in USD by international card via Razorpay.
+   - The client **never** specifies an amount; the client selects a plan key and amounts are strictly computed server-side.
 2. **Database Triggers (`enforce_startup_payment_transition`)**:
    - Any database transition from `awaiting_payment` to `pending` or `approved` requires an existing `paid` record in `public.payments`.
    - Direct database attacks attempting to bypass payment fail with Postgres error `23514` (`check_violation`).
@@ -81,8 +80,6 @@ When running in development or staging:
    RAZORPAY_KEY_SECRET="..."
    RAZORPAY_WEBHOOK_SECRET="..."
    NEXT_PUBLIC_RAZORPAY_KEY_ID="rzp_test_..."
-   SUBMISSION_PRICE_USD_CENTS=1000
-   SUBMISSION_PRICE_INR_PAISE=99900
    ```
 2. When submitting a startup, the checkout popup will appear in Test Mode.
 3. Use Razorpay's test card credentials:
@@ -131,7 +128,7 @@ Webhooks act as an essential safety net for cases where a user closes their brow
 - [ ] Obtain live API keys from Razorpay Dashboard (**Settings** -> **API Keys**).
 - [ ] Confirm key prefix: Live keys **must** begin with `rzp_live_`.
 - [ ] Remove `ALLOW_RAZORPAY_TEST_IN_PRODUCTION` from production environment variables (the server refuses to start if test keys are used in production without this explicit flag).
-- [ ] Set `SUBMISSION_PRICE_USD_CENTS=1000` and `SUBMISSION_PRICE_INR_PAISE=99900` in production environment.
+- [ ] Verify plan prices in `src/lib/plans.ts` ($9, $199, $999 USD) before going live.
 - [ ] Configure the live webhook URL and copy the secret to `RAZORPAY_WEBHOOK_SECRET`.
 - [ ] Verify that international USD card payments are enabled on your Razorpay Merchant Account.
 - [ ] Ensure database migration `supabase/migrations/0009_payments.sql` is applied to your production Supabase database.

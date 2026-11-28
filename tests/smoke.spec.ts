@@ -79,7 +79,7 @@ test.describe("Startup Showcase E2E Smoke Tests", () => {
     const res = await page.goto("/refunds");
     expect(res?.status()).toBe(200);
     await expect(page.locator("h1")).toContainText(/Refund & Cancellation Policy/i);
-    await expect(page.locator("body")).toContainText(/US\$10/i);
+    await expect(page.locator("body")).toContainText("Startup Listing ($9)");
   });
 
   test("Legal and business pages return 200 and contain page title and operating entity", async ({

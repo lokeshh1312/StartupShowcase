@@ -6,6 +6,8 @@ import {
   formatMonthLabel,
   countryCodeSchema,
   formatLocation,
+  getCountryName,
+  getShortCountryName,
   CATEGORIES,
   STAGES,
 } from "../lib/validation";
@@ -116,6 +118,25 @@ describe("Validation Schemas & Normalization", () => {
           city: "Berlin",
         })
       ).toBe("Berlin, Germany");
+    });
+  });
+
+  describe("getShortCountryName", () => {
+    it("returns short overrides for US, AE, GB and handles lowercase", () => {
+      expect(getShortCountryName("US")).toBe("USA");
+      expect(getShortCountryName("us")).toBe("USA");
+      expect(getShortCountryName("AE")).toBe("UAE");
+      expect(getShortCountryName("GB")).toBe("UK");
+    });
+
+    it("falls back to getCountryName for codes without an override and empty/undefined", () => {
+      expect(getShortCountryName("IN")).toBe(getCountryName("IN"));
+      expect(getShortCountryName("")).toBe(getCountryName(""));
+      expect(getShortCountryName(undefined)).toBe(getCountryName(undefined));
+    });
+
+    it("falls back to getCountryName for non-English languages", () => {
+      expect(getShortCountryName("US", "fr")).toBe(getCountryName("US", "fr"));
     });
   });
 
